@@ -163,13 +163,25 @@ Adaptive-Streaming-ai/
 ├── config/
 │   └── model_input_contract_v2.json
 ├── data/
-│   └── processed/
-│       ├── dataset_reactivo.csv
-│       ├── dataset_predictivo.csv
-│       ├── dataset_metadata.json
-│       └── data_dictionary.csv
+│   ├── processed/
+│   │   ├── dataset_reactivo.csv
+│   │   ├── dataset_predictivo.csv
+│   │   ├── dataset_metadata.json
+│   │   └── data_dictionary.csv
+│   └── telemetry/
+│       ├── example_telemetry.csv
+│       └── telemetry_schema.json
+├── docs/
+│   └── telemetry_design.md
 ├── models/
 │   ├── phase1_final_release/
+│   │   ├── manifest.json
+│   │   ├── model_input_contract_v2.json
+│   │   ├── model_metadata_phase1_final.json
+│   │   ├── modelo_reactivo_phase1_final.joblib
+│   │   ├── modelo_predictivo_phase1_final.joblib
+│   │   ├── preprocesador_reactivo_phase1_final.joblib
+│   │   └── preprocesador_predictivo_phase1_final.joblib
 │   ├── modelo_reactivo_phase1_final.joblib
 │   ├── modelo_predictivo_phase1_final.joblib
 │   ├── preprocesador_reactivo_phase1_final.joblib
@@ -180,14 +192,19 @@ Adaptive-Streaming-ai/
 │   ├── 02_entrenamiento_modelos.ipynb
 │   └── 03_prediccion_nuevos_ejemplos.ipynb
 ├── reports/
-│   ├── reporte_final_fase1.md
-│   └── limpieza_documental_final.md
+│   ├── figures/
+│   │   ├── ghent_sample_sessions.png
+│   │   ├── ghent_session_duration.png
+│   │   ├── ghent_throughput_dist.png
+│   │   └── reactivo_target_dist.png
+│   └── reporte_final_fase1.md
 ├── scripts/
 │   └── verify_phase1_release.py
 ├── src/
 │   └── feature_builder_v2.py
 ├── tests/
-│   └── test_phase1_final_release.py
+│   ├── test_phase1_final_release.py
+│   └── test_model_input_contract_v2.py
 ├── AGENTS.md
 ├── README.md
 ├── requirements.txt
