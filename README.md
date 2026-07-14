@@ -151,7 +151,7 @@ Clasificación: **attention**
 El modelo mejoró frente a la primera versión tras aplicar mitigaciones de fuga de datos, pero todavía presenta variabilidad e inestabilidad entre sesiones invisibles.
 
 ## 15. Interpretación de resultados
-- El modelo reactivo reproduce casi a la perfección la heurística introducida originalmente.
+- El modelo reactivo logra una alta precisión al reproducir la heurística introducida originalmente.
 - El modelo predictivo supera al baseline estadístico de forma clara en validación cruzada.
 - Sin embargo, el predictivo tiene un desempeño moderado en test.
 - El recall para eventos de degradación es limitado. Todavía puede omitir degradaciones y generar falsas alarmas.
@@ -159,7 +159,7 @@ El modelo mejoró frente a la primera versión tras aplicar mitigaciones de fuga
 
 ## 16. Estructura del repositorio
 ```
-Adaptive-Streaming-ai/
+StreamML — Streaming Adaptativo mediante Machine Learning/
 ├── config/
 │   └── model_input_contract_v2.json
 ├── data/
@@ -197,7 +197,6 @@ Adaptive-Streaming-ai/
 │   │   ├── ghent_session_duration.png
 │   │   ├── ghent_throughput_dist.png
 │   │   └── reactivo_target_dist.png
-│   └── reporte_final_fase1.md
 ├── scripts/
 │   └── verify_phase1_release.py
 ├── src/
@@ -234,7 +233,7 @@ Comprobación de la integridad del release Phase 1:
 ```bash
 python scripts/verify_phase1_release.py
 ```
-*(Comprueba la existencia del manifiesto, valida los hashes, verifica firmas de entrada y asegura inferencias reproducibles sin fugas).*
+*(Verifica: existencia de archivos; hashes; carga de modelos; carga de preprocesadores; variables esperadas; umbral; reproducibilidad; estados del manifiesto).*
 
 Para pruebas automatizadas:
 ```bash

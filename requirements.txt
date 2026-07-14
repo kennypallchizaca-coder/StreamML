@@ -4,6 +4,4 @@ matplotlib
 seaborn
 scikit-learn
 joblib
-tensorflow
 jupyter
-psutil

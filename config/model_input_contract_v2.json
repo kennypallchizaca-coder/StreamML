@@ -163,6 +163,15 @@
       "nullable": false,
       "models": ["predictive_v2"]
     },
+    "lookback_duration_seconds": {
+      "type": "float",
+      "unit": "seconds",
+      "valid_range": "> 0",
+      "source": "calculated_buffer_120s",
+      "required": true,
+      "nullable": false,
+      "models": ["predictive_v2"]
+    },
     "proportion_below_low": {
       "type": "float",
       "unit": "ratio",

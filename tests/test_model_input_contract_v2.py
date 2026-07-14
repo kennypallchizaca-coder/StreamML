@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import sys
 import os
+import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.feature_builder_v2 import build_predictive_features
@@ -19,7 +20,7 @@ def test_reactive_contract():
         'signal_strength': 'should_be_ignored'
     }
     df = pd.DataFrame([telemetry])
-    
+
     # Comprobar que ping_ms no se usa
     assert 'ping_ms' not in df.columns
     # Extraemos solo lo necesario
@@ -32,19 +33,19 @@ def test_predictive_buffer():
     for i in range(120):
         data.append({'timestamp_utc': i, 'upload_mbps': 5.0 + np.sin(i)})
     df = pd.DataFrame(data)
-    
+
     # Probar construir
     res = build_predictive_features(df)
     assert res.shape == (1, 19)
     assert res['measurements_count'].iloc[0] == 120
     assert 'throughput_mean' in res.columns
-    
+
 def test_insufficient_buffer():
     # Ventana insuficiente falla
     df = pd.DataFrame({'timestamp_utc': [1,2], 'upload_mbps': [5.0, 5.0]})
     with pytest.raises(ValueError, match="Cobertura insuficiente"):
         build_predictive_features(df)
-        
+
 def test_negative_values():
     df = pd.DataFrame({'timestamp_utc': range(120), 'upload_mbps': [-5.0] * 120})
     with pytest.raises(ValueError, match="Valores negativos"):
@@ -56,18 +57,24 @@ def test_missing_columns():
         build_predictive_features(df)
 
 def test_model_loading_and_reproducibility():
-    mod_r = joblib.load('models/modelo_reactivo_shadow_v2.joblib')
-    prep_r = joblib.load('models/preprocesador_reactivo_shadow_v2.joblib')
-    
+    release_dir = 'models/phase1_final_release'
+    manifest_path = os.path.join(release_dir, 'manifest.json')
+
+    with open(manifest_path, 'r') as f:
+        manifest = json.load(f)
+
+    mod_r = joblib.load(os.path.join(release_dir, manifest['reactive_model_path']))
+    prep_r = joblib.load(os.path.join(release_dir, manifest['preprocessors'][0]))
+
     df = pd.DataFrame([{'upload_mbps': 5.5, 'download_mbps': 20.0, 'latency_ms': 45.0}])
     X = prep_r.transform(df)
     p1 = mod_r.predict(X)
     p2 = mod_r.predict(X)
     assert np.array_equal(p1, p2)
-    
-    mod_p = joblib.load('models/modelo_predictivo_shadow_v2.joblib')
-    prep_p = joblib.load('models/preprocesador_predictivo_shadow_v2.joblib')
-    
+
+    mod_p = joblib.load(os.path.join(release_dir, manifest['predictive_model_path']))
+    prep_p = joblib.load(os.path.join(release_dir, manifest['preprocessors'][1]))
+
     data = []
     for i in range(120): data.append({'timestamp_utc': i, 'upload_mbps': 5.0})
     feat = build_predictive_features(pd.DataFrame(data))

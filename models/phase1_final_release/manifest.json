@@ -2,10 +2,10 @@
     "release_name": "Phase 1 Final Models",
     "release_version": "1.0.0-phase1",
     "release_date": "2026-07-14T04:25:03.116500",
-    "project_name": "Adaptive-Streaming-ai",
+    "project_name": "StreamML — Streaming Adaptativo mediante Machine Learning",
     "authors": [
-        "Alexis Guaman",
-        "Cinthya Ramon"
+        "Alexis Guamán",
+        "Cinthya Ramón"
     ],
     "reactive_model": "DecisionTreeClassifier",
     "predictive_model": "RandomForestClassifier",
