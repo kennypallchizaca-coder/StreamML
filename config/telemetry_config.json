@@ -1,8 +1,0 @@
-{
-  "sampling_interval_seconds": 1,
-  "latency_probe_interval_seconds": 5,
-  "latency_target": "1.1.1.1",
-  "network_interface": "auto",
-  "output_directory": "data/telemetry/raw",
-  "source": "system_network"
-}
