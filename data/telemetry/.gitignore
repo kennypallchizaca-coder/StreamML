@@ -1,0 +1,15 @@
+# Ignorar todos los archivos CSV reales generados en esta carpeta
+*.csv
+
+# Ignorar directorios de telemetria Fase 2
+raw/
+raw/*
+events/
+events/*
+metadata/
+metadata/*
+predictions/
+predictions/*
+
+# Excepto los ejemplos ficticios
+!example_telemetry.csv

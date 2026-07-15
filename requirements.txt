@@ -5,3 +5,6 @@ seaborn
 scikit-learn
 joblib
 jupyter
+psutil
+obsws-python
+python-dotenv

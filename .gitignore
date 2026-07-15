@@ -50,6 +50,13 @@ data/raw/**
 data/telemetry/raw/**
 data/telemetry/obs/**
 data/telemetry/pilot/**
+data/telemetry/events/**
+data/telemetry/metadata/**
+data/telemetry/predictions/**
+
+# Coverage
+.coverage
+htmlcov/
 
 # Mantener estructura de carpetas
 !data/raw/.gitkeep
