@@ -1,6 +1,6 @@
 {
   "release_version": "2.0.0",
-  "created_at_utc": "2026-07-17T03:58:12.784565+00:00",
+  "created_at_utc": "2026-07-17T04:18:47.358892+00:00",
   "model_role": "reactive",
   "model_path": "models/release/reactive/model.joblib",
   "dataset_path": "data/processed/reactive_dataset.csv",
