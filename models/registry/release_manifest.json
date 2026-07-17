@@ -1,0 +1,348 @@
+{
+  "release_version": "2.0.0",
+  "official_release": true,
+  "created_at_utc": "2026-07-17T05:26:42.781738+00:00",
+  "offline_release": true,
+  "reactive_model_ready": true,
+  "predictive_model_ready": true,
+  "offline_demo_ready": true,
+  "reactive_model": {
+    "path": "models/registry/reactive/model.joblib",
+    "selected_model": "DecisionTreeClassifier",
+    "features": [
+      "upload_mbps",
+      "download_mbps",
+      "latency_ms"
+    ],
+    "classes": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "validation": {
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "precision_by_class": {
+        "low": 1.0,
+        "medium": 1.0,
+        "high": 1.0
+      },
+      "recall_by_class": {
+        "low": 1.0,
+        "medium": 1.0,
+        "high": 1.0
+      },
+      "f1_by_class": {
+        "low": 1.0,
+        "medium": 1.0,
+        "high": 1.0
+      },
+      "support_by_class": {
+        "low": 520,
+        "medium": 411,
+        "high": 4406
+      },
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          520,
+          0,
+          0
+        ],
+        [
+          0,
+          411,
+          0
+        ],
+        [
+          0,
+          0,
+          4406
+        ]
+      ],
+      "labels": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "test": {
+      "accuracy": 0.9996252576353757,
+      "balanced_accuracy": 0.9982905982905983,
+      "precision_by_class": {
+        "low": 1.0,
+        "medium": 1.0,
+        "high": 0.9995467935644686
+      },
+      "recall_by_class": {
+        "low": 1.0,
+        "medium": 0.9948717948717949,
+        "high": 1.0
+      },
+      "f1_by_class": {
+        "low": 1.0,
+        "medium": 0.9974293059125964,
+        "high": 0.9997733454215775
+      },
+      "support_by_class": {
+        "low": 536,
+        "medium": 390,
+        "high": 4411
+      },
+      "macro_f1": 0.9990675504447246,
+      "confusion_matrix": [
+        [
+          536,
+          0,
+          0
+        ],
+        [
+          0,
+          388,
+          2
+        ],
+        [
+          0,
+          0,
+          4411
+        ]
+      ],
+      "labels": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "baseline": {
+      "model": "DummyClassifier(strategy='most_frequent')",
+      "test": {
+        "accuracy": 0.8264942851789395,
+        "balanced_accuracy": 0.3333333333333333,
+        "precision_by_class": {
+          "low": 0.0,
+          "medium": 0.0,
+          "high": 0.8264942851789395
+        },
+        "recall_by_class": {
+          "low": 0.0,
+          "medium": 0.0,
+          "high": 1.0
+        },
+        "f1_by_class": {
+          "low": 0.0,
+          "medium": 0.0,
+          "high": 0.9050061551087403
+        },
+        "support_by_class": {
+          "low": 536,
+          "medium": 390,
+          "high": 4411
+        },
+        "macro_f1": 0.3016687183695801,
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            536
+          ],
+          [
+            0,
+            0,
+            390
+          ],
+          [
+            0,
+            0,
+            4411
+          ]
+        ],
+        "labels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      }
+    },
+    "dataset": "data/processed/reactive_dataset.csv",
+    "dataset_sha256": "11f891472ef06071626514d214d075b1cd049b1c0496302ecbe1dca66024b116"
+  },
+  "predictive_model": {
+    "path": "models/registry/predictive/model.joblib",
+    "selected_model": "RandomForestClassifier",
+    "features": [
+      "throughput_mean",
+      "throughput_median",
+      "throughput_min",
+      "throughput_max",
+      "throughput_std",
+      "throughput_p10",
+      "throughput_p25",
+      "throughput_first",
+      "throughput_last",
+      "throughput_change",
+      "throughput_slope",
+      "throughput_coefficient_variation",
+      "measurements_count",
+      "lookback_duration_seconds",
+      "proportion_below_low",
+      "proportion_below_medium",
+      "proportion_below_high",
+      "current_profile",
+      "required_capacity_mbps"
+    ],
+    "classes": [
+      "maintain",
+      "downgrade_needed"
+    ],
+    "threshold": 0.5,
+    "validation": {
+      "accuracy": 0.9953416149068323,
+      "balanced_accuracy": 0.9972826086956521,
+      "precision_by_class": {
+        "maintain": 0.968421052631579,
+        "downgrade_needed": 1.0
+      },
+      "recall_by_class": {
+        "maintain": 1.0,
+        "downgrade_needed": 0.9945652173913043
+      },
+      "f1_by_class": {
+        "maintain": 0.983957219251337,
+        "downgrade_needed": 0.997275204359673
+      },
+      "support_by_class": {
+        "maintain": 92,
+        "downgrade_needed": 552
+      },
+      "macro_f1": 0.990616211805505,
+      "recall_downgrade_needed": 0.9945652173913043,
+      "pr_auc": 0.9999901721833477,
+      "roc_auc": 0.9999704631379962,
+      "confusion_matrix": [
+        [
+          92,
+          0
+        ],
+        [
+          3,
+          549
+        ]
+      ],
+      "false_positives": 0,
+      "false_negatives": 3,
+      "threshold": 0.5
+    },
+    "test": {
+      "accuracy": 0.979702300405954,
+      "balanced_accuracy": 0.9568477645727221,
+      "precision_by_class": {
+        "maintain": 0.828125,
+        "downgrade_needed": 0.9940740740740741
+      },
+      "recall_by_class": {
+        "maintain": 0.9298245614035088,
+        "downgrade_needed": 0.9838709677419355
+      },
+      "f1_by_class": {
+        "maintain": 0.8760330578512396,
+        "downgrade_needed": 0.9889462048636699
+      },
+      "support_by_class": {
+        "maintain": 57,
+        "downgrade_needed": 682
+      },
+      "macro_f1": 0.9324896313574548,
+      "recall_downgrade_needed": 0.9838709677419355,
+      "pr_auc": 0.9994872787009883,
+      "roc_auc": 0.996218552245717,
+      "confusion_matrix": [
+        [
+          53,
+          4
+        ],
+        [
+          11,
+          671
+        ]
+      ],
+      "false_positives": 4,
+      "false_negatives": 11,
+      "threshold": 0.5,
+      "macro_f1_session_bootstrap_95ci": {
+        "method": "session bootstrap",
+        "repetitions": 1000,
+        "confidence_level": 0.95,
+        "lower": 0.8289296225107369,
+        "upper": 1.0
+      }
+    },
+    "baseline": {
+      "model": "DummyClassifier(strategy='most_frequent')",
+      "test": {
+        "accuracy": 0.9228687415426252,
+        "balanced_accuracy": 0.5,
+        "precision_by_class": {
+          "maintain": 0.0,
+          "downgrade_needed": 0.9228687415426252
+        },
+        "recall_by_class": {
+          "maintain": 0.0,
+          "downgrade_needed": 1.0
+        },
+        "f1_by_class": {
+          "maintain": 0.0,
+          "downgrade_needed": 0.9598874032371569
+        },
+        "support_by_class": {
+          "maintain": 57,
+          "downgrade_needed": 682
+        },
+        "macro_f1": 0.47994370161857847,
+        "recall_downgrade_needed": 1.0,
+        "pr_auc": 0.9228687415426252,
+        "roc_auc": 0.5,
+        "confusion_matrix": [
+          [
+            0,
+            57
+          ],
+          [
+            0,
+            682
+          ]
+        ],
+        "false_positives": 57,
+        "false_negatives": 0,
+        "threshold": 0.5
+      }
+    },
+    "dataset": "data/processed/predictive_dataset.csv",
+    "dataset_sha256": "138e91be82a8ce9e7d236e89534f480dc213f038c48cbf0cdf23e0689ee28256"
+  },
+  "random_state": 42,
+  "library_versions": [
+    "pandas==3.0.3",
+    "numpy==2.4.6",
+    "scikit-learn==1.9.0",
+    "joblib==1.5.3",
+    "matplotlib==3.11.0",
+    "pytest==9.1.1"
+  ],
+  "sha256_hashes": {
+    "models/registry/reactive/model.joblib": "71c19fe0f350179fb381f6f71acad1612ccaab8563c638d174896e84a8acfa37",
+    "models/registry/reactive/feature_contract.json": "24e756c012a704f2992358190c97bf13ddd2635f6a2d9e0dd3a7b2b17d9c396a",
+    "models/registry/reactive/metrics.json": "c95c5c7bcf5886c0bddac1b84c3d20fe090906609f53286fd660ccf25a1b509b",
+    "models/registry/reactive/class_mapping.json": "1b844df874daa50899854ff36fd78206a788e1f293200c45b0b89af34bc61fce",
+    "models/registry/reactive/training_manifest.json": "29ba317ed51fcab5ad5607c9e9ffd21161f246ff6b1ba0ab0bc474c33395b6ed",
+    "models/registry/reactive/source_manifest.json": "2203be0cb2feb874e99178267157d92063adc4f3bb228b4b8e67dcf9e2cd8c9f",
+    "models/registry/reactive/requirements_snapshot.txt": "719e984fb0f92c0d54303eb647d314de05475a9f3fdafe360989fffd9f73e0bb",
+    "models/registry/predictive/model.joblib": "1f1c5ede45847252df85cc0c5a595677a2db663ff86d3535165bf4da704e24ec",
+    "models/registry/predictive/feature_contract.json": "d82517fd51eae81c9896d6078626830440d0f2553e87579a4eb214460143f731",
+    "models/registry/predictive/metrics.json": "c1b92878747dfe9c3bdac055d4087302ad10523d6651c922ed8e59279e36481d",
+    "models/registry/predictive/class_mapping.json": "529545dbdbeffe193af6c5bcce11ac5a98a3f3319575f0bcba276d4ffdddfcf9",
+    "models/registry/predictive/training_manifest.json": "4aac39a0fa450ead9bcce2c68d56b84cbe74998b82f37bf59c416a1c0fd130be",
+    "models/registry/predictive/source_manifest.json": "2203be0cb2feb874e99178267157d92063adc4f3bb228b4b8e67dcf9e2cd8c9f",
+    "models/registry/predictive/requirements_snapshot.txt": "b2fceacfca3feb162a5938ff4e078bbc505f85a735eb8a25d562db3b6e095cf4",
+    "models/registry/predictive/threshold.json": "4592185c95febbd560ad9acbcddba270eab41dab267c5d67261443985e5ec86c"
+  }
+}

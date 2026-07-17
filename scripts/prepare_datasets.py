@@ -10,12 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.dataset_builder import build_dataset, build_schema, write_json
-from src.reactive_dataset import build_reactive_dataset, update_source_manifest, write_dataset_card
+from src.streamml.data.dataset_builder import build_dataset, build_schema, write_json
+from src.streamml.data.reactive_dataset import build_reactive_dataset, update_source_manifest, write_dataset_card
 
 
 def main() -> None:
-    config = json.loads((ROOT / "config" / "dataset_config.json").read_text(encoding="utf-8"))
+    config = json.loads(
+        (ROOT / "src" / "streamml" / "config" / "dataset_config.json").read_text(encoding="utf-8")
+    )
     manifest_path = ROOT / config["paths"]["source_manifest"]
     if not manifest_path.exists():
         raise FileNotFoundError(f"Missing source manifest: {manifest_path.relative_to(ROOT)}")

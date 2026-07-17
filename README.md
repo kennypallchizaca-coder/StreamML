@@ -4,9 +4,9 @@
 
 **Integrantes:** Alexis Guaman y Cinthya Ramon.
 
-StreamML es una entrega reproducible de Machine Learning offline orientada a dos decisiones relacionadas con la calidad de una transmision: recomendar un perfil segun las condiciones actuales y anticipar si el perfil observado deberia mantenerse o reducirse. El repositorio incluye preparacion de datos, entrenamiento, evaluacion, inferencia, notebooks documentados, pruebas automatizadas y una interfaz Streamlit.
+StreamML es una entrega reproducible de Machine Learning orientada a dos decisiones relacionadas con la calidad de una transmision: recomendar un perfil segun las condiciones actuales y anticipar si el perfil observado deberia mantenerse o reducirse. El repositorio conserva preparacion, entrenamiento, evaluacion y notebooks para uso interno, y añade una aplicacion web online separada para clientes.
 
-La publicacion actual no controla una transmision real. VDO.Ninja, OBS Studio, RTMP, MediaMTX, FFmpeg, telemetria en vivo, agente autonomo y video de respaldo pertenecen a la arquitectura prevista, pero no tienen una implementacion activa en este arbol.
+La aplicacion online implementa React, FastAPI, WebSocket, un conector local de OBS y configuracion independiente de MediaMTX/nginx. Opera en modo de solo monitoreo: no cambia escenas, bitrate, perfiles ni ninguna configuracion de OBS. La integracion aun no se declara lista para produccion porque las pruebas con telefono, OBS y video real permanecen pendientes.
 
 ## Objetivos de Machine Learning
 
@@ -26,7 +26,7 @@ Utiliza exactamente estas variables:
 | `download_mbps` | Mbps | Velocidad actual de descarga |
 | `latency_ms` | ms | Latencia actual |
 
-El target es una pseudoetiqueta construida con umbrales de capacidad y penalizaciones por latencia. Su definicion completa se conserva en `config/reactive_feature_contract.json`.
+El target es una pseudoetiqueta construida con umbrales de capacidad y penalizaciones por latencia. Su definicion completa se conserva en `src/streamml/config/reactive_feature_contract.json`.
 
 ### Modelo predictivo
 
@@ -37,7 +37,7 @@ Clasifica una ventana temporal en una de dos clases:
 
 El contrato utiliza 19 estadisticas calculadas exclusivamente sobre **120 segundos historicos** y una etiqueta calculada en los **30 segundos estrictamente posteriores**. Entre las variables se encuentran media, mediana, minimos, maximos, percentiles, dispersion, pendiente, cambio de throughput, proporciones bajo capacidades requeridas y perfil actual.
 
-El modelo no recibe columnas futuras ni el target como entrada. La lista y el orden exactos se encuentran en `config/predictive_feature_contract.json`.
+El modelo no recibe columnas futuras ni el target como entrada. La lista y el orden exactos se encuentran en `src/streamml/config/predictive_feature_contract.json`.
 
 ## Metodologia
 
@@ -78,7 +78,7 @@ El modelo predictivo utiliza un threshold de `0.50`, elegido con validacion. En 
 ## Modelos publicados
 
 ```text
-models/release/
+models/registry/
 ├── release_manifest.json
 ├── reactive/
 │   ├── model.joblib
@@ -144,41 +144,38 @@ jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeou
 jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/03_model_inference.ipynb
 ```
 
-## Interfaz Streamlit
+## Aplicacion web online
 
-La aplicacion ofrece cinco vistas:
+La superficie comercial se encuentra en `apps/frontend/` y ofrece inicio de sesion, panel, creacion de transmision, monitoreo en vivo, historial, modelos y configuracion. La API de `apps/api/` persiste usuarios, sesiones, vinculaciones, telemetria, predicciones y auditoria con aislamiento por propietario.
 
-1. Inicio.
-2. Modelo reactivo.
-3. Modelo predictivo.
-4. Prediccion mediante CSV.
-5. Resultados y metricas.
+El conector de `apps/connector/` solo se conecta a OBS WebSocket 5.x en loopback y solo invoca `GetStats` y `GetStreamStatus`. FPS, frames omitidos, congestion y bitrate de salida estan disponibles; latencia, perdida de paquetes y capacidad real de red no estan disponibles desde OBS. El bitrate de salida nunca se reutiliza como capacidad.
 
-La GUI carga exclusivamente:
-
-- `models/release/reactive/model.joblib`
-- `models/release/predictive/model.joblib`
-
-Los contratos y el threshold se leen de los artefactos oficiales. Si un CSV no contiene las columnas requeridas, la aplicacion informa cuales faltan y no ejecuta una prediccion incompatible.
+MediaMTX se ejecuta como servicio independiente. La publicacion preferida es WHIP y RTMP queda como fallback local; el navegador intenta WHEP/WebRTC y despues HLS. VDO.Ninja usa enlaces derivados que no se guardan en texto plano, QR en memoria e `iframe` con origen validado.
 
 ```powershell
-streamlit run app.py
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build
 ```
+
+Consulta `docs/deployment.md` y `deployment/.env.example` antes de iniciar. HTTPS/WSS y secretos de entorno son obligatorios fuera de desarrollo local.
 
 ## Estructura del repositorio
 
 ```text
-config/             configuracion del dataset y contratos de entrada
+apps/api/           API FastAPI online
+apps/frontend/      interfaz comercial React
+apps/connector/     conector local OBS de solo lectura
 data/raw/           manifiesto, licencia y fuentes locales ignoradas por Git
 data/interim/       transformaciones y metadatos regenerables
 data/processed/     datasets finales de entrenamiento
-models/release/     modelos oficiales y artefactos verificables
+models/registry/    modelos oficiales y artefactos verificables
 notebooks/          preparacion, entrenamiento e inferencia documentados
 reports/            fichas de los datasets
-scripts/            comandos reproducibles del flujo
-src/                implementacion reutilizable de datos y modelos
-tests/              pruebas de contratos, splits, etiquetas y publicacion
-app.py              interfaz Streamlit
+scripts/            preparacion, entrenamiento, evaluacion, demos y verificadores
+src/streamml/       dominio, datos, entrenamiento, inferencia y servicios compartidos
+infrastructure/      MediaMTX, nginx y Docker Compose
+deployment/         configuracion de despliegue
+docs/               documentacion operativa
+tests/              pruebas unitarias, integracion, API, modelos y extremo a extremo
 ```
 
 ## Instalacion
@@ -225,22 +222,24 @@ La ultima ejecucion completa produjo:
 - Notebook de preparacion: 9/9 celdas de codigo, sin errores.
 - Notebook de entrenamiento: 9/9 celdas de codigo, sin errores.
 - Notebook de inferencia: 8/8 celdas de codigo, sin errores.
-- Pruebas automatizadas: `24 passed`.
+- Pruebas automatizadas: `37 passed`.
+- Frontend React: compilacion de produccion correcta.
+- Docker Compose: configuracion valida sin iniciar servicios.
 - Verificador: `STREAMML RELEASE VERIFIED`.
 - `git diff --check`: sin errores de whitespace.
 
 ## Limitaciones
 
-Los artefactos actuales no soportan:
+Los artefactos ML actuales no soportan:
 
 - Predicciones a 5, 10, 20 o 30 minutos.
 - Jitter o perdida de paquetes como entradas.
 - Clase predictiva `critical`.
-- Control directo de OBS o FFmpeg.
+- Control directo de OBS o FFmpeg; esta ausencia es intencional en la aplicacion online.
 - Decisiones de un agente autonomo.
 - Histeresis, tiempo minimo entre cambios o video de respaldo.
 
-Estas capacidades requieren datos operativos reales, nuevos contratos, nuevas etiquetas, reentrenamiento y pruebas de integracion. No se simulan mediante reglas manuales porque eso produciria resultados que no pertenecen a los modelos publicados.
+Las nuevas variables o decisiones de control requieren datos operativos reales, contratos, etiquetas, reentrenamiento y pruebas de integracion. No se simulan mediante reglas manuales porque eso produciria resultados que no pertenecen a los modelos publicados. La infraestructura de VDO.Ninja y MediaMTX ya esta configurada, pero su validacion fisica continua pendiente.
 
 ## Seguridad
 

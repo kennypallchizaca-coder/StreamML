@@ -1,0 +1,105 @@
+name: streamml
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      STREAMML_DATABASE_PATH: /app/runtime/streamml.sqlite3
+      STREAMML_TOKEN_SECRET: ${STREAMML_TOKEN_SECRET:?Set STREAMML_TOKEN_SECRET in the deployment env file}
+      STREAMML_MEDIA_AUTH_SECRET: ${STREAMML_MEDIA_AUTH_SECRET:?Set STREAMML_MEDIA_AUTH_SECRET in the deployment env file}
+      STREAMML_ALLOWED_ORIGINS: ${STREAMML_ALLOWED_ORIGINS:?Set STREAMML_ALLOWED_ORIGINS in the deployment env file}
+      STREAMML_MEDIAMTX_PUBLIC_BASE: ${STREAMML_MEDIAMTX_PUBLIC_BASE:?Set STREAMML_MEDIAMTX_PUBLIC_BASE in the deployment env file}
+      STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE: ${STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE:-}
+      STREAMML_BOOTSTRAP_EMAIL: ${STREAMML_BOOTSTRAP_EMAIL:?Set STREAMML_BOOTSTRAP_EMAIL in the deployment env file}
+      STREAMML_BOOTSTRAP_PASSWORD: ${STREAMML_BOOTSTRAP_PASSWORD:?Set STREAMML_BOOTSTRAP_PASSWORD in the deployment env file}
+      STREAMML_COOKIE_SECURE: "true"
+      STREAMML_ENFORCE_HTTPS: "true"
+    volumes:
+      - ../../models/registry:/app/models/registry:ro
+      - api_data:/app/runtime
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_WS_BASE_URL: /ws
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=16m,nosuid,nodev
+      - /var/run:size=4m,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    networks: [edge]
+
+  mediamtx:
+    image: ${MEDIAMTX_IMAGE:-bluenviron/mediamtx:1}
+    restart: unless-stopped
+    environment:
+      MTX_WEBRTCADDITIONALHOSTS: ${MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS:?Set the public MediaMTX host}
+    volumes:
+      - ../mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      # Keep RTMP local by default. Change the bind deliberately only when a
+      # remote OBS publisher and firewall/auth controls have been validated.
+      - "${MEDIAMTX_RTMP_PORT_BIND:-127.0.0.1:1935}:1935"
+      - "${MEDIAMTX_WEBRTC_UDP_PORT_BIND:-0.0.0.0:8189}:8189/udp"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    networks: [backend]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.30.3-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${TLS_CERT_FILE:?Set TLS_CERT_FILE}:/etc/nginx/certs/fullchain.pem:ro
+      - ${TLS_KEY_FILE:?Set TLS_KEY_FILE}:/etc/nginx/certs/privkey.pem:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=16m,nosuid,nodev
+      - /var/run:size=4m,nosuid,nodev
+      - /var/log/nginx:size=16m,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    networks: [edge, backend]
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+      mediamtx:
+        condition: service_started
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  api_data:

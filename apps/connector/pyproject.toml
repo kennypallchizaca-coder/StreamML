@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75,<82"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "streamml-connector"
+version = "0.1.0"
+description = "Read-only local OBS WebSocket 5.x telemetry connector for StreamML"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.28,<1",
+  "keyring>=25.6,<26",
+  "obsws-python>=1.8,<2",
+]
+
+[project.scripts]
+streamml-connector = "streamml_connector.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["streamml_connector*"]
+

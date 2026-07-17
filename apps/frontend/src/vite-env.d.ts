@@ -1,0 +1,11 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL?: string;
+  readonly VITE_WS_BASE_URL?: string;
+  readonly VITE_VDO_NINJA_ORIGINS?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

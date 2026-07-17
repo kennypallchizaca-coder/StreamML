@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.predictive_features import frame_in_contract_order, load_feature_contract
-from src.release_utils import sha256_file
+from src.streamml.features.predictive_features import frame_in_contract_order, load_feature_contract
+from src.streamml.services.release import sha256_file
 
 
 def main() -> None:
@@ -27,20 +27,26 @@ def main() -> None:
     assert {path.name for path in (ROOT / "data" / "processed").glob("*") if path.is_file()} == {
         "reactive_dataset.csv", "predictive_dataset.csv"
     }
-    release = ROOT / "models" / "release"
+    release = ROOT / "models" / "registry"
     manifest = json.loads((release / "release_manifest.json").read_text(encoding="utf-8"))
     assert manifest["official_release"] is True
     for relative, expected in manifest["sha256_hashes"].items():
         assert sha256_file(ROOT / relative) == expected, f"Hash mismatch: {relative}"
 
     reactive = joblib.load(release / "reactive" / "model.joblib")
-    reactive_contract = json.loads((ROOT / "config" / "reactive_feature_contract.json").read_text(encoding="utf-8"))
+    reactive_contract = json.loads(
+        (ROOT / "src" / "streamml" / "config" / "reactive_feature_contract.json").read_text(
+            encoding="utf-8"
+        )
+    )
     reactive_data = pd.read_csv(ROOT / "data" / "processed" / "reactive_dataset.csv")
     reactive_x = reactive_data.iloc[[0]].loc[:, reactive_contract["features"]]
     assert np.isfinite(reactive.predict_proba(reactive_x)).all()
 
     predictive = joblib.load(release / "predictive" / "model.joblib")
-    predictive_contract = load_feature_contract(ROOT / "config" / "predictive_feature_contract.json")
+    predictive_contract = load_feature_contract(
+        ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json"
+    )
     predictive_data = pd.read_csv(ROOT / "data" / "processed" / "predictive_dataset.csv")
     predictive_x = frame_in_contract_order(predictive_data.iloc[[0]], predictive_contract)
     assert np.isfinite(predictive.predict_proba(predictive_x)).all()

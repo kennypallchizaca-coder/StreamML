@@ -10,12 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.predictive_training import train_predictive_release
-from src.reactive_training import train_reactive_release
+from src.streamml.training.predictive import train_predictive_release
+from src.streamml.training.reactive import train_reactive_release
 
 
 def main() -> None:
-    config = json.loads((ROOT / "config" / "dataset_config.json").read_text(encoding="utf-8"))
+    config = json.loads(
+        (ROOT / "src" / "streamml" / "config" / "dataset_config.json").read_text(encoding="utf-8")
+    )
     reactive = train_reactive_release(ROOT)
     predictive = train_predictive_release(ROOT, config)
     print(json.dumps({

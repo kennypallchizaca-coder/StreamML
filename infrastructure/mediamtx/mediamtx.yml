@@ -1,0 +1,64 @@
+# StreamML MediaMTX gateway. Authentication is delegated to the API so that
+# publish/read permissions can be scoped to the authenticated user's path.
+logLevel: info
+logDestinations: [stdout]
+logStructured: true
+
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+udpMaxPayloadSize: 1472
+
+authMethod: http
+authHTTPAddress: http://api:8000/api/v1/internal/mediamtx/auth
+authHTTPExclude:
+  # These listeners are never published by Docker Compose and remain internal.
+  - action: api
+  - action: metrics
+  - action: pprof
+
+api: true
+apiAddress: :9997
+metrics: true
+metricsAddress: :9998
+pprof: false
+playback: false
+
+# Unused ingest/read protocols are disabled to reduce the exposed surface.
+rtsp: false
+rtmp: true
+rtmpAddress: :1935
+rtmpEncryption: "no"
+srt: false
+moq: false
+
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsVariant: lowLatency
+hlsAlwaysRemux: false
+hlsAllowOrigins:
+  - https://*
+
+webrtc: true
+webrtcAddress: :8889
+# TLS is terminated by nginx for WHIP/WHEP signaling. WebRTC media remains
+# encrypted with DTLS-SRTP and uses the explicitly published ICE port below.
+webrtcEncryption: false
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: ""
+webrtcIPsFromInterfaces: true
+webrtcAdditionalHosts: []
+webrtcAllowOrigins:
+  - https://*
+
+pathDefaults:
+  source: publisher
+  sourceOnDemand: false
+  maxReaders: 0
+  record: false
+
+paths:
+  # API authorization is still required for each publish/read action. The
+  # opaque stream id maps server-side to one tenant-owned session.
+  "~^stream-[0-9a-f]{32}$": {}

@@ -1,10 +1,17 @@
-pandas
-numpy
-matplotlib
-scikit-learn
-joblib
+# Runtime versions recorded by the official model release.
+pandas==3.0.3
+numpy==2.4.6
+matplotlib==3.11.0
+scikit-learn==1.9.0
+joblib==1.5.3
+pytest==9.1.1
+
+# Internal notebooks.
 jupyter
 notebook
 nbformat
-pytest
-streamlit
+
+# Online API. The connector owns its separate dependencies in apps/connector.
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+httpx==0.28.1

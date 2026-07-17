@@ -15,7 +15,7 @@ con una etiqueta calculada usando los 30 segundos estrictamente futuros.
 
 ## Variables de entrada
 
-Las 19 variables se definen en `config/predictive_feature_contract.json`. Las columnas
+Las 19 variables se definen en `src/streamml/config/predictive_feature_contract.json`. Las columnas
 `future_*`, `target` y `target_code` no se usan como features.
 
 ## Target

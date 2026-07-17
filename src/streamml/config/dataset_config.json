@@ -1,0 +1,121 @@
+{
+  "dataset_version": "2.0.0",
+  "random_state": 42,
+  "source": {
+    "article_id": 19096823,
+    "api_url": "https://api.figshare.com/v2/articles/19096823",
+    "archive_name": "mobile_yt_dataset.zip",
+    "source_dataset": "youtube_mobile_streaming_figshare",
+    "source_version": "2"
+  },
+  "selection": {
+    "session_count": 120,
+    "minimum_total_playtime_seconds": 180,
+    "strata": {
+      "constant_bandwidth": 40,
+      "one_to_ten_changes": 40,
+      "more_than_ten_changes": 40
+    },
+    "files_per_session": [
+      "application_data.csv",
+      "bw_settings.csv"
+    ]
+  },
+  "windowing": {
+    "lookback_seconds": 120,
+    "future_horizon_seconds": 30,
+    "step_seconds": 10,
+    "sampling_interval_seconds": 1,
+    "minimum_measurements": 120
+  },
+  "profiles": {
+    "mapping": {
+      "low": 1,
+      "medium": 2,
+      "high": 3
+    },
+    "required_capacity_mbps": {
+      "1": 1.35,
+      "2": 3.375,
+      "3": 6.75
+    },
+    "youtube_itag_to_profile": {
+      "160": 1,
+      "133": 1,
+      "134": 1,
+      "278": 1,
+      "242": 1,
+      "243": 1,
+      "135": 2,
+      "136": 2,
+      "244": 2,
+      "247": 2,
+      "298": 2,
+      "302": 2,
+      "137": 3,
+      "248": 3,
+      "299": 3,
+      "303": 3,
+      "271": 3,
+      "308": 3,
+      "313": 3,
+      "315": 3
+    },
+    "youtube_itag_resolution": {
+      "160": "144p",
+      "278": "144p",
+      "133": "240p",
+      "242": "240p",
+      "134": "360p",
+      "243": "360p",
+      "135": "480p",
+      "244": "480p",
+      "136": "720p",
+      "247": "720p",
+      "298": "720p60",
+      "302": "720p60",
+      "137": "1080p",
+      "248": "1080p",
+      "299": "1080p60",
+      "303": "1080p60",
+      "271": "1440p",
+      "308": "1440p60",
+      "313": "2160p",
+      "315": "2160p60"
+    },
+    "profile_definition": {
+      "low": "YouTube video formats up to 360p",
+      "medium": "YouTube video formats from 480p through 720p",
+      "high": "YouTube video formats of 1080p or higher"
+    }
+  },
+  "target": {
+    "future_below_capacity_fraction": 0.30,
+    "maintain_code": 0,
+    "downgrade_needed_code": 1,
+    "pseudo_label": true
+  },
+  "split": {
+    "train_fraction": 0.60,
+    "validation_fraction": 0.20,
+    "test_fraction": 0.20
+  },
+  "threshold_values": [
+    0.30,
+    0.35,
+    0.40,
+    0.45,
+    0.50,
+    0.55,
+    0.60,
+    0.65
+  ],
+  "paths": {
+    "raw_root": "data/raw/youtube_mobile_streaming",
+    "source_manifest": "data/raw/source_manifest.json",
+    "processed_dataset": "data/processed/predictive_dataset.csv",
+    "build_statistics": "data/interim/dataset_build_statistics.json",
+    "dataset_schema": "data/interim/dataset_schema.json",
+    "release_dir": "models/registry/predictive"
+  }
+}
