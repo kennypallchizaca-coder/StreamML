@@ -1,7 +1,7 @@
 {
   "release_version": "3.0.0",
   "official_release": true,
-  "created_at_utc": "2026-07-17T16:13:18.058136+00:00",
+  "created_at_utc": "2026-07-17T17:21:37.432289+00:00",
   "reactive_model_ready": true,
   "predictive_model_ready": true,
   "reactive_model": {
@@ -329,18 +329,18 @@
   "sha256_hashes": {
     "models/registry/reactive/model.joblib": "71c19fe0f350179fb381f6f71acad1612ccaab8563c638d174896e84a8acfa37",
     "models/registry/reactive/feature_contract.json": "24e756c012a704f2992358190c97bf13ddd2635f6a2d9e0dd3a7b2b17d9c396a",
-    "models/registry/reactive/metrics.json": "1eb7f0d0681cc413e8242344e72c8215de7e10ea63d609e67582e8a75e682563",
-    "models/registry/reactive/class_mapping.json": "1b844df874daa50899854ff36fd78206a788e1f293200c45b0b89af34bc61fce",
-    "models/registry/reactive/training_manifest.json": "ab97e1c4f4d1ce5b07ce63b3de2dd7d1fd2612f404950f31cf674ad8d1548ec0",
-    "models/registry/reactive/source_manifest.json": "6f14f4fc1cc1a7af587002de8dccf1dae205e79c56b2859ae7fb7ea326c22f47",
-    "models/registry/reactive/requirements_snapshot.txt": "719e984fb0f92c0d54303eb647d314de05475a9f3fdafe360989fffd9f73e0bb",
+    "models/registry/reactive/metrics.json": "5d4d3f86bf248f8011e60763e5194226fc8f9dcc989a41a330285efa0a9b3da8",
+    "models/registry/reactive/class_mapping.json": "8fa7b63a1ed473c70a8681accbfd6dcde81036470f6a6f47993f07470c79ef6a",
+    "models/registry/reactive/training_manifest.json": "45813aa251a71d3598b3c226ae57f3e68560619f7be2edc2fd5a91fbca605bc0",
+    "models/registry/reactive/source_manifest.json": "79ba6d769993382464d6e0ea1b548978a1e924b39da6f88eb9637f72b0b31229",
+    "models/registry/reactive/requirements_snapshot.txt": "4a015106dc1895e475053845c6ff2a8a2464d87cfc4b3d56e6f3a3674de997be",
     "models/registry/predictive/model.joblib": "91188d60de11b40eb32889e5eb8c531b463c43f19b34af2095b95abb9ddfd5d2",
     "models/registry/predictive/feature_contract.json": "35de2aaccd6f494b78e3111cecc1a97a6e754447714ec5d8920856359b62ea8b",
-    "models/registry/predictive/metrics.json": "beaa6affe6d5e3da2cf0f392f632f41577b6716069cac3865416b9aa26f5f6d8",
-    "models/registry/predictive/class_mapping.json": "529545dbdbeffe193af6c5bcce11ac5a98a3f3319575f0bcba276d4ffdddfcf9",
-    "models/registry/predictive/training_manifest.json": "6dd3ffbaa3027a6afd471dca21175ba4175489de42ac44b7a342ec13619c9b94",
-    "models/registry/predictive/source_manifest.json": "6f14f4fc1cc1a7af587002de8dccf1dae205e79c56b2859ae7fb7ea326c22f47",
-    "models/registry/predictive/requirements_snapshot.txt": "b2fceacfca3feb162a5938ff4e078bbc505f85a735eb8a25d562db3b6e095cf4",
-    "models/registry/predictive/threshold.json": "4592185c95febbd560ad9acbcddba270eab41dab267c5d67261443985e5ec86c"
+    "models/registry/predictive/metrics.json": "91e0bd5d0e96dc0e48fb6cd5caffef04a71ddd231a276b170f5a70dc1ab581e2",
+    "models/registry/predictive/class_mapping.json": "35b4d38a9d1e97ff7c5fbf7b4c7ccdba86a5422ae78973ef811dc9a02ce6639f",
+    "models/registry/predictive/training_manifest.json": "29d6c5f6a14f039a8f8da4ef769a039a589b455d01df853cab7e8a7b0891820b",
+    "models/registry/predictive/source_manifest.json": "79ba6d769993382464d6e0ea1b548978a1e924b39da6f88eb9637f72b0b31229",
+    "models/registry/predictive/requirements_snapshot.txt": "eb6fb932994b1b38c04e2108c3c45c990fc08cfa80a5ade82fd96f5583734de0",
+    "models/registry/predictive/threshold.json": "1982210773bc25cc18049e5d1453204ae9cfa263bf33141f313289c2b460debd"
   }
 }

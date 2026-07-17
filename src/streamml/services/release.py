@@ -35,9 +35,21 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def write_json(path: Path, payload: dict[str, Any]) -> None:
+def write_text_lf(path: Path, text: str) -> None:
+    """Write UTF-8 text with LF bytes on every platform.
+
+    Release hashes are verified byte-for-byte in Linux CI and containers. Using
+    binary output prevents Windows text-mode newline conversion from producing
+    a manifest that only verifies on the machine where it was generated.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    path.write_bytes(normalized.encode("utf-8"))
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    write_text_lf(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def read_json(path: Path) -> dict[str, Any]:

@@ -56,6 +56,8 @@ un cambio de ubicación incrementaría el riesgo sin mejorar el producto.
 - `SECURITY.md` documenta el reporte responsable de vulnerabilidades.
 - Compose usa logs rotativos, apagado ordenado, procesos init, filesystem de
   solo lectura donde aplica y la versión validada `bluenviron/mediamtx:1.19.2`.
+- Los escritores de artefactos verificables emiten UTF-8 con LF explícito. Así
+  los hashes del release son idénticos en Windows, Linux y GitHub Actions.
 
 ## Verificaciones realizadas
 
@@ -70,6 +72,7 @@ un cambio de ubicación incrementaría el riesgo sin mejorar el producto.
 | `npm ls --depth=0` y `npm audit --audit-level=high` | árbol resuelto; 0 vulnerabilidades reportadas |
 | `npm run build` | compilación de producción correcta; advertencia informativa por un chunk HLS > 500 kB |
 | `docker compose ... config --quiet` | configuración válida de API, frontend, MediaMTX, fallback, worker y nginx |
+| Réplica Linux del job Python | instalación del conector incluida; hashes y modelos verificados fuera de Windows |
 | `git diff --check` | sin errores de whitespace |
 
 ## Condiciones externas antes de producción

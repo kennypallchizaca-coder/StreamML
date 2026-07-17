@@ -140,7 +140,7 @@ def main() -> None:
         "Historical 600 s windows and strictly subsequent 600 s horizons are generated."
     )
     temporary = manifest_path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    temporary.write_bytes((json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     temporary.replace(manifest_path)
     print(json.dumps({"selected_sessions": len(selected), "strata": counts}, indent=2))
 

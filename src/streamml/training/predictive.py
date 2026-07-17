@@ -33,6 +33,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from src.streamml.features.predictive_features import FEATURE_COLUMNS, frame_in_contract_order, load_feature_contract
+from src.streamml.services.release import write_json, write_text_lf
 
 
 CLASS_NAMES = ["maintain", "downgrade_needed"]
@@ -335,23 +336,17 @@ def train_predictive_release(root: Path, config: dict) -> dict:
     joblib.dump(final_model, release_dir / "model.joblib")
     shutil.copyfile(contract_path, release_dir / "feature_contract.json")
     shutil.copyfile(root / config["paths"]["source_manifest"], release_dir / "source_manifest.json")
-    (release_dir / "class_mapping.json").write_text(
-        json.dumps({"maintain": 0, "downgrade_needed": 1}, indent=2) + "\n", encoding="utf-8"
+    write_json(release_dir / "class_mapping.json", {"maintain": 0, "downgrade_needed": 1})
+    write_json(
+        release_dir / "threshold.json",
+        {
+            "threshold": threshold,
+            "selected_with": "validation only",
+            "evaluated_values": config["threshold_values"],
+            "policy": "highest downgrade recall among thresholds within 95% of best validation Macro F1",
+        },
     )
-    (release_dir / "threshold.json").write_text(
-        json.dumps(
-            {
-                "threshold": threshold,
-                "selected_with": "validation only",
-                "evaluated_values": config["threshold_values"],
-                "policy": "highest downgrade recall among thresholds within 95% of best validation Macro F1",
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    (release_dir / "requirements_snapshot.txt").write_text(requirements_snapshot(), encoding="utf-8")
+    write_text_lf(release_dir / "requirements_snapshot.txt", requirements_snapshot())
 
     manifest = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -404,12 +399,8 @@ def train_predictive_release(root: Path, config: dict) -> dict:
             "validated_with_public_dataset": True,
         },
     }
-    (release_dir / "training_manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    (release_dir / "metrics.json").write_text(
-        json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    write_json(release_dir / "training_manifest.json", manifest)
+    write_json(release_dir / "metrics.json", results)
 
     return results
 
@@ -434,9 +425,7 @@ def evaluate_saved_release(root: Path, config: dict) -> dict:
         raise RuntimeError("Recomputed test Macro F1 differs from the saved training result.")
     saved["test"] = metrics
     saved["evaluation_reloaded_model"] = True
-    (release_dir / "metrics.json").write_text(
-        json.dumps(saved, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    write_json(release_dir / "metrics.json", saved)
     return saved
 
 

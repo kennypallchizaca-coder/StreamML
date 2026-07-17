@@ -21,7 +21,13 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from src.streamml.data.reactive_dataset import REACTIVE_CLASSES, REACTIVE_FEATURES, PROFILE_TO_CODE
-from src.streamml.services.release import classification_metrics, requirements_snapshot, sha256_file, write_json
+from src.streamml.services.release import (
+    classification_metrics,
+    requirements_snapshot,
+    sha256_file,
+    write_json,
+    write_text_lf,
+)
 
 
 def load_contract(root: Path) -> dict[str, Any]:
@@ -180,7 +186,7 @@ def train_reactive_release(root: Path) -> dict[str, Any]:
     )
     shutil.copyfile(root / "data" / "raw" / "source_manifest.json", release_dir / "source_manifest.json")
     write_json(release_dir / "class_mapping.json", PROFILE_TO_CODE)
-    (release_dir / "requirements_snapshot.txt").write_text(requirements_snapshot(), encoding="utf-8")
+    write_text_lf(release_dir / "requirements_snapshot.txt", requirements_snapshot())
 
     manifest = {
         "release_version": "2.0.0",
