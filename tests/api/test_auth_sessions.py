@@ -48,3 +48,21 @@ def test_pairing_code_is_temporary_and_one_use(client: TestClient):
     assert linked.status_code == 200
     assert linked.json()["session_id"] == session_id
     assert client.post("/api/v1/connectors/link", json=link_payload).status_code == 400
+
+
+def test_internal_media_auth_always_requires_shared_secret(client: TestClient, app):
+    payload = {
+        "user": "media-worker",
+        "password": app.state.settings.media_auth_secret,
+        "action": "read",
+        "path": "stream-0123456789abcdef0123456789abcdef",
+        "protocol": "rtmp",
+    }
+    assert client.post("/api/v1/internal/mediamtx/auth", json=payload).status_code == 401
+    authorized = client.post(
+        "/api/v1/internal/mediamtx/auth",
+        json=payload,
+        auth=("mediamtx", app.state.settings.media_auth_secret),
+    )
+    assert authorized.status_code == 200
+    assert authorized.json() == {"authorized": True}

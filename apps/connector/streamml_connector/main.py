@@ -11,7 +11,8 @@ from typing import Any, Sequence
 
 from .api_client import ApiClientError, StreamMLApiClient
 from .config import ConfigurationError, ConnectorConfig, load_config
-from .obs_client import ObsSnapshot, ReadOnlyObsClient
+from .obs_client import ObsClient, ObsSnapshot
+from .network_probe import NetworkMeasurement, NetworkProbe
 from .secrets import (
     ConnectorCredentials,
     SecretStorageError,
@@ -59,6 +60,7 @@ def _telemetry_payload(
     credentials: ConnectorCredentials,
     snapshot: ObsSnapshot,
     sequence: int,
+    network: NetworkMeasurement | None = None,
 ) -> dict[str, Any]:
     metrics = snapshot.metrics()
     observed_at = str(metrics.pop("observed_at"))
@@ -71,7 +73,7 @@ def _telemetry_payload(
         raise SecretStorageError(
             "The pairing response did not provide a session id and STREAMML_SESSION_ID is unset."
         )
-    return {
+    payload = {
         "session_id": session_id,
         "sequence": sequence,
         "observed_at": observed_at,
@@ -85,6 +87,9 @@ def _telemetry_payload(
             "connection_capacity_mbps": None,
         },
     }
+    if network is not None:
+        payload["network"] = network.to_dict()
+    return payload
 
 
 def _send_disconnected(
@@ -113,7 +118,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
         return 0
 
     api = StreamMLApiClient(config)
-    obs_client = ReadOnlyObsClient(config)
+    obs_client = ObsClient(config)
     try:
         credentials = store.load()
         if pair:
@@ -134,16 +139,44 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
         obs_password = read_obs_password()
         delay = config.reconnect_initial_seconds
         sequence = time.time_ns()
+        network_probe = NetworkProbe(api, credentials, config.network_probe_bytes)
+        last_network: NetworkMeasurement | None = None
+        next_network_probe_at = 0.0
 
         while True:
             try:
                 obs_client.connect(obs_password)
-                LOGGER.info("Connected to local authenticated OBS WebSocket in read-only mode.")
+                LOGGER.info("Connected to local authenticated OBS WebSocket.")
                 delay = config.reconnect_initial_seconds
                 while True:
                     snapshot = obs_client.collect()
-                    payload = _telemetry_payload(config, credentials, snapshot, sequence)
+                    now = time.monotonic()
+                    if now >= next_network_probe_at:
+                        measured = network_probe.measure()
+                        if measured is not None:
+                            last_network = measured
+                        next_network_probe_at = now + config.network_probe_interval_seconds
+                    payload = _telemetry_payload(
+                        config, credentials, snapshot, sequence, last_network
+                    )
                     api.send_telemetry(credentials, payload)
+                    command = api.next_command(credentials)
+                    if command is not None:
+                        try:
+                            obs_client.apply_command(command)
+                        except Exception as exc:
+                            api.acknowledge_command(
+                                credentials,
+                                str(command["id"]),
+                                success=False,
+                                error_message=type(exc).__name__,
+                            )
+                            LOGGER.error("OBS rejected a StreamML control command (%s).", type(exc).__name__)
+                        else:
+                            api.acknowledge_command(
+                                credentials, str(command["id"]), success=True
+                            )
+                            LOGGER.info("Applied StreamML control command %s.", command.get("command_type"))
                     sequence += 1
                     if once:
                         return 0
@@ -174,7 +207,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="streamml-connector",
-        description="Read-only local OBS WebSocket telemetry connector.",
+        description="Local OBS telemetry and authenticated StreamML control connector.",
     )
     parser.add_argument(
         "--pair",

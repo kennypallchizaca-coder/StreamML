@@ -237,7 +237,7 @@ def build_dataset(root: Path, config: dict[str, Any], source_manifest: dict[str,
         "unknown_format_rows": dict(sorted(unknown_formats.items())),
         "windowing": config["windowing"],
         "target_definition": (
-            "downgrade_needed when the next 30 s contain a real stalling flag, future throughput p25 below "
+            f"downgrade_needed when the next {config['windowing']['future_horizon_seconds']} s contain a real stalling flag, future throughput p25 below "
             "the current profile capacity, more than 30% of future capacity samples below it, or a mapped "
             "YouTube quality decrease; otherwise maintain"
         ),
@@ -253,8 +253,8 @@ def build_schema(frame: pd.DataFrame) -> dict:
         "target": "Pseudo-label derived only from the strictly future horizon.",
     }
     return {
-        "schema_version": "2.0.0",
-        "row_semantics": "One 120-second historical window from exactly one session plus a subsequent 30-second label horizon.",
+        "schema_version": "3.0.0",
+        "row_semantics": "One 600-second historical window from exactly one session plus a subsequent 600-second label horizon.",
         "columns": [
             {
                 "name": column,

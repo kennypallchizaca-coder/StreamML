@@ -34,7 +34,11 @@ class SessionStore:
             return None
         raw_telemetry = self.database.latest_telemetry(user_id, session_id)
         predictions = self.database.recent_predictions(user_id, session_id)
+        agent_state = self.database.load_agent_state(user_id, session_id)
+        if raw_telemetry and raw_telemetry.get("network") and agent_state:
+            raw_telemetry["network"]["current_profile"] = agent_state.get("current_profile")
         session["telemetry"] = telemetry_snapshot(raw_telemetry, self.registry)
         session["latest_prediction"] = prediction_view(predictions[0] if predictions else None)
         session["recent_predictions"] = [prediction_view(item) for item in predictions]
+        session["agent_decision"] = self.database.latest_agent_decision(user_id, session_id)
         return session

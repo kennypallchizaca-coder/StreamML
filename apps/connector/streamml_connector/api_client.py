@@ -76,6 +76,62 @@ class StreamMLApiClient:
             telemetry_id=_optional_string(data.get("telemetry_id") or data.get("id")),
         )
 
+    def next_command(self, credentials: ConnectorCredentials) -> dict[str, Any] | None:
+        response = self._request(
+            "GET",
+            "/api/v1/connectors/commands/next",
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+        )
+        command = self._json_object(response).get("command")
+        if command is None:
+            return None
+        if not isinstance(command, dict) or not command.get("id"):
+            raise ApiClientError("The command response was invalid.")
+        return command
+
+    def acknowledge_command(
+        self,
+        credentials: ConnectorCredentials,
+        command_id: str,
+        *,
+        success: bool,
+        error_message: str | None = None,
+    ) -> None:
+        self._request(
+            "POST",
+            f"/api/v1/connectors/commands/{command_id}/ack",
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+            json={"success": success, "error_message": error_message},
+        )
+
+    def probe_latency(self, credentials: ConnectorCredentials) -> None:
+        self._request(
+            "GET", "/api/v1/network/probe/latency",
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+        )
+
+    def probe_download(self, credentials: ConnectorCredentials, size: int) -> int:
+        response = self._request(
+            "GET", "/api/v1/network/probe/download",
+            params={"size": size},
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+        )
+        return len(response.content)
+
+    def probe_upload(self, credentials: ConnectorCredentials, payload: bytes) -> int:
+        response = self._request(
+            "POST", "/api/v1/network/probe/upload", content=payload,
+            headers={
+                "Authorization": f"Bearer {credentials.access_token}",
+                "Content-Type": "application/octet-stream",
+            },
+        )
+        data = self._json_object(response)
+        try:
+            return int(data["received_bytes"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ApiClientError("The upload probe response was invalid.") from exc
+
     def close(self) -> None:
         self._client.close()
 
@@ -106,4 +162,3 @@ def _optional_string(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
-

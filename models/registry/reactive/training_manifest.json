@@ -1,6 +1,6 @@
 {
   "release_version": "2.0.0",
-  "created_at_utc": "2026-07-17T05:26:35.681137+00:00",
+  "created_at_utc": "2026-07-17T16:12:47.767388+00:00",
   "model_role": "reactive",
   "model_path": "models/registry/reactive/model.joblib",
   "dataset_path": "data/processed/reactive_dataset.csv",
@@ -26728,6 +26728,5 @@
   "selected_parameters": {
     "max_depth": 5,
     "min_samples_leaf": 2
-  },
-  "offline_release": true
+  }
 }

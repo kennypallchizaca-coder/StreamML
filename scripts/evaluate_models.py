@@ -30,7 +30,7 @@ def main() -> None:
     predictive_training = read_json(ROOT / "models" / "registry" / "predictive" / "training_manifest.json")
     threshold = read_json(ROOT / "models" / "registry" / "predictive" / "threshold.json")["threshold"]
     manifest = {
-        "release_version": "2.0.0",
+        "release_version": "3.0.0",
         "official_release": True,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "reactive_model_ready": True,

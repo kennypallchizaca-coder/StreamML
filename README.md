@@ -4,9 +4,9 @@
 
 **Integrantes:** Alexis Guaman y Cinthya Ramon.
 
-StreamML es una entrega reproducible de Machine Learning orientada a dos decisiones relacionadas con la calidad de una transmision: recomendar un perfil segun las condiciones actuales y anticipar si el perfil observado deberia mantenerse o reducirse. El repositorio conserva preparacion, entrenamiento, evaluacion y notebooks para uso interno, y añade una aplicacion web online separada para clientes.
+StreamML es un prototipo reproducible de streaming adaptativo. Mide la ruta de red, ejecuta dos modelos supervisados y utiliza un agente determinista para mantener, aumentar o reducir el perfil de OBS. Tambien cambia a una escena o archivo de respaldo cuando se pierde la señal y restaura el vivo tras un periodo estable.
 
-La aplicacion online implementa React, FastAPI, WebSocket, un conector local de OBS y configuracion independiente de MediaMTX/nginx. Opera en modo de solo monitoreo: no cambia escenas, bitrate, perfiles ni ninguna configuracion de OBS. La integracion aun no se declara lista para produccion porque las pruebas con telefono, OBS y video real permanecen pendientes.
+La aplicacion integra React, FastAPI, WebSocket, un conector local de OBS, MediaMTX, FFmpeg y nginx. El codigo, los modelos y las pruebas automatizadas estan completos; antes de afirmar preparacion para produccion siguen siendo obligatorias pruebas fisicas con el telefono, OBS, credenciales reales de una plataforma y la red de despliegue.
 
 ## Objetivos de Machine Learning
 
@@ -35,7 +35,7 @@ Clasifica una ventana temporal en una de dos clases:
 - `maintain`: las condiciones permiten mantener el perfil actual.
 - `downgrade_needed`: el horizonte posterior contiene evidencia para reducirlo.
 
-El contrato utiliza 19 estadisticas calculadas exclusivamente sobre **120 segundos historicos** y una etiqueta calculada en los **30 segundos estrictamente posteriores**. Entre las variables se encuentran media, mediana, minimos, maximos, percentiles, dispersion, pendiente, cambio de throughput, proporciones bajo capacidades requeridas y perfil actual.
+El contrato utiliza 19 estadisticas calculadas exclusivamente sobre **600 segundos historicos** y una etiqueta calculada en los **600 segundos estrictamente posteriores**. Entre las variables se encuentran media, mediana, minimos, maximos, percentiles, dispersion, pendiente, cambio de throughput, proporciones bajo capacidades requeridas y perfil actual.
 
 El modelo no recibe columnas futuras ni el target como entrada. La lista y el orden exactos se encuentran en `src/streamml/config/predictive_feature_contract.json`.
 
@@ -60,9 +60,9 @@ Macro F1 y balanced accuracy son especialmente importantes porque el dataset pre
 | Dataset | Filas | Sesiones | Variables del modelo | Target |
 |---|---:|---:|---:|---|
 | `data/processed/reactive_dataset.csv` | 26,686 | 26,686 | 3 | `low`, `medium`, `high` |
-| `data/processed/predictive_dataset.csv` | 3,306 | 120 | 19 | `maintain`, `downgrade_needed` |
+| `data/processed/predictive_dataset.csv` | 4,336 | 17 | 19 | `maintain`, `downgrade_needed` |
 
-La procedencia, licencia, URLs y hashes conocidos se documentan en `data/raw/source_manifest.json`. El archivo bruto reactivo y su licencia se conservan localmente; los CSV y ZIP grandes estan excluidos de Git. La fuente predictiva bruta no esta fisicamente incluida en el checkout actual, por lo que `scripts/prepare_datasets.py` requiere restaurarla antes de reconstruir completamente ese dataset.
+La procedencia, licencia, URLs y hashes conocidos se documentan en `data/raw/source_manifest.json`. Los CSV y ZIP grandes estan excluidos de Git. `scripts/fetch_predictive_source.py` usa solicitudes HTTP Range para extraer del ZIP oficial solamente las 17 sesiones con al menos 20 minutos, sin descargar ni generar datos sinteticos.
 
 `data/interim/` esta reservado para esquemas, estadisticas y transformaciones generadas durante la preparacion. `data/processed/` contiene unicamente los dos datasets finales de entrenamiento.
 
@@ -71,9 +71,9 @@ La procedencia, licencia, URLs y hashes conocidos se documentan en `data/raw/sou
 | Modelo | Algoritmo seleccionado | Validacion Macro F1 | Test Macro F1 | Test balanced accuracy | Baseline test Macro F1 |
 |---|---|---:|---:|---:|---:|
 | Reactivo | `DecisionTreeClassifier` | 100.00% | 99.91% | 99.83% | 30.17% |
-| Predictivo | `RandomForestClassifier` | 99.06% | 93.25% | 95.68% | 47.99% |
+| Predictivo | `LogisticRegression` | 100.00% | 100.00% | 100.00% | 48.91% |
 
-El modelo predictivo utiliza un threshold de `0.50`, elegido con validacion. En test obtuvo 53 aciertos y 4 errores para `maintain`, ademas de 671 aciertos y 11 errores para `downgrade_needed`. Las cifras completas se generan mediante Python y se almacenan en los `metrics.json` de cada modelo.
+El modelo predictivo utiliza un threshold de `0.50`, elegido con validacion. En test clasifico correctamente 42 ventanas `maintain` y 939 `downgrade_needed`. Este resultado perfecto debe interpretarse con cautela: solo existen 17 sesiones publicas suficientemente largas, las clases son muy desbalanceadas y cada sesion seleccionada contiene una sola clase. Las particiones permanecen separadas por sesion y contienen ambas clases, pero la validacion operativa con nuevas sesiones moviles sigue siendo necesaria.
 
 ## Modelos publicados
 
@@ -148,7 +148,9 @@ jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeou
 
 La superficie comercial se encuentra en `apps/frontend/` y ofrece inicio de sesion, panel, creacion de transmision, monitoreo en vivo, historial, modelos y configuracion. La API de `apps/api/` persiste usuarios, sesiones, vinculaciones, telemetria, predicciones y auditoria con aislamiento por propietario.
 
-El conector de `apps/connector/` solo se conecta a OBS WebSocket 5.x en loopback y solo invoca `GetStats` y `GetStreamStatus`. FPS, frames omitidos, congestion y bitrate de salida estan disponibles; latencia, perdida de paquetes y capacidad real de red no estan disponibles desde OBS. El bitrate de salida nunca se reutiliza como capacidad.
+El conector de `apps/connector/` se conecta a OBS WebSocket 5.x exclusivamente en loopback. Recoge estadisticas, mide por HTTP la ruta de subida/descarga hacia el servidor y consulta comandos autenticados y limitados a perfiles y escenas. El bitrate de OBS nunca se reutiliza como capacidad de red.
+
+El agente aplica margen de capacidad, reducciones preventivas, cambios de un nivel, cinco confirmaciones antes de aumentar, cooldown de 30 segundos y temporizadores de perdida/recuperacion. El worker FFmpeg alterna entre la señal MediaMTX y un MP4 H.264/AAC en bucle para cada destino RTMP(S), sin registrar claves.
 
 MediaMTX se ejecuta como servicio independiente. La publicacion preferida es WHIP y RTMP queda como fallback local; el navegador intenta WHEP/WebRTC y despues HLS. VDO.Ninja usa enlaces derivados que no se guardan en texto plano, QR en memoria e `iframe` con origen validado.
 
@@ -163,7 +165,8 @@ Consulta `docs/deployment.md` y `deployment/.env.example` antes de iniciar. HTTP
 ```text
 apps/api/           API FastAPI online
 apps/frontend/      interfaz comercial React
-apps/connector/     conector local OBS de solo lectura
+apps/connector/     conector local OBS de telemetria y control autenticado
+apps/media/         generador de respaldo y worker FFmpeg de retransmision
 data/raw/           manifiesto, licencia y fuentes locales ignoradas por Git
 data/interim/       transformaciones y metadatos regenerables
 data/processed/     datasets finales de entrenamiento
@@ -178,6 +181,13 @@ docs/               documentacion operativa
 tests/              pruebas unitarias, integracion, API, modelos y extremo a extremo
 ```
 
+## Requisitos
+
+- Git.
+- Python 3.11 para datos, modelos, API y pruebas.
+- Node.js 22 o posterior para el frontend.
+- Docker Engine con Compose, FFmpeg y OBS Studio para el flujo completo de streaming.
+
 ## Instalacion
 
 Se recomienda Python 3.11. En Windows:
@@ -191,10 +201,47 @@ pip install -r requirements.txt
 
 Los entornos virtuales, secretos, caches, ZIP y CSV brutos grandes estan excluidos mediante `.gitignore`.
 
+Para preparar y compilar el frontend con el lockfile versionado:
+
+```powershell
+Set-Location apps/frontend
+npm ci
+npm run build
+Set-Location ../..
+```
+
+El conector de OBS tiene un paquete y dependencias independientes:
+
+```powershell
+python -m pip install -e apps/connector
+streamml-connector --help
+```
+
+## Inicio local de desarrollo
+
+1. Copia `.env.example` como `.env`, genera secretos aleatorios de al menos 32 caracteres y completa las variables requeridas. Para HTTP local, usa `STREAMML_COOKIE_SECURE=false` y `STREAMML_ENFORCE_HTTPS=false`; no desactives estas protecciones en un servidor.
+2. Inicia la API desde la raiz:
+
+   ```powershell
+   python -m uvicorn apps.api.main:app --reload --env-file .env
+   ```
+
+3. En otra terminal, inicia el frontend:
+
+   ```powershell
+   Set-Location apps/frontend
+   npm run dev
+   ```
+
+Para el despliegue integrado con nginx, MediaMTX y FFmpeg, utiliza `deployment/.env.example` y sigue `docs/deployment.md`. El conector local se vincula despues mediante un codigo temporal; su procedimiento completo tambien esta en esa guia.
+
 ## Flujo reproducible
 
 ```powershell
-# Requiere que todas las fuentes brutas declaradas esten disponibles localmente.
+# Extrae del ZIP oficial solamente las sesiones predictivas requeridas.
+python scripts\fetch_predictive_source.py
+
+# Prepara los dos datasets versionados.
 python scripts\prepare_datasets.py
 
 # Entrena los dos modelos y publica sus artefactos.
@@ -222,25 +269,26 @@ La ultima ejecucion completa produjo:
 - Notebook de preparacion: 9/9 celdas de codigo, sin errores.
 - Notebook de entrenamiento: 9/9 celdas de codigo, sin errores.
 - Notebook de inferencia: 8/8 celdas de codigo, sin errores.
-- Pruebas automatizadas: `37 passed`.
+- Pruebas automatizadas: `53 passed`.
 - Frontend React: compilacion de produccion correcta.
-- Docker Compose: configuracion valida sin iniciar servicios.
+- Docker Compose: configuracion valida; las cuatro imagenes construidas y API/MediaMTX/worker iniciados correctamente.
 - Verificador: `STREAMML RELEASE VERIFIED`.
 - `git diff --check`: sin errores de whitespace.
 
 ## Limitaciones
 
-Los artefactos ML actuales no soportan:
-
-- Predicciones a 5, 10, 20 o 30 minutos.
-- Jitter o perdida de paquetes como entradas.
-- Clase predictiva `critical`.
-- Control directo de OBS o FFmpeg; esta ausencia es intencional en la aplicacion online.
-- Decisiones de un agente autonomo.
-- Histeresis, tiempo minimo entre cambios o video de respaldo.
-
-Las nuevas variables o decisiones de control requieren datos operativos reales, contratos, etiquetas, reentrenamiento y pruebas de integracion. No se simulan mediante reglas manuales porque eso produciria resultados que no pertenecen a los modelos publicados. La infraestructura de VDO.Ninja y MediaMTX ya esta configurada, pero su validacion fisica continua pendiente.
+- El predictivo usa capacidad de subida, perfil e historial; jitter y perdida se muestran y quedan disponibles para una futura version entrenada con esas variables.
+- La sonda HTTP mide la ruta del computador con OBS al servidor, no sustituye las estadisticas WebRTC internas del tramo telefono–VDO.Ninja.
+- Los cambios de parametros de perfil dependen de que la version y el modo de salida de OBS acepten `SetProfileParameter`; deben verificarse mientras el encoder esta activo.
+- La fuente publica solo aporta 17 sesiones de al menos 20 minutos y un fuerte desbalance. La metrica predictiva perfecta no es evidencia suficiente para produccion.
+- La ejecucion real de Docker, OBS, VDO.Ninja, WebRTC, RTMP(S) y las plataformas externas depende de servicios y credenciales que no forman parte de las pruebas aisladas.
 
 ## Seguridad
 
-`.env` permanece excluido de Git. `.env.example` contiene solo nombres y valores neutros para una posible integracion futura con OBS WebSocket. Las credenciales reales nunca deben almacenarse en notebooks, codigo, documentacion o commits. Si una clave fue compartida, debe rotarse antes de publicar el repositorio.
+`.env` permanece excluido de Git. Los tres ejemplos versionados (`.env.example`, `deployment/.env.example` y `apps/frontend/.env.example`) contienen campos vacios, placeholders o valores publicos; nunca credenciales operativas. Las claves RTMP(S), contrasenas y tokens reales deben vivir unicamente en archivos ignorados, el keyring del sistema o el gestor de secretos del despliegue. Si una clave fue compartida, debe rotarse antes de publicar el repositorio.
+
+El repositorio incluye `.github/workflows/ci.yml`, que repite las pruebas Python, la verificacion de modelos, el build del conector, el build del frontend y la validacion de Compose en cada `push` y `pull_request`.
+
+Antes de publicar, el mismo flujo ejecuta `python scripts/check_no_secrets.py --history`. El control detecta archivos `.env` rastreados y firmas comunes de claves privadas y tokens sin imprimir sus valores.
+
+La guia de [despliegue](docs/deployment.md) contiene el checklist de go-live, firewall, backup, actualizaciones y las pruebas fisicas obligatorias. La politica de reporte responsable se encuentra en [SECURITY.md](SECURITY.md).

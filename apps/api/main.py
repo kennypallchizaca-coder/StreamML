@@ -10,8 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.config import Settings
-from apps.api.routers import auth, models, pairing, predictions, sessions, streams, telemetry, websockets
+from apps.api.routers import auth, control, models, network, pairing, predictions, sessions, streams, telemetry, websockets
 from src.streamml.inference import InferenceEngine, OfficialModelRegistry
+from src.streamml.agent import AutonomousStreamingAgent
 from src.streamml.observability.logging import configure_logging
 from src.streamml.security.auth import normalize_email
 from src.streamml.security.rate_limit import RateLimiter
@@ -44,6 +45,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.database = database
     application.state.registry = registry
     application.state.engine = InferenceEngine(registry)
+    application.state.agent = AutonomousStreamingAgent()
     application.state.session_store = SessionStore(database, registry)
     application.state.websocket_hub = WebSocketHub()
     application.state.rate_limiter = RateLimiter()
@@ -88,7 +90,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     for api_router in (
-        auth.router, sessions.router, pairing.router, telemetry.router, predictions.router,
+        auth.router, sessions.router, pairing.router, control.router, network.router, telemetry.router, predictions.router,
         models.router, streams.router, websockets.router,
     ):
         application.include_router(api_router)

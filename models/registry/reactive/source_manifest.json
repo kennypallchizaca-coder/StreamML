@@ -13,7 +13,7 @@
   "version": "2",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0/",
-  "downloaded_at_utc": "2026-07-17T01:35:43.916004+00:00",
+  "downloaded_at_utc": "2026-07-17T15:58:57.178697+00:00",
   "source_url": "https://figshare.com/articles/dataset/YouTube_Dataset_on_Mobile_Streaming_for_Internet_Traffic_Modeling_Network_Management_and_Streaming_Analysis/19096823",
   "api_url": "https://api.figshare.com/v2/articles/19096823",
   "archive": {
@@ -26,143 +26,33 @@
   },
   "selection": {
     "random_state": 42,
-    "criterion": "duration >= 180 s; 40 complete sessions per bandwidth-change stratum; no outcome variables used",
+    "criterion": "total_playtime >= 1200 s; stratified deterministic sample; no outcome variables used",
     "selected_sessions": [
-      "run_181",
-      "run_191",
-      "run_288",
-      "run_326",
-      "run_392",
-      "run_443",
-      "run_481",
-      "run_484",
-      "run_491",
-      "run_495",
-      "run_643",
-      "run_656",
-      "run_689",
-      "run_746",
-      "run_848",
-      "run_919",
-      "run_1056",
-      "run_1247",
-      "run_1324",
-      "run_1394",
-      "run_1458",
-      "run_1464",
-      "run_1483",
-      "run_2005",
-      "run_2214",
-      "run_2220",
-      "run_2911",
-      "run_4020",
-      "run_4141",
-      "run_4146",
-      "run_4210",
-      "run_4325",
-      "run_4432",
-      "run_4474",
-      "run_4515",
-      "run_4614",
-      "run_4617",
-      "run_4640",
-      "run_4725",
-      "run_4746",
-      "run_4787",
-      "run_4839",
-      "run_4989",
-      "run_5044",
-      "run_5106",
-      "run_5284",
-      "run_5299",
-      "run_5314",
-      "run_5376",
-      "run_5387",
-      "run_5456",
-      "run_5462",
-      "run_5637",
-      "run_5827",
-      "run_5871",
-      "run_5878",
-      "run_5908",
-      "run_5985",
-      "run_5993",
-      "run_5995",
-      "run_6057",
-      "run_6219",
-      "run_6583",
-      "run_6590",
-      "run_7598",
-      "run_7663",
-      "run_7766",
-      "run_7874",
-      "run_7935",
-      "run_7976",
-      "run_8120",
-      "run_8297",
-      "run_8400",
-      "run_8539",
-      "run_8717",
-      "run_8819",
-      "run_8893",
-      "run_8951",
-      "run_9050",
-      "run_9351",
-      "run_9368",
-      "run_9411",
-      "run_9538",
-      "run_9539",
-      "run_9555",
-      "run_9764",
-      "run_9808",
-      "run_9828",
-      "run_9855",
-      "run_9880",
-      "run_9925",
-      "run_9931",
-      "run_9948",
-      "run_9971",
-      "run_10043",
-      "run_10106",
-      "run_10126",
-      "run_10137",
-      "run_10156",
-      "run_10157",
-      "run_10307",
-      "run_10325",
-      "run_10472",
-      "run_10519",
-      "run_10626",
-      "run_10679",
-      "run_10680",
-      "run_10689",
-      "run_10706",
-      "run_10751",
-      "run_10778",
-      "run_10781",
-      "run_10788",
-      "run_10816",
-      "run_10872",
-      "run_10952",
-      "run_10962",
-      "run_11087",
-      "run_11105",
-      "run_11130"
+      "run_4191",
+      "run_4196",
+      "run_4201",
+      "run_4206",
+      "run_4685",
+      "run_4686",
+      "run_4687",
+      "run_4688",
+      "run_4689",
+      "run_4690",
+      "run_4691",
+      "run_4692",
+      "run_4693",
+      "run_4694",
+      "run_4695",
+      "run_4696",
+      "run_4697"
     ],
     "stratum_counts": {
-      "constant_bandwidth": 40,
-      "one_to_ten_changes": 40,
-      "more_than_ten_changes": 40
+      "constant_bandwidth": 9,
+      "one_to_ten_changes": 8,
+      "more_than_ten_changes": 0
     }
   },
   "files_downloaded": [
-    {
-      "path": "data/raw/youtube_mobile_streaming/material/readme.txt",
-      "size_bytes": 1121,
-      "sha256": "e6a9a2ea7051f6e98c6d54ccbd58c832dd8e4e733b334024982f69bb4d2f57f3",
-      "archive_member": "mobile_yt_dataset/material/readme.txt",
-      "compressed_size_bytes": 561
-    },
     {
       "path": "data/raw/youtube_mobile_streaming/material/data_overview.csv",
       "size_bytes": 1804537,
@@ -178,1688 +68,253 @@
       "compressed_size_bytes": 3705
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_181/application_data.csv",
-      "size_bytes": 15112,
-      "sha256": "b5887eec25ad10b8400f6cfc8d3e6a6d2cb40566956590abb4aa696cacaf7ed8",
-      "archive_member": "mobile_yt_dataset/dataset/run_181/application_data.csv",
-      "compressed_size_bytes": 2140
+      "path": "data/raw/youtube_mobile_streaming/material/readme.txt",
+      "size_bytes": 1121,
+      "sha256": "e6a9a2ea7051f6e98c6d54ccbd58c832dd8e4e733b334024982f69bb4d2f57f3",
+      "archive_member": "mobile_yt_dataset/material/readme.txt",
+      "compressed_size_bytes": 561
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_181/bw_settings.csv",
-      "size_bytes": 67,
-      "sha256": "09c817c4fabddd17695ee8da6e612f3fc92e1056bde5770548d9cd59b39acae4",
-      "archive_member": "mobile_yt_dataset/dataset/run_181/bw_settings.csv",
-      "compressed_size_bytes": 48
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4191/application_data.csv",
+      "size_bytes": 219711,
+      "sha256": "dbe6915314bcb0982ad6a4ca8d523aa8390010236b8d3faf9388764895274190",
+      "archive_member": "mobile_yt_dataset/dataset/run_4191/application_data.csv",
+      "compressed_size_bytes": 23102
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_191/application_data.csv",
-      "size_bytes": 15607,
-      "sha256": "59245a440fedc43fb35478b899044e8b3c481a531d7a107358ebf08028308e94",
-      "archive_member": "mobile_yt_dataset/dataset/run_191/application_data.csv",
-      "compressed_size_bytes": 2170
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_191/bw_settings.csv",
-      "size_bytes": 67,
-      "sha256": "35db8808bd9db78a0926e56082f4600933c157a5868ae3862f423712ef797b0c",
-      "archive_member": "mobile_yt_dataset/dataset/run_191/bw_settings.csv",
-      "compressed_size_bytes": 49
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_288/application_data.csv",
-      "size_bytes": 29100,
-      "sha256": "035554ac8691a5a7323a7439f4720849ab14a28eb5d01c58f3c9d16ddbf904d4",
-      "archive_member": "mobile_yt_dataset/dataset/run_288/application_data.csv",
-      "compressed_size_bytes": 3919
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_288/bw_settings.csv",
-      "size_bytes": 79,
-      "sha256": "0c2f05fa2ccce8fca6a9cc9fbbf6fd8c2501d087b5250de2586744ae1f0168b9",
-      "archive_member": "mobile_yt_dataset/dataset/run_288/bw_settings.csv",
-      "compressed_size_bytes": 58
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_326/application_data.csv",
-      "size_bytes": 37711,
-      "sha256": "c20b4f20e44449ba53de475fe53509de49e640e2a869bee99f5f7e2abaea7d2d",
-      "archive_member": "mobile_yt_dataset/dataset/run_326/application_data.csv",
-      "compressed_size_bytes": 4991
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_326/bw_settings.csv",
-      "size_bytes": 79,
-      "sha256": "122521719f62ca214262fd687879409eca57b741d37ce8a03cc37f24ff27cca5",
-      "archive_member": "mobile_yt_dataset/dataset/run_326/bw_settings.csv",
-      "compressed_size_bytes": 57
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_392/application_data.csv",
-      "size_bytes": 31915,
-      "sha256": "a03578cd586d97451380ab38ee5c6d81fdde24cc4da79a06d1a66e1f8a772aa1",
-      "archive_member": "mobile_yt_dataset/dataset/run_392/application_data.csv",
-      "compressed_size_bytes": 4307
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_392/bw_settings.csv",
-      "size_bytes": 79,
-      "sha256": "b7406010aac197d1cb5d159b109249347d163ab459f75a4de5cacd184d383e18",
-      "archive_member": "mobile_yt_dataset/dataset/run_392/bw_settings.csv",
-      "compressed_size_bytes": 57
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_443/application_data.csv",
-      "size_bytes": 20072,
-      "sha256": "0913cfaf7a1d158e6564a1d7ed7cb415e2f2bf0d6adbcdef50ea2e642178a24e",
-      "archive_member": "mobile_yt_dataset/dataset/run_443/application_data.csv",
-      "compressed_size_bytes": 2727
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_443/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "728935dba3599fea6bd9cb96cc6089d68345b36581be331d6ce1aaf80e210b1a",
-      "archive_member": "mobile_yt_dataset/dataset/run_443/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_481/application_data.csv",
-      "size_bytes": 17664,
-      "sha256": "f9764df6df232573d3c1c26d0769f564666517d318c286ae8176ab2380c1465a",
-      "archive_member": "mobile_yt_dataset/dataset/run_481/application_data.csv",
-      "compressed_size_bytes": 2370
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_481/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "736397a696fcb97e2973e9fa00be0954509b5989069d95d09d3f4437a7b43979",
-      "archive_member": "mobile_yt_dataset/dataset/run_481/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_484/application_data.csv",
-      "size_bytes": 17722,
-      "sha256": "174b456ee98180e76eff9a193ae57c37fbe7a1ad9eaee3a2d903162f6f1539cc",
-      "archive_member": "mobile_yt_dataset/dataset/run_484/application_data.csv",
-      "compressed_size_bytes": 2416
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_484/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "6ca8fb83528a8d7a5dc786c9a827b3c25fa1b5ec38fdaec85114f8bcb0f6b947",
-      "archive_member": "mobile_yt_dataset/dataset/run_484/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_491/application_data.csv",
-      "size_bytes": 17737,
-      "sha256": "d41ddabf6314cd2d11cc7238ed071537608f0760519a10fc01e4baa340a4aadf",
-      "archive_member": "mobile_yt_dataset/dataset/run_491/application_data.csv",
-      "compressed_size_bytes": 2370
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_491/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "151696a60c572a8a82c4340f491f9d959fdb43297e79220b89b909b122027230",
-      "archive_member": "mobile_yt_dataset/dataset/run_491/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_495/application_data.csv",
-      "size_bytes": 17725,
-      "sha256": "0a8b392333774586a053f07ef1f7f3aa54e42f191f55fcc66ef62d1aa8eb2f70",
-      "archive_member": "mobile_yt_dataset/dataset/run_495/application_data.csv",
-      "compressed_size_bytes": 2395
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_495/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "bdee0f8c57b0adb54b771683b0b6aa785527fbcf698cf412522cd72dfbf88182",
-      "archive_member": "mobile_yt_dataset/dataset/run_495/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_643/application_data.csv",
-      "size_bytes": 17645,
-      "sha256": "197a4df20b9fcb6f96fe5bfa40db9e12f3e27a6b2d4e6cca7fd125a7a781dcee",
-      "archive_member": "mobile_yt_dataset/dataset/run_643/application_data.csv",
-      "compressed_size_bytes": 2420
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_643/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "01a967d09905dfb2eea50522274e5e393d696ee47a318d4ae717814408dcd675",
-      "archive_member": "mobile_yt_dataset/dataset/run_643/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_656/application_data.csv",
-      "size_bytes": 17757,
-      "sha256": "5d6057bc68e756b5578e57b964e91dc1229302c985e41aa75ddc583668514363",
-      "archive_member": "mobile_yt_dataset/dataset/run_656/application_data.csv",
-      "compressed_size_bytes": 2434
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_656/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "0beb509bf948ab312877f3c86f6db83ae94e8c8562a277fafcd361bc92d96a9c",
-      "archive_member": "mobile_yt_dataset/dataset/run_656/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_689/application_data.csv",
-      "size_bytes": 15185,
-      "sha256": "210592b5a285c3caec64b2ad69e14433c4ffed569cacdcbb7d4765a2223303c5",
-      "archive_member": "mobile_yt_dataset/dataset/run_689/application_data.csv",
-      "compressed_size_bytes": 2140
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_689/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "2d94edd8ae2715337c7b64f07e27c730906cd95586702b11cd769c75dd5c0cc1",
-      "archive_member": "mobile_yt_dataset/dataset/run_689/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_746/application_data.csv",
-      "size_bytes": 15052,
-      "sha256": "3b37aa8b82f3b312d2b2b0e6e46fea35763a2784f1e9454941c1ee89d203d211",
-      "archive_member": "mobile_yt_dataset/dataset/run_746/application_data.csv",
-      "compressed_size_bytes": 2122
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_746/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "e7b87afdd26ba29881f09648cbca5aad6a1932a36b214e73f7fee30d4bbe2a77",
-      "archive_member": "mobile_yt_dataset/dataset/run_746/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_848/application_data.csv",
-      "size_bytes": 13550,
-      "sha256": "b238a75802f85cfaa18f4b5b670e2f3016719bb66d53d7ae88435991aacc0dd7",
-      "archive_member": "mobile_yt_dataset/dataset/run_848/application_data.csv",
-      "compressed_size_bytes": 1929
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_848/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "2e686d31aa7b6da232cba54dd71cd0f5ed7a7017f2cccb625002c53979058fec",
-      "archive_member": "mobile_yt_dataset/dataset/run_848/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_919/application_data.csv",
-      "size_bytes": 16060,
-      "sha256": "9b7de2404b13c44e424c574259c516e05f72aa670bb5516409e9f557fe8c7610",
-      "archive_member": "mobile_yt_dataset/dataset/run_919/application_data.csv",
-      "compressed_size_bytes": 2272
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_919/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "f081f3ebdd66a4e611d20504bd61ff50004421d90febd6d213b0b23eada42d2e",
-      "archive_member": "mobile_yt_dataset/dataset/run_919/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1056/application_data.csv",
-      "size_bytes": 17486,
-      "sha256": "f88007106e6c91fbf17d83bfb4af5b9963be5482369a3e04c0c28617b8ed42fc",
-      "archive_member": "mobile_yt_dataset/dataset/run_1056/application_data.csv",
-      "compressed_size_bytes": 2434
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1056/bw_settings.csv",
-      "size_bytes": 54,
-      "sha256": "f94032015c285386447fcb0fd58b58311fea00a8af6892046c1a23d7b7fc0db9",
-      "archive_member": "mobile_yt_dataset/dataset/run_1056/bw_settings.csv",
-      "compressed_size_bytes": 41
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1247/application_data.csv",
-      "size_bytes": 16048,
-      "sha256": "c5050b79e582761a2810035e25845fea54ed762602ddf71e86a1c9ac4fb994a6",
-      "archive_member": "mobile_yt_dataset/dataset/run_1247/application_data.csv",
-      "compressed_size_bytes": 2263
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1247/bw_settings.csv",
-      "size_bytes": 79,
-      "sha256": "77ec45c5086c6c2dd1ec6906bdb72d2037beb3fe11c8ea7fd0039bd4c67842a4",
-      "archive_member": "mobile_yt_dataset/dataset/run_1247/bw_settings.csv",
-      "compressed_size_bytes": 57
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1324/application_data.csv",
-      "size_bytes": 14078,
-      "sha256": "fc25644be723ea68f93c686fe7137f775c1f7e979463c6d3c665d1cd42b62811",
-      "archive_member": "mobile_yt_dataset/dataset/run_1324/application_data.csv",
-      "compressed_size_bytes": 2005
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1324/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "ce28881946ae8ab45748308f3c51e3beff696c553609a6a69c933c7665a91ef4",
-      "archive_member": "mobile_yt_dataset/dataset/run_1324/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1394/application_data.csv",
-      "size_bytes": 16224,
-      "sha256": "b5945e4979ab4535a46e1bd3bc7997d8ec35810797e74446bf27d724f934e4f6",
-      "archive_member": "mobile_yt_dataset/dataset/run_1394/application_data.csv",
-      "compressed_size_bytes": 2266
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1394/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "7e78a75b55c112de3bdc2dc8cdc8dbcf257164d1e0fadc0c5fc57ced4b18d5d7",
-      "archive_member": "mobile_yt_dataset/dataset/run_1394/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1458/application_data.csv",
-      "size_bytes": 14246,
-      "sha256": "8ed40602663007d32a707bc62817b1e3e4b2bd3fc22b3f98847aef5db93a17e8",
-      "archive_member": "mobile_yt_dataset/dataset/run_1458/application_data.csv",
-      "compressed_size_bytes": 1988
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1458/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "0d389c931429f82c3517dcfa12b7497949fd63d13071849803328c330ed639ea",
-      "archive_member": "mobile_yt_dataset/dataset/run_1458/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1464/application_data.csv",
-      "size_bytes": 13950,
-      "sha256": "d97f14dd560cd29094281f49f905078f6914117aeacc5d8d98449853547d0c00",
-      "archive_member": "mobile_yt_dataset/dataset/run_1464/application_data.csv",
-      "compressed_size_bytes": 1987
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1464/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "08ec3adc3ed1ea16a075b85f726099f9160ab9f7687a0875046b4415aa071e90",
-      "archive_member": "mobile_yt_dataset/dataset/run_1464/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1483/application_data.csv",
-      "size_bytes": 14176,
-      "sha256": "8c82a72059aa9c934662408d3c0170633ae4ee5ac0a0bc35989db96badec3bc6",
-      "archive_member": "mobile_yt_dataset/dataset/run_1483/application_data.csv",
-      "compressed_size_bytes": 1996
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_1483/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "9175b085bbe271be3ce1a104913b8bfec4f121d5829b9933be801a776878d7b6",
-      "archive_member": "mobile_yt_dataset/dataset/run_1483/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2005/application_data.csv",
-      "size_bytes": 13539,
-      "sha256": "2b5d6efa5e6268e1c9a03d001aaa1e49506719ccce06c3d4b515f00ee7d0c837",
-      "archive_member": "mobile_yt_dataset/dataset/run_2005/application_data.csv",
-      "compressed_size_bytes": 1909
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2005/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "94758c8bd15a3107bd54edb4ba1706cda8ec23749eed9dc9a8bf66b678e00428",
-      "archive_member": "mobile_yt_dataset/dataset/run_2005/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2214/application_data.csv",
-      "size_bytes": 13461,
-      "sha256": "b7efb212aa720b8d04457cf4db29ee1e7ecd1e31f0af24fc27d62da138c8e03c",
-      "archive_member": "mobile_yt_dataset/dataset/run_2214/application_data.csv",
-      "compressed_size_bytes": 1857
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2214/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "c9de68e1851d9e64e09411e6d989393894748b15ba04cedbe2b81aed5ac20349",
-      "archive_member": "mobile_yt_dataset/dataset/run_2214/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2220/application_data.csv",
-      "size_bytes": 13645,
-      "sha256": "ad570b44409c84ebbe6c29e730ad32534691d3a13b0db39be09c6b532eb4ac82",
-      "archive_member": "mobile_yt_dataset/dataset/run_2220/application_data.csv",
-      "compressed_size_bytes": 1925
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2220/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "5564a299b2340e28d19278304a85885dfad484f1241fad1c543c2b0f26f2e7b7",
-      "archive_member": "mobile_yt_dataset/dataset/run_2220/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2911/application_data.csv",
-      "size_bytes": 8809,
-      "sha256": "9129bc2685bdc6f2be52b11517d18f7ae97fc6290a969fc099c3887df1d6f5fb",
-      "archive_member": "mobile_yt_dataset/dataset/run_2911/application_data.csv",
-      "compressed_size_bytes": 1198
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_2911/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "b9e531b302484899b4e69b1b62e06758e2515f789a4cee7532ddcfda29861b23",
-      "archive_member": "mobile_yt_dataset/dataset/run_2911/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4020/application_data.csv",
-      "size_bytes": 27052,
-      "sha256": "199ee57c8078a45aab55958c2d4588de6d990dea6544f504c76ae793abd93935",
-      "archive_member": "mobile_yt_dataset/dataset/run_4020/application_data.csv",
-      "compressed_size_bytes": 3473
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4020/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "a878a6f11a0fe6657693a5ac10d3c022d3e7c851fe75473f3ef0bfc71d052902",
-      "archive_member": "mobile_yt_dataset/dataset/run_4020/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4141/application_data.csv",
-      "size_bytes": 75356,
-      "sha256": "d300a8b77c7c20811f73bba4916c154cf33842e8cbb705620c4c9325d86f0e94",
-      "archive_member": "mobile_yt_dataset/dataset/run_4141/application_data.csv",
-      "compressed_size_bytes": 8129
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4141/bw_settings.csv",
-      "size_bytes": 42,
-      "sha256": "4cd1f7b7339f943c3010317ed73b50bcfa553f9921e10cbf5ba5ac947ed964ac",
-      "archive_member": "mobile_yt_dataset/dataset/run_4141/bw_settings.csv",
-      "compressed_size_bytes": 42
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4146/application_data.csv",
-      "size_bytes": 97425,
-      "sha256": "f39957d218c4d300687fe8849c2130270136236601c374789139677bd081bc78",
-      "archive_member": "mobile_yt_dataset/dataset/run_4146/application_data.csv",
-      "compressed_size_bytes": 10415
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4146/bw_settings.csv",
-      "size_bytes": 43,
-      "sha256": "2189bc69a7b134b0fdb2451ee6b43009fc42419d5bccdc35640c1c4a55806a17",
-      "archive_member": "mobile_yt_dataset/dataset/run_4146/bw_settings.csv",
-      "compressed_size_bytes": 43
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4210/application_data.csv",
-      "size_bytes": 44362,
-      "sha256": "3413c161b5149e6f1f1bf216682cbddf96158f07247d8ba60d1199820da23241",
-      "archive_member": "mobile_yt_dataset/dataset/run_4210/application_data.csv",
-      "compressed_size_bytes": 4814
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4210/bw_settings.csv",
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4191/bw_settings.csv",
       "size_bytes": 45,
-      "sha256": "a1102c7da9aa28f243592d1521efbb1db7dcbb130086d99c13b9d7d7574c3aa4",
-      "archive_member": "mobile_yt_dataset/dataset/run_4210/bw_settings.csv",
+      "sha256": "b502e1979462a897de7cb1c7f00f76d58a67551bd1e8d430c45b3fb9eb48feb7",
+      "archive_member": "mobile_yt_dataset/dataset/run_4191/bw_settings.csv",
       "compressed_size_bytes": 45
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4325/application_data.csv",
-      "size_bytes": 76929,
-      "sha256": "2f479aac96e9ced7e0ff59c69e131a0779ffa45b26f16e4989597b33d59dccac",
-      "archive_member": "mobile_yt_dataset/dataset/run_4325/application_data.csv",
-      "compressed_size_bytes": 8236
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4196/application_data.csv",
+      "size_bytes": 316840,
+      "sha256": "cb1c2c9ed15035fe28dfe17caaf4c952a9bce4239ad2e1f3a5dcdece2689945a",
+      "archive_member": "mobile_yt_dataset/dataset/run_4196/application_data.csv",
+      "compressed_size_bytes": 32815
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4325/bw_settings.csv",
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4196/bw_settings.csv",
+      "size_bytes": 45,
+      "sha256": "bbfe5c85057e72b33cafe94ca858161c4bd333841741d16af6b66d7a7bc4f664",
+      "archive_member": "mobile_yt_dataset/dataset/run_4196/bw_settings.csv",
+      "compressed_size_bytes": 45
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4201/application_data.csv",
+      "size_bytes": 316192,
+      "sha256": "7f5966888401478908a7c718cded80a86e3d3e9b3b47d5b8d3b474040804118a",
+      "archive_member": "mobile_yt_dataset/dataset/run_4201/application_data.csv",
+      "compressed_size_bytes": 32766
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4201/bw_settings.csv",
+      "size_bytes": 44,
+      "sha256": "6c396b0d7a640223d327bb466053dc9df31639b5b96804cc86f36d50887209ed",
+      "archive_member": "mobile_yt_dataset/dataset/run_4201/bw_settings.csv",
+      "compressed_size_bytes": 44
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4206/application_data.csv",
+      "size_bytes": 221229,
+      "sha256": "f0ffa1529024eae29b6ad5b7492d2e71a736ef6113768fe714228f6d097af5cd",
+      "archive_member": "mobile_yt_dataset/dataset/run_4206/application_data.csv",
+      "compressed_size_bytes": 22847
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4206/bw_settings.csv",
+      "size_bytes": 45,
+      "sha256": "e14a8fc7618b520cca371d6acb4c9920c1970fef990b505c96a54a8bcd6d3378",
+      "archive_member": "mobile_yt_dataset/dataset/run_4206/bw_settings.csv",
+      "compressed_size_bytes": 45
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4685/application_data.csv",
+      "size_bytes": 166670,
+      "sha256": "f61e3d5f6ba3b5e63f309e4b321d1d113dd475f1f16226ed28af4b2abdf57c63",
+      "archive_member": "mobile_yt_dataset/dataset/run_4685/application_data.csv",
+      "compressed_size_bytes": 21026
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4685/bw_settings.csv",
       "size_bytes": 43,
-      "sha256": "f7146ef6b295e8a96d3256c992a0351ff81327c431cb00393e22a6123a20257b",
-      "archive_member": "mobile_yt_dataset/dataset/run_4325/bw_settings.csv",
+      "sha256": "868c7e45c1f05ad94fb32edb0606538e5b7ad41e0126b7d5f1cd61e5a485e1f6",
+      "archive_member": "mobile_yt_dataset/dataset/run_4685/bw_settings.csv",
       "compressed_size_bytes": 43
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4432/application_data.csv",
-      "size_bytes": 100065,
-      "sha256": "f4e581fa602ecb165ddc73be7f471ea7f4cfa692e8092aa09097487254d613c5",
-      "archive_member": "mobile_yt_dataset/dataset/run_4432/application_data.csv",
-      "compressed_size_bytes": 10537
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4686/application_data.csv",
+      "size_bytes": 202018,
+      "sha256": "855a0dd9943c83a0b23d68abd4090df87fe9fcf2949e58d623b5518d5b257f4d",
+      "archive_member": "mobile_yt_dataset/dataset/run_4686/application_data.csv",
+      "compressed_size_bytes": 25822
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4432/bw_settings.csv",
-      "size_bytes": 45,
-      "sha256": "b11228e296b85b3680e8b782d44121d14d8424298c913863cffe1a4e22f9a0a1",
-      "archive_member": "mobile_yt_dataset/dataset/run_4432/bw_settings.csv",
-      "compressed_size_bytes": 44
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4686/bw_settings.csv",
+      "size_bytes": 159,
+      "sha256": "464f5aa6dee30ec6463676d8fdd4aa3126988b4296b6bb8004d7ff0238a9bb77",
+      "archive_member": "mobile_yt_dataset/dataset/run_4686/bw_settings.csv",
+      "compressed_size_bytes": 98
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4474/application_data.csv",
-      "size_bytes": 100082,
-      "sha256": "f09f780fdc9ebea97011984a14a3cf901d32f34f6f9fbc9e10f5c4c5cc38a898",
-      "archive_member": "mobile_yt_dataset/dataset/run_4474/application_data.csv",
-      "compressed_size_bytes": 10702
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4687/application_data.csv",
+      "size_bytes": 204567,
+      "sha256": "e8259b3e7637743f56f033244b75dabcc541c90aeb4be895c9048cee8eb5a80a",
+      "archive_member": "mobile_yt_dataset/dataset/run_4687/application_data.csv",
+      "compressed_size_bytes": 25928
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4474/bw_settings.csv",
-      "size_bytes": 70,
-      "sha256": "c626fd64b5880652aa73f9f1645fa9f17447a42239ca1ed2db4404cbf30f8b88",
-      "archive_member": "mobile_yt_dataset/dataset/run_4474/bw_settings.csv",
-      "compressed_size_bytes": 58
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4515/application_data.csv",
-      "size_bytes": 100391,
-      "sha256": "87e488357146db96a8bf3191fe0114f9d85538613b297bcc12ed3ed909678c96",
-      "archive_member": "mobile_yt_dataset/dataset/run_4515/application_data.csv",
-      "compressed_size_bytes": 10574
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4515/bw_settings.csv",
-      "size_bytes": 45,
-      "sha256": "720d5b37f4622d68cacc2b6cc076ed0e283a56d33d7871dec7562f8f241ba290",
-      "archive_member": "mobile_yt_dataset/dataset/run_4515/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4614/application_data.csv",
-      "size_bytes": 76663,
-      "sha256": "1ba132ff5c1b3b25718d573d1475e1828733cbffae9d7b04293ad9dc66d18e12",
-      "archive_member": "mobile_yt_dataset/dataset/run_4614/application_data.csv",
-      "compressed_size_bytes": 8187
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4614/bw_settings.csv",
-      "size_bytes": 44,
-      "sha256": "d209a9d32c3876b19e534455fcb85863a40702b4cde8ead04e294c1805a76f19",
-      "archive_member": "mobile_yt_dataset/dataset/run_4614/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4617/application_data.csv",
-      "size_bytes": 76303,
-      "sha256": "3f2cc5362c12e876b2266819dea11b42d8ea228cb74a26e6d97bc95c1fd6e188",
-      "archive_member": "mobile_yt_dataset/dataset/run_4617/application_data.csv",
-      "compressed_size_bytes": 8169
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4617/bw_settings.csv",
-      "size_bytes": 44,
-      "sha256": "5edb27f66988aa40ab1043789b9e4c072e343d285af6f6ad3cb5f99685ce504f",
-      "archive_member": "mobile_yt_dataset/dataset/run_4617/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4640/application_data.csv",
-      "size_bytes": 66189,
-      "sha256": "84e5cf870f456b1a41f8dc611c761cf692a539fbfb59f6039b2b5dcf16b3b178",
-      "archive_member": "mobile_yt_dataset/dataset/run_4640/application_data.csv",
-      "compressed_size_bytes": 7391
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4640/bw_settings.csv",
-      "size_bytes": 44,
-      "sha256": "4397a80c143830e33517ccc83e0d6049b2513804dc1e8160e74032e80ae8888a",
-      "archive_member": "mobile_yt_dataset/dataset/run_4640/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4725/application_data.csv",
-      "size_bytes": 67239,
-      "sha256": "006105abebe37b513ca887bcdf551c5322e2222feec8a4728a26a89ef2ef3199",
-      "archive_member": "mobile_yt_dataset/dataset/run_4725/application_data.csv",
-      "compressed_size_bytes": 7535
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4725/bw_settings.csv",
-      "size_bytes": 44,
-      "sha256": "806fb6594e34a6633c3c2c23dd4f35bf53d4b6364d2aa63d53055f138034840e",
-      "archive_member": "mobile_yt_dataset/dataset/run_4725/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4746/application_data.csv",
-      "size_bytes": 68235,
-      "sha256": "a4b2234fe1462fec7f6da05c138c239fb6ee89766f409918f3e1e287a9475d9e",
-      "archive_member": "mobile_yt_dataset/dataset/run_4746/application_data.csv",
-      "compressed_size_bytes": 7610
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4746/bw_settings.csv",
-      "size_bytes": 44,
-      "sha256": "03b49dcbaafa70b79783a1fb1a916b13d7013eacc9453837ea23fd3c38291c09",
-      "archive_member": "mobile_yt_dataset/dataset/run_4746/bw_settings.csv",
-      "compressed_size_bytes": 44
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4787/application_data.csv",
-      "size_bytes": 74315,
-      "sha256": "6599afdf734d45f4148658bb7dcded92c8d473777a9074ea6e9a345bf540a461",
-      "archive_member": "mobile_yt_dataset/dataset/run_4787/application_data.csv",
-      "compressed_size_bytes": 8123
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4787/bw_settings.csv",
-      "size_bytes": 163,
-      "sha256": "1a4bb3ee38e3101d3eb31ffc3f7053d236f17d63849c9413503bd70f0ebb4062",
-      "archive_member": "mobile_yt_dataset/dataset/run_4787/bw_settings.csv",
-      "compressed_size_bytes": 96
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4839/application_data.csv",
-      "size_bytes": 77659,
-      "sha256": "fa5a34a066b8a600a29d3f3eebfeac591acfc42770afc3a565465fd68bf7d36a",
-      "archive_member": "mobile_yt_dataset/dataset/run_4839/application_data.csv",
-      "compressed_size_bytes": 8311
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4839/bw_settings.csv",
-      "size_bytes": 208,
-      "sha256": "1ee2f17450f1018df9517c400fcd0a949c9793d7736c9314f11e6cf2f7048aba",
-      "archive_member": "mobile_yt_dataset/dataset/run_4839/bw_settings.csv",
-      "compressed_size_bytes": 115
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4989/application_data.csv",
-      "size_bytes": 74281,
-      "sha256": "a588f72cd84466ddbcbc2de11f024650d06d34f0135382701d68633ed57f8483",
-      "archive_member": "mobile_yt_dataset/dataset/run_4989/application_data.csv",
-      "compressed_size_bytes": 8068
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_4989/bw_settings.csv",
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4687/bw_settings.csv",
       "size_bytes": 161,
-      "sha256": "ee09aebf37da8310791c736cf28c003e3977adebee86332aa95689e1a88c5ae0",
-      "archive_member": "mobile_yt_dataset/dataset/run_4989/bw_settings.csv",
-      "compressed_size_bytes": 93
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5044/application_data.csv",
-      "size_bytes": 74500,
-      "sha256": "69c939480edf7be1d7b02bc5980b3b2472e9cab1c1468fc6804cf09aa24ba09a",
-      "archive_member": "mobile_yt_dataset/dataset/run_5044/application_data.csv",
-      "compressed_size_bytes": 8136
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5044/bw_settings.csv",
-      "size_bytes": 161,
-      "sha256": "9e68f6823f06545aaa82a1bb9e1f49d321f112ef00924771d33872dcdb6d3afe",
-      "archive_member": "mobile_yt_dataset/dataset/run_5044/bw_settings.csv",
-      "compressed_size_bytes": 95
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5106/application_data.csv",
-      "size_bytes": 85075,
-      "sha256": "2d6edeaf6d6cb7e05bbe1c81e90d3cefb91cabf59d50611483ed909772e0be06",
-      "archive_member": "mobile_yt_dataset/dataset/run_5106/application_data.csv",
-      "compressed_size_bytes": 8823
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5106/bw_settings.csv",
-      "size_bytes": 88,
-      "sha256": "1aaf0bb03e065ebffb5664b4a05666393d64d39ec0e7b1457d422e66d0ab678d",
-      "archive_member": "mobile_yt_dataset/dataset/run_5106/bw_settings.csv",
-      "compressed_size_bytes": 71
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5284/application_data.csv",
-      "size_bytes": 75307,
-      "sha256": "00b2eb9140102775391fe119bb81d74d82d4d1f1af8004be0042ec49f14c9b94",
-      "archive_member": "mobile_yt_dataset/dataset/run_5284/application_data.csv",
-      "compressed_size_bytes": 8199
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5284/bw_settings.csv",
-      "size_bytes": 163,
-      "sha256": "c772379fe47b2d26dc911cb520b7bccec30b634255166f9671ec073d6baa6677",
-      "archive_member": "mobile_yt_dataset/dataset/run_5284/bw_settings.csv",
-      "compressed_size_bytes": 96
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5299/application_data.csv",
-      "size_bytes": 85559,
-      "sha256": "83cde63f04cb1c0ef5fa02761c4266510b8e1f9278a900987acf050558c47009",
-      "archive_member": "mobile_yt_dataset/dataset/run_5299/application_data.csv",
-      "compressed_size_bytes": 8818
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5299/bw_settings.csv",
-      "size_bytes": 88,
-      "sha256": "c79c6233c71302826920b9e60c536fc3ea60f3b1aada2e32df956d7fd4700c88",
-      "archive_member": "mobile_yt_dataset/dataset/run_5299/bw_settings.csv",
-      "compressed_size_bytes": 73
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5314/application_data.csv",
-      "size_bytes": 76769,
-      "sha256": "29d7ab5423319f8be450106a873a4eb211981ad5e79b61bb53f9647572802c22",
-      "archive_member": "mobile_yt_dataset/dataset/run_5314/application_data.csv",
-      "compressed_size_bytes": 8233
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5314/bw_settings.csv",
-      "size_bytes": 163,
-      "sha256": "098f2614bb619718f192fe2ddf4aa6690c2eeda3fb3cb1103d7219fc15d92d2e",
-      "archive_member": "mobile_yt_dataset/dataset/run_5314/bw_settings.csv",
+      "sha256": "081576d82a6e62d37e559c0238268da256541ebd48df3fe621b41dc2ad36ecfe",
+      "archive_member": "mobile_yt_dataset/dataset/run_4687/bw_settings.csv",
       "compressed_size_bytes": 100
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5376/application_data.csv",
-      "size_bytes": 74626,
-      "sha256": "621b4f722d03928d86f3062a5345d0cd05d7a599d9da2c0f55738424e4c4d878",
-      "archive_member": "mobile_yt_dataset/dataset/run_5376/application_data.csv",
-      "compressed_size_bytes": 8148
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4688/application_data.csv",
+      "size_bytes": 204764,
+      "sha256": "faca02b1c158a3d41fa4dde98ba38e2475ab0e562fb5388eab97ad26e7dda89e",
+      "archive_member": "mobile_yt_dataset/dataset/run_4688/application_data.csv",
+      "compressed_size_bytes": 25896
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5376/bw_settings.csv",
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4688/bw_settings.csv",
+      "size_bytes": 160,
+      "sha256": "19c422c51e36d4dc3e1523cc0b0f0a09e268e66b8db0eda750daf593c33b4e80",
+      "archive_member": "mobile_yt_dataset/dataset/run_4688/bw_settings.csv",
+      "compressed_size_bytes": 98
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4689/application_data.csv",
+      "size_bytes": 204345,
+      "sha256": "f9dc48528e5b3758866ff71d7150ca2417262c2d63d46e37deea286852161bff",
+      "archive_member": "mobile_yt_dataset/dataset/run_4689/application_data.csv",
+      "compressed_size_bytes": 25886
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4689/bw_settings.csv",
+      "size_bytes": 160,
+      "sha256": "9787a0c0d3b4194cf70278a4b558e8910add7b250e59f5b9e5e10f3aa0b6aa10",
+      "archive_member": "mobile_yt_dataset/dataset/run_4689/bw_settings.csv",
+      "compressed_size_bytes": 100
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4690/application_data.csv",
+      "size_bytes": 204823,
+      "sha256": "8074428fd7a4b9d42e927efa0ebde90afb15b9609ee1aa0a503c077a96c17774",
+      "archive_member": "mobile_yt_dataset/dataset/run_4690/application_data.csv",
+      "compressed_size_bytes": 25841
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4690/bw_settings.csv",
+      "size_bytes": 43,
+      "sha256": "ff475ac403749b95dadd8182ef074f2b89254355fb8deca1febea9d139837207",
+      "archive_member": "mobile_yt_dataset/dataset/run_4690/bw_settings.csv",
+      "compressed_size_bytes": 43
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4691/application_data.csv",
+      "size_bytes": 186993,
+      "sha256": "e965e46a539968a5b6eed05df28b8b6d49dcee6ab7abba1af7d5eedb0eeaefd3",
+      "archive_member": "mobile_yt_dataset/dataset/run_4691/application_data.csv",
+      "compressed_size_bytes": 23583
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4691/bw_settings.csv",
+      "size_bytes": 43,
+      "sha256": "32700098d5468dafcefba072a8cb4e5977ed11ad377377195ee60100e1d2053f",
+      "archive_member": "mobile_yt_dataset/dataset/run_4691/bw_settings.csv",
+      "compressed_size_bytes": 43
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4692/application_data.csv",
+      "size_bytes": 205351,
+      "sha256": "f7bbc99a78da5ff1ef6b99158de6619ac0828dfc310920f59a7d2b0de89266ea",
+      "archive_member": "mobile_yt_dataset/dataset/run_4692/application_data.csv",
+      "compressed_size_bytes": 25870
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4692/bw_settings.csv",
+      "size_bytes": 43,
+      "sha256": "050c920d895f57044421a05348eb19648ab82c04b8cc4ff54dccbe2ea8f56681",
+      "archive_member": "mobile_yt_dataset/dataset/run_4692/bw_settings.csv",
+      "compressed_size_bytes": 43
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4693/application_data.csv",
+      "size_bytes": 204922,
+      "sha256": "b9f1425997909ef48e33853ad33f07194bf46d722b44879157de2d3b5848b854",
+      "archive_member": "mobile_yt_dataset/dataset/run_4693/application_data.csv",
+      "compressed_size_bytes": 25852
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4693/bw_settings.csv",
+      "size_bytes": 43,
+      "sha256": "e9414c12c2fae0afdc113443bd6824fadb49da7f068622a2d952237ac5001dcc",
+      "archive_member": "mobile_yt_dataset/dataset/run_4693/bw_settings.csv",
+      "compressed_size_bytes": 43
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4694/application_data.csv",
+      "size_bytes": 204098,
+      "sha256": "ffd9023b27d4b1ad2ceeb1caf4ef984e2bfbc558d3659c9b56f85f2ac044d706",
+      "archive_member": "mobile_yt_dataset/dataset/run_4694/application_data.csv",
+      "compressed_size_bytes": 25879
+    },
+    {
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4694/bw_settings.csv",
       "size_bytes": 161,
-      "sha256": "6ca8ceb008f6186e1f5663d169c8b79f0b14172ec4113be9cd5a94a5ec9e8fd3",
-      "archive_member": "mobile_yt_dataset/dataset/run_5376/bw_settings.csv",
-      "compressed_size_bytes": 96
+      "sha256": "69fba0b920084a5f62e0b0005093cbfadb0103efd4a166dd7649d99a8af1f850",
+      "archive_member": "mobile_yt_dataset/dataset/run_4694/bw_settings.csv",
+      "compressed_size_bytes": 100
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5387/application_data.csv",
-      "size_bytes": 87980,
-      "sha256": "bdb5aaa71ea683a3d89b2e4f5a06a7e4f87d06c1b97475df4a125bcec8b36c72",
-      "archive_member": "mobile_yt_dataset/dataset/run_5387/application_data.csv",
-      "compressed_size_bytes": 8989
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4695/application_data.csv",
+      "size_bytes": 202979,
+      "sha256": "f36ca71b15b40dcad781949a768b69b3c8453ecb41707b17a28bffadf8b8f838",
+      "archive_member": "mobile_yt_dataset/dataset/run_4695/application_data.csv",
+      "compressed_size_bytes": 28292
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5387/bw_settings.csv",
-      "size_bytes": 89,
-      "sha256": "137a66858cd219c3ff3c3352aec43efb43703148cb66e30bee85eaaa7cad5c14",
-      "archive_member": "mobile_yt_dataset/dataset/run_5387/bw_settings.csv",
-      "compressed_size_bytes": 72
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4695/bw_settings.csv",
+      "size_bytes": 161,
+      "sha256": "95ccf1a381ffe6f0084058c075d1e359d61aec3c6314679defe969499724f707",
+      "archive_member": "mobile_yt_dataset/dataset/run_4695/bw_settings.csv",
+      "compressed_size_bytes": 99
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5456/application_data.csv",
-      "size_bytes": 85498,
-      "sha256": "f096de72a96fe72b87132f12e63e3f407e0321c98e3b13ba04b643ca647cfafb",
-      "archive_member": "mobile_yt_dataset/dataset/run_5456/application_data.csv",
-      "compressed_size_bytes": 8796
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4696/application_data.csv",
+      "size_bytes": 243476,
+      "sha256": "7d6b588966f73c31b8e9891079cf3cc2a4692357db4eb2797b29067b3e781682",
+      "archive_member": "mobile_yt_dataset/dataset/run_4696/application_data.csv",
+      "compressed_size_bytes": 33884
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5456/bw_settings.csv",
-      "size_bytes": 88,
-      "sha256": "a8ae753226612cba4483cf3f3ce86991cda41f5e23b4285695bce9083e5751bb",
-      "archive_member": "mobile_yt_dataset/dataset/run_5456/bw_settings.csv",
-      "compressed_size_bytes": 72
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4696/bw_settings.csv",
+      "size_bytes": 161,
+      "sha256": "dbd08529d7ac3a7a506c8ef2695f21aef7f455052b0bf91a51ef5b2e6942379b",
+      "archive_member": "mobile_yt_dataset/dataset/run_4696/bw_settings.csv",
+      "compressed_size_bytes": 99
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5462/application_data.csv",
-      "size_bytes": 73787,
-      "sha256": "510a40236513c965e369c8e1ba3e5ee09a66bb4655285f22871819f3719fdffd",
-      "archive_member": "mobile_yt_dataset/dataset/run_5462/application_data.csv",
-      "compressed_size_bytes": 8041
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4697/application_data.csv",
+      "size_bytes": 204339,
+      "sha256": "452c9d9989a4afacdd401d3167ae21f14053d614482ac8c75ff1cfdf4b909f66",
+      "archive_member": "mobile_yt_dataset/dataset/run_4697/application_data.csv",
+      "compressed_size_bytes": 25830
     },
     {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5462/bw_settings.csv",
-      "size_bytes": 163,
-      "sha256": "91c100c04ce3cb7b0f448ff44bf25b6d6e18c432aae1285ffdaf03485559e310",
-      "archive_member": "mobile_yt_dataset/dataset/run_5462/bw_settings.csv",
-      "compressed_size_bytes": 96
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5637/application_data.csv",
-      "size_bytes": 83999,
-      "sha256": "f36b9c3b17707abdca263b4b8a8a1927281d937ee78eea98b98a34957ca0b34f",
-      "archive_member": "mobile_yt_dataset/dataset/run_5637/application_data.csv",
-      "compressed_size_bytes": 8700
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5637/bw_settings.csv",
-      "size_bytes": 205,
-      "sha256": "e544adfcee9ee2b8c1c650daf44fd0412ccc87b075a48ed34527b4ee0762a753",
-      "archive_member": "mobile_yt_dataset/dataset/run_5637/bw_settings.csv",
-      "compressed_size_bytes": 112
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5827/application_data.csv",
-      "size_bytes": 20067,
-      "sha256": "591b208aadb20d9d7ab669d8e8fbbfa32c5647c8cc0a70952817737fbb880153",
-      "archive_member": "mobile_yt_dataset/dataset/run_5827/application_data.csv",
-      "compressed_size_bytes": 2726
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5827/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "3269cab4deee96b3d44a90a7154f98f4d57dce1b3ff0fd802282e115fbd9db45",
-      "archive_member": "mobile_yt_dataset/dataset/run_5827/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5871/application_data.csv",
-      "size_bytes": 14890,
-      "sha256": "4b2a972cfbc9a966303d8ff9cafea7b97e71c107d120adff8b513664224e6f80",
-      "archive_member": "mobile_yt_dataset/dataset/run_5871/application_data.csv",
-      "compressed_size_bytes": 2095
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5871/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "bb4c41be2ce4df5e6c162e4a464b591697778f07667f6e7e1f85bf3d9df0a828",
-      "archive_member": "mobile_yt_dataset/dataset/run_5871/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5878/application_data.csv",
-      "size_bytes": 14966,
-      "sha256": "ddfc470199e561f918585255765c8580d4f255297f74dd8aa40723d7ebd21ad7",
-      "archive_member": "mobile_yt_dataset/dataset/run_5878/application_data.csv",
-      "compressed_size_bytes": 2120
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5878/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "e4c0701bd77f4c293d7a180c3630db27d82bcb5ab0dd1daafe803088d7905cac",
-      "archive_member": "mobile_yt_dataset/dataset/run_5878/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5908/application_data.csv",
-      "size_bytes": 16507,
-      "sha256": "59a201833cc5a2e8784a0eea6e6a1286e54b432dd65f696c7c0170c2cfcb2f72",
-      "archive_member": "mobile_yt_dataset/dataset/run_5908/application_data.csv",
-      "compressed_size_bytes": 2265
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5908/bw_settings.csv",
-      "size_bytes": 38,
-      "sha256": "d7541c0da6775fa017f9780e2cbeac58e1f05231df86f683f9ff704d87801bc5",
-      "archive_member": "mobile_yt_dataset/dataset/run_5908/bw_settings.csv",
-      "compressed_size_bytes": 37
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5985/application_data.csv",
-      "size_bytes": 20089,
-      "sha256": "08d4700e69a18facc79e51a97081e30c21feb92b6663ed8118b8685437283757",
-      "archive_member": "mobile_yt_dataset/dataset/run_5985/application_data.csv",
-      "compressed_size_bytes": 2766
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5985/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "fbe0fc05612b0fcff2e85397bb041d6f57038667e7b00024eeb231fb069f8f88",
-      "archive_member": "mobile_yt_dataset/dataset/run_5985/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5993/application_data.csv",
-      "size_bytes": 17972,
-      "sha256": "bff20d41680e0b9deaa81be962e3b276ae6ec5b4b0d62c66e46d06390d744be9",
-      "archive_member": "mobile_yt_dataset/dataset/run_5993/application_data.csv",
-      "compressed_size_bytes": 2421
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5993/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "e1d1801eab45600a0e6693387825081b327df71fbb4a7933c8a74a98c547477c",
-      "archive_member": "mobile_yt_dataset/dataset/run_5993/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5995/application_data.csv",
-      "size_bytes": 17655,
-      "sha256": "0b030fe7870a9050bd28d6d838f07abb953d6d2adda3733520e5e9844d5bba4d",
-      "archive_member": "mobile_yt_dataset/dataset/run_5995/application_data.csv",
-      "compressed_size_bytes": 2383
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_5995/bw_settings.csv",
-      "size_bytes": 35,
-      "sha256": "bab2ca985ba2568aa64079323da77ca4fb6d0e189c367f650a776cba69645d1e",
-      "archive_member": "mobile_yt_dataset/dataset/run_5995/bw_settings.csv",
-      "compressed_size_bytes": 35
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6057/application_data.csv",
-      "size_bytes": 40057,
-      "sha256": "ba5edb2f6ce24704b99ce27e7632a25e208c70c2d4c00562034305337ae445e0",
-      "archive_member": "mobile_yt_dataset/dataset/run_6057/application_data.csv",
-      "compressed_size_bytes": 5188
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6057/bw_settings.csv",
-      "size_bytes": 79,
-      "sha256": "36e44462975b87fe77203c6f894386b98977cbfb51f955b836166308c400dff9",
-      "archive_member": "mobile_yt_dataset/dataset/run_6057/bw_settings.csv",
-      "compressed_size_bytes": 57
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6219/application_data.csv",
-      "size_bytes": 15368,
-      "sha256": "b4d97f4aa0a0f173a098ea3bdfff16370f259fb48fa9bf046a790ef0be142d00",
-      "archive_member": "mobile_yt_dataset/dataset/run_6219/application_data.csv",
-      "compressed_size_bytes": 2157
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6219/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "a58748b2c87630344f668b57adfee463a03eb7c960afda9a0614cf203458590f",
-      "archive_member": "mobile_yt_dataset/dataset/run_6219/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6583/application_data.csv",
-      "size_bytes": 15363,
-      "sha256": "ea49f375eb4ffa98d61194b0753049fdb6f28484bf33d850036859d04ffa2f94",
-      "archive_member": "mobile_yt_dataset/dataset/run_6583/application_data.csv",
-      "compressed_size_bytes": 2091
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6583/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "1b6d416b99727620208093f1711994460aaa490b66be6a6eb2db394b79674fbf",
-      "archive_member": "mobile_yt_dataset/dataset/run_6583/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6590/application_data.csv",
-      "size_bytes": 15293,
-      "sha256": "47fcaf83fea3be1f3fdb48624ccf7e493c6bd778863ca773a24162c925a7b31d",
-      "archive_member": "mobile_yt_dataset/dataset/run_6590/application_data.csv",
-      "compressed_size_bytes": 2070
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_6590/bw_settings.csv",
-      "size_bytes": 36,
-      "sha256": "d54342b6c367ef27a6891c63a80bc80dbaf2503279c9eba25af4398d74851c1f",
-      "archive_member": "mobile_yt_dataset/dataset/run_6590/bw_settings.csv",
-      "compressed_size_bytes": 36
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7598/application_data.csv",
-      "size_bytes": 30439,
-      "sha256": "e2e2f9d26943423e014888cb25767442f4a26460388865dcdf4d5600b230e942",
-      "archive_member": "mobile_yt_dataset/dataset/run_7598/application_data.csv",
-      "compressed_size_bytes": 4063
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7598/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "779174aadf021d42e00f30ba803257fceb64450181b621b27bd7a1d80bf9adef",
-      "archive_member": "mobile_yt_dataset/dataset/run_7598/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7663/application_data.csv",
-      "size_bytes": 55362,
-      "sha256": "454a734fd0f0c0c30df5d29da01db62c53ae4b7aa73c2123e5251b8cc3fe803e",
-      "archive_member": "mobile_yt_dataset/dataset/run_7663/application_data.csv",
-      "compressed_size_bytes": 7210
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7663/bw_settings.csv",
-      "size_bytes": 81,
-      "sha256": "754b30cebcb2232b5d5e9c09201b2f8ab5802727b17c9aab0d4b2fc3f45121c2",
-      "archive_member": "mobile_yt_dataset/dataset/run_7663/bw_settings.csv",
-      "compressed_size_bytes": 56
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7766/application_data.csv",
-      "size_bytes": 46017,
-      "sha256": "c641970fca2576b9b758123214cdc5bda02702961d5e15070c9fe68b126a7c9f",
-      "archive_member": "mobile_yt_dataset/dataset/run_7766/application_data.csv",
-      "compressed_size_bytes": 6123
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7766/bw_settings.csv",
-      "size_bytes": 126,
-      "sha256": "591e9b48c6bf077c883321650b49b00a52843645d10d5315a5c62b82b26b843f",
-      "archive_member": "mobile_yt_dataset/dataset/run_7766/bw_settings.csv",
-      "compressed_size_bytes": 73
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7874/application_data.csv",
-      "size_bytes": 56014,
-      "sha256": "b058559d58b91f94c842cf8db86edcdf390d2064dbac829b4d753c744dc49b31",
-      "archive_member": "mobile_yt_dataset/dataset/run_7874/application_data.csv",
-      "compressed_size_bytes": 7340
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7874/bw_settings.csv",
-      "size_bytes": 126,
-      "sha256": "d9a0f8ac2c202e06bacdb16fd1c9744c79bf9b5b6c093a4686f003db2d4ef985",
-      "archive_member": "mobile_yt_dataset/dataset/run_7874/bw_settings.csv",
-      "compressed_size_bytes": 71
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7935/application_data.csv",
-      "size_bytes": 51379,
-      "sha256": "aea85b946a19fb2f7588db8846e0f93347cb7988785f5f80366a122119560b58",
-      "archive_member": "mobile_yt_dataset/dataset/run_7935/application_data.csv",
-      "compressed_size_bytes": 6787
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7935/bw_settings.csv",
-      "size_bytes": 126,
-      "sha256": "8c1a9a0e84ec5e0d4e1a307319b23e31a122c59a9a9db538d9625523130bea6e",
-      "archive_member": "mobile_yt_dataset/dataset/run_7935/bw_settings.csv",
-      "compressed_size_bytes": 72
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7976/application_data.csv",
-      "size_bytes": 46233,
-      "sha256": "ff040fa643ff2df9998a54a577316867c42c069813b487bd847192bea7bbd7f6",
-      "archive_member": "mobile_yt_dataset/dataset/run_7976/application_data.csv",
-      "compressed_size_bytes": 6068
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_7976/bw_settings.csv",
-      "size_bytes": 81,
-      "sha256": "1e523432e4e05e1e7790b9360da4f68edc774bfdb4b5c18d3575e941e7f2f3d6",
-      "archive_member": "mobile_yt_dataset/dataset/run_7976/bw_settings.csv",
-      "compressed_size_bytes": 54
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8120/application_data.csv",
-      "size_bytes": 36703,
-      "sha256": "0a926eeeba1e66b699aef59345e22539e9d024e9c1ffe467e6dc29d6730f52e8",
-      "archive_member": "mobile_yt_dataset/dataset/run_8120/application_data.csv",
-      "compressed_size_bytes": 4860
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8120/bw_settings.csv",
-      "size_bytes": 114,
-      "sha256": "1eefe31efe04f4398e29f5d3f7f078c668a8ec6951f35efc396add08b5404e5a",
-      "archive_member": "mobile_yt_dataset/dataset/run_8120/bw_settings.csv",
-      "compressed_size_bytes": 68
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8297/application_data.csv",
-      "size_bytes": 29703,
-      "sha256": "e535d2b17e74b51fb661753d24b78b5750d03682b53f859c07aad72bcbb9128a",
-      "archive_member": "mobile_yt_dataset/dataset/run_8297/application_data.csv",
-      "compressed_size_bytes": 4057
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8297/bw_settings.csv",
-      "size_bytes": 66,
-      "sha256": "2bdabd3b001fc6f659a6b609139eb6e0de7b2dedb8c5373129baa78a99a046bf",
-      "archive_member": "mobile_yt_dataset/dataset/run_8297/bw_settings.csv",
-      "compressed_size_bytes": 50
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8400/application_data.csv",
-      "size_bytes": 35939,
-      "sha256": "c387775ffc296769fce34953093f5288cfae6c67990b2b4be3e9a5ef4faf9546",
-      "archive_member": "mobile_yt_dataset/dataset/run_8400/application_data.csv",
-      "compressed_size_bytes": 4794
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8400/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "e2bd8fa46fb424a18d26d2808f2d7b2ff67be66591fcc72049fd028edec9ff38",
-      "archive_member": "mobile_yt_dataset/dataset/run_8400/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8539/application_data.csv",
-      "size_bytes": 39878,
-      "sha256": "19cc28d6b2af813d3ef0735b0ff38951e043d5e3b3e7f2d4f482575bfbc81e50",
-      "archive_member": "mobile_yt_dataset/dataset/run_8539/application_data.csv",
-      "compressed_size_bytes": 5280
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8539/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "8f1efe8d1d885635718b593a9482229de79e0caee1e14aa58ad05c8cdbe06fd1",
-      "archive_member": "mobile_yt_dataset/dataset/run_8539/bw_settings.csv",
-      "compressed_size_bytes": 52
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8717/application_data.csv",
-      "size_bytes": 34245,
-      "sha256": "043162f944caa3d5fc151bfef91f4dd1b766501c831ec565cecb3e8cc68fa664",
-      "archive_member": "mobile_yt_dataset/dataset/run_8717/application_data.csv",
-      "compressed_size_bytes": 4576
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8717/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "9e87419c054649afe0ff09211de746670611a81a03fac1e4dccdb527a2828063",
-      "archive_member": "mobile_yt_dataset/dataset/run_8717/bw_settings.csv",
-      "compressed_size_bytes": 52
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8819/application_data.csv",
-      "size_bytes": 33124,
-      "sha256": "23abcea7dc953917a4379fcf52d85fa4110d62798cf111d949c2c8eed040fc3e",
-      "archive_member": "mobile_yt_dataset/dataset/run_8819/application_data.csv",
-      "compressed_size_bytes": 4388
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8819/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "1be93bb8fb50aa6602bce6344be8046cf6241359f033e7be5c2e0942bf73580f",
-      "archive_member": "mobile_yt_dataset/dataset/run_8819/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8893/application_data.csv",
-      "size_bytes": 36597,
-      "sha256": "c49468b8f84cc280391258e69d63192ec1dbc76ad6b529348f3455a5e4e19d41",
-      "archive_member": "mobile_yt_dataset/dataset/run_8893/application_data.csv",
-      "compressed_size_bytes": 4822
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8893/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "09baf61d0eefde97ca1b4deeacc08fa43bf203511b9940962b0ca4d2aa99663a",
-      "archive_member": "mobile_yt_dataset/dataset/run_8893/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8951/application_data.csv",
-      "size_bytes": 26750,
-      "sha256": "738ea3b1e8901f69c7b422011c83ae740c806118837977f4e44d47d29ba4c6ee",
-      "archive_member": "mobile_yt_dataset/dataset/run_8951/application_data.csv",
-      "compressed_size_bytes": 3686
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_8951/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "24f49231ea14c66f70c3d980762848408a30ca0d3003228ca26951855637ee9b",
-      "archive_member": "mobile_yt_dataset/dataset/run_8951/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9050/application_data.csv",
-      "size_bytes": 45705,
-      "sha256": "a5481899a68a974a0cfd42ae3e646234cc15078bbdb915dfcc47c2a6341ec6fe",
-      "archive_member": "mobile_yt_dataset/dataset/run_9050/application_data.csv",
-      "compressed_size_bytes": 6022
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9050/bw_settings.csv",
-      "size_bytes": 97,
-      "sha256": "5b74777a6cbe821ba03d5621edc5ea133d0b973966247001ed7ff1cecdbdad08",
-      "archive_member": "mobile_yt_dataset/dataset/run_9050/bw_settings.csv",
-      "compressed_size_bytes": 65
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9351/application_data.csv",
-      "size_bytes": 17441,
-      "sha256": "9940a77995758159f92707a4ead12062786705efea2dde3d9f373ee9e85a6b95",
-      "archive_member": "mobile_yt_dataset/dataset/run_9351/application_data.csv",
-      "compressed_size_bytes": 2463
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9351/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "b9cb163155fe8b3b57581f6b0baf38aed5ea36c7ffc7fbf2d1a979ed62eef6b9",
-      "archive_member": "mobile_yt_dataset/dataset/run_9351/bw_settings.csv",
-      "compressed_size_bytes": 241
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9368/application_data.csv",
-      "size_bytes": 17522,
-      "sha256": "c107b796bba10be20cb5d0ad987b78ff98710638e13ba63637da55066f624866",
-      "archive_member": "mobile_yt_dataset/dataset/run_9368/application_data.csv",
-      "compressed_size_bytes": 2433
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9368/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "e58cfa800634d026d62e442d1c5b3cc20cc792f2296f832832713c1c61c9128d",
-      "archive_member": "mobile_yt_dataset/dataset/run_9368/bw_settings.csv",
-      "compressed_size_bytes": 243
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9411/application_data.csv",
-      "size_bytes": 17593,
-      "sha256": "756b1283c6a4a617d6ed10515382a9209f60eba10116b45bb502182c0202effc",
-      "archive_member": "mobile_yt_dataset/dataset/run_9411/application_data.csv",
-      "compressed_size_bytes": 2498
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9411/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "d4d4409b918555b511c92affb09a0fb582eb61c09d3755a231c71d2800b19846",
-      "archive_member": "mobile_yt_dataset/dataset/run_9411/bw_settings.csv",
-      "compressed_size_bytes": 201
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9538/application_data.csv",
-      "size_bytes": 24132,
-      "sha256": "3a53169ed9663e976932c8d9716cec813c38f1db31af1ecb6dd8d8910b83c434",
-      "archive_member": "mobile_yt_dataset/dataset/run_9538/application_data.csv",
-      "compressed_size_bytes": 3332
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9538/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "a898e6d657254eac09f1ea3b613a3fd33c2342f03e9e782541116466bf4c7086",
-      "archive_member": "mobile_yt_dataset/dataset/run_9538/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9539/application_data.csv",
-      "size_bytes": 24019,
-      "sha256": "b534b780cdfadaf9eed400868c3d6b1a41212425d3b5108881cfb41ee61d4b76",
-      "archive_member": "mobile_yt_dataset/dataset/run_9539/application_data.csv",
-      "compressed_size_bytes": 3328
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9539/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "e7d242553a1a64b08c3d7e6abdd819df5febb96d4fbd0d32d6998ca7e80392a7",
-      "archive_member": "mobile_yt_dataset/dataset/run_9539/bw_settings.csv",
-      "compressed_size_bytes": 202
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9555/application_data.csv",
-      "size_bytes": 24148,
-      "sha256": "748e60411f71a1832a67b5b7594b2db2d6c7a5dd5fa4df866994d0991f91eabd",
-      "archive_member": "mobile_yt_dataset/dataset/run_9555/application_data.csv",
-      "compressed_size_bytes": 3341
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9555/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "1209f6196087c3786122adc6aee438360839653aa79b41185292b812dc0b72ef",
-      "archive_member": "mobile_yt_dataset/dataset/run_9555/bw_settings.csv",
-      "compressed_size_bytes": 204
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9764/application_data.csv",
-      "size_bytes": 34477,
-      "sha256": "5b3e418a15eed30ba19a191e36d47b28d7ea8c97ab50824414f24a72e5963780",
-      "archive_member": "mobile_yt_dataset/dataset/run_9764/application_data.csv",
-      "compressed_size_bytes": 4678
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9764/bw_settings.csv",
-      "size_bytes": 65,
-      "sha256": "f9cf75cd186907af85e3565124d478b86275fb00b2a1598b8d9a80342803bf00",
-      "archive_member": "mobile_yt_dataset/dataset/run_9764/bw_settings.csv",
-      "compressed_size_bytes": 51
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9808/application_data.csv",
-      "size_bytes": 25867,
-      "sha256": "ae4247be2ef24cba3a94a7977b67aa93fa8e8d1b47ad40cef38d0b60e69e26c2",
-      "archive_member": "mobile_yt_dataset/dataset/run_9808/application_data.csv",
-      "compressed_size_bytes": 3497
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9808/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "2de1cc33b08c590ab277d1e4f528d864805fdd291ef5295567daa7e71ae58104",
-      "archive_member": "mobile_yt_dataset/dataset/run_9808/bw_settings.csv",
-      "compressed_size_bytes": 199
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9828/application_data.csv",
-      "size_bytes": 25966,
-      "sha256": "538e014df4ba17f62d3eeeaae586e8d8bb499bf164b01b27d4fc892464ed0e0a",
-      "archive_member": "mobile_yt_dataset/dataset/run_9828/application_data.csv",
-      "compressed_size_bytes": 3474
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9828/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "d2468832738bcd435548a2190a6a88f6facf630f566d5b53df63beb04a6af277",
-      "archive_member": "mobile_yt_dataset/dataset/run_9828/bw_settings.csv",
-      "compressed_size_bytes": 202
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9855/application_data.csv",
-      "size_bytes": 20948,
-      "sha256": "4547e5bb5d558a2960a6888ce6bdfbe80c211fd679a2d8a528bf086d75a809a4",
-      "archive_member": "mobile_yt_dataset/dataset/run_9855/application_data.csv",
-      "compressed_size_bytes": 2928
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9855/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "af52d34797df4f62dba1bd935bd50ecdf0e1e966c910454145db7bdf500bab27",
-      "archive_member": "mobile_yt_dataset/dataset/run_9855/bw_settings.csv",
-      "compressed_size_bytes": 204
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9880/application_data.csv",
-      "size_bytes": 29716,
-      "sha256": "7e4f2fc85be083e180a639e7ea6f3d6d84336ccb64a6479e3723673501cbc12d",
-      "archive_member": "mobile_yt_dataset/dataset/run_9880/application_data.csv",
-      "compressed_size_bytes": 3911
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9880/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "bc1ec66f6b28af859ff3ed382838fea55d756e942354eaa0f6ad0aa7315f917a",
-      "archive_member": "mobile_yt_dataset/dataset/run_9880/bw_settings.csv",
-      "compressed_size_bytes": 202
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9925/application_data.csv",
-      "size_bytes": 26566,
-      "sha256": "f9ea2c6e95f13c7ce3ed63a53115f6e2027d7d685428b119d55481f023bbe693",
-      "archive_member": "mobile_yt_dataset/dataset/run_9925/application_data.csv",
-      "compressed_size_bytes": 3628
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9925/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "b30ba42ab230ca3f9599d6a53158f3431de73adf87d6fe6f1e6ddd66aaa7000d",
-      "archive_member": "mobile_yt_dataset/dataset/run_9925/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9931/application_data.csv",
-      "size_bytes": 26572,
-      "sha256": "d27fe1840743a29c8c6a5c055035d0141fe81c27847d107ac75201a0991b8fcd",
-      "archive_member": "mobile_yt_dataset/dataset/run_9931/application_data.csv",
-      "compressed_size_bytes": 3640
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9931/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "9e6909a7372ee2cf18d56253a1377bcd5b17a00c0652faba9501020e1a067016",
-      "archive_member": "mobile_yt_dataset/dataset/run_9931/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9948/application_data.csv",
-      "size_bytes": 26273,
-      "sha256": "6f6dcc89b93946a17173ce25d144c260d600034f7ac169e8eca4eb2ea9535abd",
-      "archive_member": "mobile_yt_dataset/dataset/run_9948/application_data.csv",
-      "compressed_size_bytes": 3592
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9948/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "18cf4ab2bc859334aea69fcb5baf8a45b5984b800fc8937bfd11ec403b2c340c",
-      "archive_member": "mobile_yt_dataset/dataset/run_9948/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9971/application_data.csv",
-      "size_bytes": 37868,
-      "sha256": "18f6df42016b1df136cf63a69ce2b9a2e7e605a78b0f3295da11d3ee2e7ec1f4",
-      "archive_member": "mobile_yt_dataset/dataset/run_9971/application_data.csv",
-      "compressed_size_bytes": 4987
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_9971/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "b9f317a344f44460ebf9eb7fe80be096bac335b0a743707986723f1f898c4be3",
-      "archive_member": "mobile_yt_dataset/dataset/run_9971/bw_settings.csv",
-      "compressed_size_bytes": 201
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10043/application_data.csv",
-      "size_bytes": 33620,
-      "sha256": "f369ad375ef73bb5de14e46857630b27e0e8334694da0e6ae94f6d43f1d1bf07",
-      "archive_member": "mobile_yt_dataset/dataset/run_10043/application_data.csv",
-      "compressed_size_bytes": 4433
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10043/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "3a45ad4226af5dc734bf0364b5d22a83c93fa5a4abd2bfc93f63cf5e893463c9",
-      "archive_member": "mobile_yt_dataset/dataset/run_10043/bw_settings.csv",
-      "compressed_size_bytes": 226
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10106/application_data.csv",
-      "size_bytes": 35786,
-      "sha256": "002643510602f77979c7d55f9651028b6bb67182d1b912999c3ed6b4a3700942",
-      "archive_member": "mobile_yt_dataset/dataset/run_10106/application_data.csv",
-      "compressed_size_bytes": 4747
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10106/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "dcb9a3aee546026e768413ca5ea1265f64cba9d49b52f3931b52dac419bbdb05",
-      "archive_member": "mobile_yt_dataset/dataset/run_10106/bw_settings.csv",
-      "compressed_size_bytes": 224
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10126/application_data.csv",
-      "size_bytes": 36106,
-      "sha256": "4022b60580d2b418c252e3bd29e5af86528af0b1223431d0d91500c2d75881ae",
-      "archive_member": "mobile_yt_dataset/dataset/run_10126/application_data.csv",
-      "compressed_size_bytes": 4762
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10126/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "cd560d2205383d4539ff04fff20f8ff99384702bd02f0691199fd9dbaf032ca9",
-      "archive_member": "mobile_yt_dataset/dataset/run_10126/bw_settings.csv",
-      "compressed_size_bytes": 226
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10137/application_data.csv",
-      "size_bytes": 25719,
-      "sha256": "2887734879c00089f34fc3b3e59cc6e882603c0cc729c28151c58855dc4aa67d",
-      "archive_member": "mobile_yt_dataset/dataset/run_10137/application_data.csv",
-      "compressed_size_bytes": 3463
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10137/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "91d377d92731b72fa2bdf7f62e707f1d3c2e8044033bf76396cbc4b221f2f574",
-      "archive_member": "mobile_yt_dataset/dataset/run_10137/bw_settings.csv",
-      "compressed_size_bytes": 226
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10156/application_data.csv",
-      "size_bytes": 31574,
-      "sha256": "16a42bf4aef5934afe312d38d66c0581497cc855b7a554c041eadbab28d3c252",
-      "archive_member": "mobile_yt_dataset/dataset/run_10156/application_data.csv",
-      "compressed_size_bytes": 4213
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10156/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "7d9cbdb2566d7ac1f1cf02554e77019b54f4c648ef4287440d4b5c05e2632aaa",
-      "archive_member": "mobile_yt_dataset/dataset/run_10156/bw_settings.csv",
-      "compressed_size_bytes": 226
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10157/application_data.csv",
-      "size_bytes": 31647,
-      "sha256": "80ece0aab8cf1e7615b923980f297dc5e6e42a15d1d4b6418e8c77643554e95f",
-      "archive_member": "mobile_yt_dataset/dataset/run_10157/application_data.csv",
-      "compressed_size_bytes": 4237
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10157/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "05795e86d467f728c00ff5990e164b32f21b947db90fd4accd8e17cd2dbbbf1d",
-      "archive_member": "mobile_yt_dataset/dataset/run_10157/bw_settings.csv",
-      "compressed_size_bytes": 221
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10307/application_data.csv",
-      "size_bytes": 27854,
-      "sha256": "c4947a590650327890236e7973c9156e503b04872fb41b134e74c08d8252f1ae",
-      "archive_member": "mobile_yt_dataset/dataset/run_10307/application_data.csv",
-      "compressed_size_bytes": 3718
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10307/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "770770d3e5b674deadca87094c427cff25cfce5cd98efe4f63e45fab4c8aa558",
-      "archive_member": "mobile_yt_dataset/dataset/run_10307/bw_settings.csv",
-      "compressed_size_bytes": 202
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10325/application_data.csv",
-      "size_bytes": 25567,
-      "sha256": "1801e6b828207b4f3e3b31d081e5fe83cfcf95ba6f267c1432e9a47f04c246c1",
-      "archive_member": "mobile_yt_dataset/dataset/run_10325/application_data.csv",
-      "compressed_size_bytes": 3415
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10325/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "1a5ccee3b3077948790dc5cc933cb55c34da47dbf12e995dea84bf08b07d7808",
-      "archive_member": "mobile_yt_dataset/dataset/run_10325/bw_settings.csv",
-      "compressed_size_bytes": 204
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10472/application_data.csv",
-      "size_bytes": 35258,
-      "sha256": "f630b2a0c12cd0d323677f9294bfbeee4f6920055f28dc8ff216456069821a19",
-      "archive_member": "mobile_yt_dataset/dataset/run_10472/application_data.csv",
-      "compressed_size_bytes": 4588
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10472/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "93999c2d4a79c17fbb99001989bf914a2e711748d071953c75ce2a9781c8d4f5",
-      "archive_member": "mobile_yt_dataset/dataset/run_10472/bw_settings.csv",
-      "compressed_size_bytes": 225
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10519/application_data.csv",
-      "size_bytes": 36312,
-      "sha256": "7107ef648b412cb13bb74a6cdebb46a62eb8e433aeacccc3d9c93f1713d3f4ae",
-      "archive_member": "mobile_yt_dataset/dataset/run_10519/application_data.csv",
-      "compressed_size_bytes": 4765
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10519/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "8be9325c8e332c48ee17df33b9e83e07f748fbf004b38d517b0d03274023209a",
-      "archive_member": "mobile_yt_dataset/dataset/run_10519/bw_settings.csv",
-      "compressed_size_bytes": 225
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10626/application_data.csv",
-      "size_bytes": 40802,
-      "sha256": "4a647523164ff74cc64cfa183d43215e67132000dcbde4856ef3bffc0474b271",
-      "archive_member": "mobile_yt_dataset/dataset/run_10626/application_data.csv",
-      "compressed_size_bytes": 5249
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10626/bw_settings.csv",
-      "size_bytes": 721,
-      "sha256": "7b8198fbd861c01d68270b3b046402db89e0c2b17c7264484367c50bb36f6cfd",
-      "archive_member": "mobile_yt_dataset/dataset/run_10626/bw_settings.csv",
-      "compressed_size_bytes": 227
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10679/application_data.csv",
-      "size_bytes": 40948,
-      "sha256": "f94eb5f11c335cd6b5ff68ac291e6726110079b609566d8f6997bb805365c22d",
-      "archive_member": "mobile_yt_dataset/dataset/run_10679/application_data.csv",
-      "compressed_size_bytes": 5330
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10679/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "2c4df2563a06b21396470b53a807c8c19316d2c36facff2c4176b3176165bc49",
-      "archive_member": "mobile_yt_dataset/dataset/run_10679/bw_settings.csv",
-      "compressed_size_bytes": 201
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10680/application_data.csv",
-      "size_bytes": 40950,
-      "sha256": "83978df07f72a7c19951f08911f788eabbaf792aedaef112fb65719fad1ab08a",
-      "archive_member": "mobile_yt_dataset/dataset/run_10680/application_data.csv",
-      "compressed_size_bytes": 5252
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10680/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "2903c3c2c8a8c285e20bc5f04a1c3036820bd6ae59cfc05f1aa42c91dbea3af1",
-      "archive_member": "mobile_yt_dataset/dataset/run_10680/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10689/application_data.csv",
-      "size_bytes": 40878,
-      "sha256": "f5400f4f25ae0291574e13f3bf504dad66939148594f131ed7d025258882eca0",
-      "archive_member": "mobile_yt_dataset/dataset/run_10689/application_data.csv",
-      "compressed_size_bytes": 5363
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10689/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "8e44d668982c6d2813ae9d63ee5f2365eb94a74f01e487304ff89f2046536352",
-      "archive_member": "mobile_yt_dataset/dataset/run_10689/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10706/application_data.csv",
-      "size_bytes": 34701,
-      "sha256": "ffaac7c5e2c55b2f9c51b83847f01a68290f2dad4f0e67fa0b5a1f610e033274",
-      "archive_member": "mobile_yt_dataset/dataset/run_10706/application_data.csv",
-      "compressed_size_bytes": 4531
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10706/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "3ced055e7839891f4411d58b5c6189fdbc0503c8e7c81965c1529c799a957424",
-      "archive_member": "mobile_yt_dataset/dataset/run_10706/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10751/application_data.csv",
-      "size_bytes": 36233,
-      "sha256": "47cbdb5b152993f4453b74411b76d900dfca322cdc13fe29926fdf6aadbc05fc",
-      "archive_member": "mobile_yt_dataset/dataset/run_10751/application_data.csv",
-      "compressed_size_bytes": 4756
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10751/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "23a4ecbaa17aef4b963da2ae09eeeed79ec34148e7559a066a7e0ff42a16c4cf",
-      "archive_member": "mobile_yt_dataset/dataset/run_10751/bw_settings.csv",
-      "compressed_size_bytes": 202
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10778/application_data.csv",
-      "size_bytes": 36117,
-      "sha256": "70474ad6c54bf4e475279862a4b4554a2cc6741d15f53ea1600a5811cd994845",
-      "archive_member": "mobile_yt_dataset/dataset/run_10778/application_data.csv",
-      "compressed_size_bytes": 4794
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10778/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "575012387263beb3d357e34a76e6b2ba462ee02374da415b2e0c23708af0edfb",
-      "archive_member": "mobile_yt_dataset/dataset/run_10778/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10781/application_data.csv",
-      "size_bytes": 36074,
-      "sha256": "77804460a1f6142ba4072c42bb217b38fb15935b529a1b0dface1846a65e3dc0",
-      "archive_member": "mobile_yt_dataset/dataset/run_10781/application_data.csv",
-      "compressed_size_bytes": 4765
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10781/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "a86988008bbc30e527cc83237eb7d145a358ad8aa772d776722ad84ffb56b978",
-      "archive_member": "mobile_yt_dataset/dataset/run_10781/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10788/application_data.csv",
-      "size_bytes": 37944,
-      "sha256": "7563e32ecd713f2d055fbd598bb3eee9572831d84e271755966f51376fdff65e",
-      "archive_member": "mobile_yt_dataset/dataset/run_10788/application_data.csv",
-      "compressed_size_bytes": 5002
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10788/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "7cd88e62d1729938e0528ae71880a63f4019567c8b7fb415625a7f369bd34b65",
-      "archive_member": "mobile_yt_dataset/dataset/run_10788/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10816/application_data.csv",
-      "size_bytes": 38013,
-      "sha256": "5ab2a2df6451c61bb560451b311c70415ea1c95d1ede82fcb826dc2937395c24",
-      "archive_member": "mobile_yt_dataset/dataset/run_10816/application_data.csv",
-      "compressed_size_bytes": 4978
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10816/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "fad4e837a4ccb3aef32f38f876688752a759a76211393b8af09fa763105c33c1",
-      "archive_member": "mobile_yt_dataset/dataset/run_10816/bw_settings.csv",
-      "compressed_size_bytes": 203
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10872/application_data.csv",
-      "size_bytes": 40116,
-      "sha256": "6b5b19622f99a3c1ae3a5952dba60a1739d1d4408d68bff7b1f7738e8f2e1f4e",
-      "archive_member": "mobile_yt_dataset/dataset/run_10872/application_data.csv",
-      "compressed_size_bytes": 5361
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10872/bw_settings.csv",
-      "size_bytes": 634,
-      "sha256": "39390d8d0c8ebe53b186c89b75eb35a613567abc264407871ade3f0062e02782",
-      "archive_member": "mobile_yt_dataset/dataset/run_10872/bw_settings.csv",
-      "compressed_size_bytes": 205
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10952/application_data.csv",
-      "size_bytes": 34713,
-      "sha256": "4546aa04d347f71e85535f03248c1959fcb1d524d1b52e7d63b3be45bdfec2cc",
-      "archive_member": "mobile_yt_dataset/dataset/run_10952/application_data.csv",
-      "compressed_size_bytes": 4596
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10952/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "3c9a09283bdf39d1fe06b7d280718ed132b89f98a1070b5900ac4807e9c9faa2",
-      "archive_member": "mobile_yt_dataset/dataset/run_10952/bw_settings.csv",
-      "compressed_size_bytes": 238
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10962/application_data.csv",
-      "size_bytes": 34859,
-      "sha256": "ab87e7c367717b71fd2d5795ba1557bbb12054576cc4a659ae3cf3c236e29be0",
-      "archive_member": "mobile_yt_dataset/dataset/run_10962/application_data.csv",
-      "compressed_size_bytes": 4618
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_10962/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "79b66495c5ea23f93f6bbebcb27285b2b2735afad94dbbeb0d122b7073281b6f",
-      "archive_member": "mobile_yt_dataset/dataset/run_10962/bw_settings.csv",
-      "compressed_size_bytes": 237
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11087/application_data.csv",
-      "size_bytes": 32907,
-      "sha256": "55b09367f892bb47923f4642b9ecdcf54fcfd50e93782cc103f394d75e0b5519",
-      "archive_member": "mobile_yt_dataset/dataset/run_11087/application_data.csv",
-      "compressed_size_bytes": 4289
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11087/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "9d39fe1e1c2d699ebbed8317fa74211736025de69b70c4781ea36adbfe55d224",
-      "archive_member": "mobile_yt_dataset/dataset/run_11087/bw_settings.csv",
-      "compressed_size_bytes": 238
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11105/application_data.csv",
-      "size_bytes": 40276,
-      "sha256": "09242f2e039cdfcf0448dea0fc48c3aad657b7f9be83852b02ca434122e9ecd2",
-      "archive_member": "mobile_yt_dataset/dataset/run_11105/application_data.csv",
-      "compressed_size_bytes": 5408
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11105/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "778e68e1047bd01ec1cffd7fdf51a0e5c7d1ccb4880924587969a80b330224a2",
-      "archive_member": "mobile_yt_dataset/dataset/run_11105/bw_settings.csv",
-      "compressed_size_bytes": 240
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11130/application_data.csv",
-      "size_bytes": 34554,
-      "sha256": "a078aaaec2c31ac1471b83c71f5f8cc668df578bb3238708c4361254aacbca2c",
-      "archive_member": "mobile_yt_dataset/dataset/run_11130/application_data.csv",
-      "compressed_size_bytes": 4595
-    },
-    {
-      "path": "data/raw/youtube_mobile_streaming/sessions/run_11130/bw_settings.csv",
-      "size_bytes": 796,
-      "sha256": "eaf1abc1905c1e1c76fc6bbf3aace73d4ef4aabfe91fa299b2c43beab66f6077",
-      "archive_member": "mobile_yt_dataset/dataset/run_11130/bw_settings.csv",
-      "compressed_size_bytes": 242
+      "path": "data/raw/youtube_mobile_streaming/sessions/run_4697/bw_settings.csv",
+      "size_bytes": 161,
+      "sha256": "b1dbfee818301ecf43d2cf8de6f4aa080c0856e7bc9edc51fc0f86847c13d66f",
+      "archive_member": "mobile_yt_dataset/dataset/run_4697/bw_settings.csv",
+      "compressed_size_bytes": 99
     }
   ],
   "download_transfer_bytes": 9213620,
-  "local_extracted_size_bytes": 6441858,
+  "local_extracted_size_bytes": 5536141,
   "variables_used": {
     "application_data.csv": [
       "timestamp",
@@ -1890,7 +345,7 @@
       "PCAP payloads"
     ]
   },
-  "transformation_applied": "The bandwidth setting is forward-applied until the next recorded change and converted from kbit/s to Mbps as a connection-capacity proxy. YouTube fmt is mapped to low/medium/high. Historical 120 s windows and strictly subsequent 30 s horizons are generated every 10 s.",
+  "transformation_applied": "Bandwidth settings are forward-applied and converted from kbit/s to Mbps. Historical 600 s windows and strictly subsequent 600 s horizons are generated.",
   "reactive_source": {
     "dataset_name": "RTR-NetzTest Open Data",
     "authors": [
@@ -1927,4 +382,3 @@
     "predictive": "YouTube Dataset on Mobile Streaming for Internet Traffic Modeling, Network Management, and Streaming Analysis"
   }
 }
-

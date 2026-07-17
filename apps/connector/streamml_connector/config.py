@@ -39,6 +39,17 @@ def _env_int(name: str, default: int) -> int:
     return value
 
 
+def _env_positive_int(name: str, default: int, *, maximum: int) -> int:
+    raw = os.getenv(name)
+    try:
+        value = default if raw is None else int(raw)
+    except ValueError as exc:
+        raise ConfigurationError(f"{name} must be an integer.") from exc
+    if not 1 <= value <= maximum:
+        raise ConfigurationError(f"{name} must be between 1 and {maximum}.")
+    return value
+
+
 def _is_loopback(host: str | None) -> bool:
     if not host:
         return False
@@ -83,6 +94,10 @@ class ConnectorConfig:
     reconnect_max_seconds: float
     keyring_service: str
     log_level: str
+    live_scene: str = "StreamML Live"
+    backup_scene: str = "StreamML Backup"
+    network_probe_interval_seconds: float = 5.0
+    network_probe_bytes: int = 256 * 1024
 
 
 def load_config() -> ConnectorConfig:
@@ -116,11 +131,16 @@ def load_config() -> ConnectorConfig:
         obs_port=_env_int("OBS_WEBSOCKET_PORT", 4455),
         connector_name=connector_name,
         session_id=session_id,
-        poll_interval_seconds=_env_float("STREAMML_POLL_INTERVAL_SECONDS", 2.0),
+        poll_interval_seconds=_env_float("STREAMML_POLL_INTERVAL_SECONDS", 1.0),
         request_timeout_seconds=_env_float("STREAMML_REQUEST_TIMEOUT_SECONDS", 10.0),
         reconnect_initial_seconds=reconnect_initial,
         reconnect_max_seconds=reconnect_max,
         keyring_service=os.getenv("STREAMML_KEYRING_SERVICE", "streamml-connector"),
         log_level=log_level,
+        live_scene=os.getenv("STREAMML_LIVE_SCENE", "StreamML Live").strip() or "StreamML Live",
+        backup_scene=os.getenv("STREAMML_BACKUP_SCENE", "StreamML Backup").strip() or "StreamML Backup",
+        network_probe_interval_seconds=_env_float("STREAMML_NETWORK_PROBE_INTERVAL_SECONDS", 5.0),
+        network_probe_bytes=_env_positive_int(
+            "STREAMML_NETWORK_PROBE_BYTES", 256 * 1024, maximum=512 * 1024
+        ),
     )
-

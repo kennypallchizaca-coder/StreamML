@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from apps.api.dependencies import client_ip, current_connector
 from apps.api.schemas import TelemetryRequest
-from src.streamml.domain.contracts import INSUFFICIENT_DATA
+from src.streamml.services.orchestration import process_telemetry
 from src.streamml.services.telemetry import feature_availability, telemetry_snapshot
 from src.streamml.services.session_store import prediction_view
 
@@ -26,29 +26,50 @@ async def receive_telemetry(
     ):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many telemetry events.")
     metrics = payload.metrics.model_dump(mode="json")
+    network = payload.network.model_dump(mode="json") if payload.network else None
     unsupported = payload.unsupported.model_dump(mode="json")
     record, inserted = request.app.state.database.store_telemetry(
         user_id=connector["user_id"], session_id=connector["session_id"], connector_id=connector["id"],
         sequence=payload.sequence, observed_at=payload.observed_at, source=payload.source,
-        metrics=metrics, unsupported=unsupported,
+        metrics=metrics, network=network, unsupported=unsupported,
     )
-    availability = feature_availability(metrics)
-    blocked_predictions = []
+    result = None
     if inserted:
-        for role in ("reactive", "predictive"):
-            blocked = request.app.state.database.store_prediction(
-                user_id=connector["user_id"], session_id=connector["session_id"], model_role=role,
-                model_version=request.app.state.registry.version, status="blocked", result=None,
-                blocked_reason=INSUFFICIENT_DATA, input_fingerprint=None,
-            )
-            blocked_predictions.append(blocked)
+        session_status = (
+            "active" if metrics.get("stream_active") else
+            "ready" if metrics.get("obs_connected") else
+            "offline"
+        )
+        request.app.state.database.update_session_status(
+            connector["user_id"], connector["session_id"], session_status
+        )
+        result = process_telemetry(
+            database=request.app.state.database,
+            engine=request.app.state.engine,
+            registry=request.app.state.registry,
+            agent=request.app.state.agent,
+            user_id=connector["user_id"],
+            session_id=connector["session_id"],
+            connector_id=connector["id"],
+            observed_at=payload.observed_at,
+            metrics=metrics,
+            network=network,
+        )
+    network_view = dict(network or {})
+    if result:
+        network_view["current_profile"] = result["current_profile"]
+    record["network"] = network_view or None
+    availability = feature_availability(metrics, network_view)
+    predictions = result["predictions"] if result else []
     event = {
         "type": "telemetry",
         "session_id": connector["session_id"],
         "telemetry": telemetry_snapshot(record, request.app.state.registry),
         "availability": availability,
-        "predictions": blocked_predictions,
-        "prediction": prediction_view(blocked_predictions[-1]) if blocked_predictions else None,
+        "predictions": [prediction_view(item) for item in predictions],
+        "prediction": prediction_view(predictions[-1]) if predictions else None,
+        "agent_decision": result["decision"] if result else None,
+        "control_command": result["command"] if result else None,
     }
     if inserted:
         await request.app.state.websocket_hub.publish(connector["session_id"], event)
@@ -64,5 +85,11 @@ async def receive_telemetry(
         "telemetry_id": record["id"],
         "session_id": connector["session_id"],
         "availability": availability,
-        "inference": {"status": "blocked", "message": INSUFFICIENT_DATA},
+        "inference": {
+            "status": "executed" if network is not None else "blocked",
+            "message": None if network is not None else "Datos insuficientes para una predicción válida",
+            "predictions": [prediction_view(item) for item in predictions],
+        },
+        "agent_decision": result["decision"] if result else None,
+        "control_command": result["command"] if result else None,
     }

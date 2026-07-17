@@ -22,12 +22,17 @@ def test_each_window_belongs_to_exactly_one_session() -> None:
 
 def test_window_and_future_timing_contract() -> None:
     frame = load_dataset()
-    np.testing.assert_allclose(frame["window_end_seconds"] - frame["window_start_seconds"], 120.0)
+    config = json.loads(
+        (ROOT / "src" / "streamml" / "config" / "dataset_config.json").read_text()
+    )
+    lookback = float(config["windowing"]["lookback_seconds"])
+    horizon = float(config["windowing"]["future_horizon_seconds"])
+    np.testing.assert_allclose(frame["window_end_seconds"] - frame["window_start_seconds"], lookback)
     assert (frame["future_window_start_seconds"] >= frame["window_end_seconds"]).all()
     np.testing.assert_allclose(
-        frame["future_window_end_seconds"] - frame["future_window_start_seconds"], 30.0
+        frame["future_window_end_seconds"] - frame["future_window_start_seconds"], horizon
     )
-    assert (frame["future_measurements_count"] == 30).all()
+    assert (frame["future_measurements_count"] == horizon).all()
 
 
 def test_profiles_capacities_proportions_and_targets() -> None:

@@ -8,7 +8,7 @@ def build_predictive_features(
     configuration: dict = None
 ) -> pd.DataFrame:
     """
-    Construye las variables predictivas a partir de una ventana historica de 120 segundos.
+    Construye las variables predictivas a partir de una ventana histórica de 600 segundos.
     
     Espera un DataFrame con al menos:
     - timestamp_utc (o similar para ordenar)
@@ -37,10 +37,10 @@ def build_predictive_features(
         raise ValueError("Valores negativos en throughput_mbps.")
         
     # Configuraciones
-    lookback = 120
+    lookback = 600
     min_coverage = 0.80
     if configuration:
-        lookback = configuration.get('lookback_seconds', 120)
+        lookback = configuration.get('lookback_seconds', 600)
         min_coverage = configuration.get('minimum_coverage', 0.80)
         
     if len(df) < (lookback * min_coverage):

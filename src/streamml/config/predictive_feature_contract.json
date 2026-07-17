@@ -1,8 +1,8 @@
 {
-  "contract_version": "2.0.0-official",
+  "contract_version": "3.0.0-official",
   "model_role": "predictive",
-  "lookback_seconds": 120,
-  "future_horizon_seconds": 30,
+  "lookback_seconds": 600,
+  "future_horizon_seconds": 600,
   "step_seconds": 10,
   "random_state": 42,
   "feature_count": 19,
@@ -36,7 +36,7 @@
     "throughput_change": "throughput_last - throughput_first",
     "throughput_slope": "least-squares slope of throughput_mbps against real elapsed_seconds",
     "throughput_coefficient_variation": "throughput_std / throughput_mean; 0 when mean is 0",
-    "lookback_duration_seconds": "configured historical lookback, fixed at 120 seconds",
+    "lookback_duration_seconds": "configured historical lookback, fixed at 600 seconds",
     "proportion_below_low": "fraction of historical measurements below 1.35 Mbps",
     "proportion_below_medium": "fraction of historical measurements below 3.375 Mbps",
     "proportion_below_high": "fraction of historical measurements below 6.75 Mbps"
@@ -47,12 +47,12 @@
   },
   "target": {
     "name": "target_code",
-    "definition": "downgrade_needed when the strictly future 30-second horizon contains rebuffering, a quality decrease, p25 throughput below the current profile capacity, or more than 30% of future samples below that capacity.",
+    "definition": "downgrade_needed when the strictly future 600-second horizon contains rebuffering, a quality decrease, p25 throughput below the current profile capacity, or more than 30% of future samples below that capacity.",
     "pseudo_label": true
   },
   "offline_usage": {
     "required_source": "historical throughput or connection-capacity measurements",
-    "policy": "Build each example exclusively from the 120-second historical window."
+    "policy": "Build each example exclusively from the 600-second historical window."
   },
   "forbidden_input_columns": [
     "future_throughput_mean",

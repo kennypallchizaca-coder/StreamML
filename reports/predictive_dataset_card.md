@@ -10,8 +10,8 @@
 
 ## Semantica
 
-Cada fila representa una ventana historica de 120 segundos de una unica sesion del dataset publico,
-con una etiqueta calculada usando los 30 segundos estrictamente futuros.
+Cada fila representa una ventana historica de 600 segundos de una unica sesion del dataset publico,
+con una etiqueta calculada usando los 600 segundos estrictamente futuros.
 
 ## Variables de entrada
 
@@ -25,6 +25,10 @@ de la capacidad requerida o mas de 30% de muestras futuras bajo esa capacidad.
 
 ## Tamano
 
-- Sesiones: 120
-- Ventanas: 3306
-- Distribucion: {'downgrade_needed': 2864, 'maintain': 442}
+- Sesiones: 17
+- Ventanas: 4336
+- Distribucion: {'downgrade_needed': 4028, 'maintain': 308}
+
+Solo 17 sesiones oficiales superan los 1200 segundos requeridos. La distribucion es muy desbalanceada
+y las sesiones seleccionadas son puras por clase; por ello, incluso una particion agrupada por sesion
+puede producir metricas optimistas. Se requiere validacion externa con nuevas transmisiones moviles.

@@ -28,16 +28,16 @@ def test_reactive_contract():
     assert df_req.shape[1] == 3
 
 def test_predictive_buffer():
-    # Crear un historial falso de 120 segundos
+    # Crear un historial falso de 600 segundos
     data = []
-    for i in range(120):
+    for i in range(600):
         data.append({'timestamp_utc': i, 'upload_mbps': 5.0 + np.sin(i)})
     df = pd.DataFrame(data)
 
     # Probar construir
     res = build_predictive_features(df)
     assert res.shape == (1, 19)
-    assert res['measurements_count'].iloc[0] == 120
+    assert res['measurements_count'].iloc[0] == 600
     assert 'throughput_mean' in res.columns
 
 def test_insufficient_buffer():
@@ -73,7 +73,7 @@ def test_model_loading_and_reproducibility():
     mod_p = joblib.load(os.path.join(release_dir, 'predictive', 'model.joblib'))
 
     data = []
-    for i in range(120): data.append({'timestamp_utc': i, 'upload_mbps': 5.0})
+    for i in range(600): data.append({'timestamp_utc': i, 'upload_mbps': 5.0})
     feat = build_predictive_features(pd.DataFrame(data))
     pp1 = mod_p.predict(feat)
     pp2 = mod_p.predict(feat)

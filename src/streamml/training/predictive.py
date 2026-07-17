@@ -27,7 +27,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.model_selection import GridSearchCV, StratifiedGroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
@@ -47,21 +47,36 @@ def sha256_file(path: Path) -> str:
 
 
 def split_sessions(frame: pd.DataFrame, config: dict) -> dict[str, list[str]]:
-    sessions = np.array(sorted(frame["session_id"].astype(str).unique()))
+    sessions = sorted(frame["session_id"].astype(str).unique())
     if len(sessions) < 10:
         raise ValueError("At least 10 sessions are required for grouped train/validation/test splits.")
     rng = np.random.default_rng(int(config["random_state"]))
-    sessions = rng.permutation(sessions)
-    total = len(sessions)
-    train_count = int(round(total * float(config["split"]["train_fraction"])))
-    validation_count = int(round(total * float(config["split"]["validation_fraction"])))
-    if train_count < 5 or validation_count < 1 or total - train_count - validation_count < 1:
-        raise ValueError("Configured grouped split is too small.")
-    return {
-        "train": sorted(sessions[:train_count].tolist()),
-        "validation": sorted(sessions[train_count : train_count + validation_count].tolist()),
-        "test": sorted(sessions[train_count + validation_count :].tolist()),
+    # Stratify at session level, never at row/window level.  A session label is
+    # its majority target; this keeps rare maintain-only sessions represented
+    # in every split without leaking adjacent windows across boundaries.
+    session_labels = (
+        frame.groupby("session_id")["target_code"].mean().ge(0.5).astype(int).to_dict()
+    )
+    by_label = {
+        label: np.array([session for session in sessions if session_labels[session] == label])
+        for label in (0, 1)
     }
+    if any(len(group) < 3 for group in by_label.values()):
+        raise ValueError("At least three sessions per majority target are required.")
+    result: dict[str, list[str]] = {"train": [], "validation": [], "test": []}
+    for group in by_label.values():
+        shuffled = rng.permutation(group)
+        validation_count = max(1, int(round(len(group) * float(config["split"]["validation_fraction"]))))
+        test_count = max(1, int(round(len(group) * float(config["split"]["test_fraction"]))))
+        if validation_count + test_count >= len(group):
+            raise ValueError("Configured grouped split leaves no training sessions.")
+        train_count = len(group) - validation_count - test_count
+        result["train"].extend(shuffled[:train_count].tolist())
+        result["validation"].extend(
+            shuffled[train_count : train_count + validation_count].tolist()
+        )
+        result["test"].extend(shuffled[train_count + validation_count :].tolist())
+    return {name: sorted(values) for name, values in result.items()}
 
 
 def assert_disjoint_splits(splits: dict[str, list[str]]) -> None:
@@ -161,6 +176,17 @@ def model_definitions(random_state: int) -> dict[str, tuple[Any, dict[str, list[
     }
 
 
+def grouped_cv_splits(y: np.ndarray, groups: np.ndarray) -> int:
+    group_targets = {
+        group: int(np.mean(y[groups == group]) >= 0.5)
+        for group in np.unique(groups)
+    }
+    return min(
+        5,
+        min(sum(value == label for value in group_targets.values()) for label in (0, 1)),
+    )
+
+
 def fit_models(
     X_train: pd.DataFrame,
     y_train: np.ndarray,
@@ -170,11 +196,12 @@ def fit_models(
     config: dict,
 ) -> tuple[str, Any, float, dict]:
     random_state = int(config["random_state"])
-    group_count = len(np.unique(groups_train))
-    folds = min(5, group_count)
+    folds = grouped_cv_splits(y_train, groups_train)
     if folds < 2:
-        raise ValueError("GroupKFold requires at least two training sessions.")
-    group_cv = GroupKFold(n_splits=folds)
+        raise ValueError("Stratified grouped CV requires at least two sessions per target.")
+    group_cv = StratifiedGroupKFold(
+        n_splits=folds, shuffle=True, random_state=random_state
+    )
     comparisons: dict[str, dict] = {}
     fitted: dict[str, Any] = {}
 
@@ -328,7 +355,7 @@ def train_predictive_release(root: Path, config: dict) -> dict:
 
     manifest = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "release_version": "2.0.0",
+        "release_version": "3.0.0",
         "model_role": "predictive",
         "model_path": "models/registry/predictive/model.joblib",
         "dataset_path": config["paths"]["processed_dataset"],
@@ -341,8 +368,8 @@ def train_predictive_release(root: Path, config: dict) -> dict:
             "validation": len(X_validation),
             "test": len(X_test),
         },
-        "hyperparameter_selection": "GroupKFold within training sessions only",
-        "groupkfold_splits": min(5, len(np.unique(groups_train))),
+        "hyperparameter_selection": "StratifiedGroupKFold within training sessions only",
+        "groupkfold_splits": grouped_cv_splits(y_train, groups_train),
         "selected_model": selected_name,
         "selected_parameters": comparisons[selected_name]["best_parameters"],
         "feature_count": len(FEATURE_COLUMNS),

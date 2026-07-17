@@ -11,10 +11,13 @@ def test_secret_fields_are_redacted():
     assert value == {"password": "[REDACTED]", "nested": {"access_token": "[REDACTED]", "safe": 1}}
 
 
-def test_connector_source_contains_no_obs_control_requests():
+def test_connector_control_surface_contains_no_stream_start_stop_or_toggle():
     source = (ROOT / "apps" / "connector" / "streamml_connector" / "obs_client.py").read_text(encoding="utf-8")
-    forbidden = (".set_", ".start_", ".stop_", ".toggle_", "set_current", "start_stream", "stop_stream")
+    forbidden = (".start_", ".stop_", ".toggle_", "start_stream", "stop_stream")
     assert all(token not in source.lower() for token in forbidden)
+    assert "ALLOWED_REQUESTS" in source
+    assert "SetProfileParameter" in source
+    assert "SetCurrentProgramScene" in source
 
 
 def test_models_and_training_artifacts_are_not_connector_dependencies():

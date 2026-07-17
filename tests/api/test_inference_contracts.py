@@ -64,7 +64,7 @@ def test_predictive_rejects_obs_bitrate_without_imputation(client: TestClient):
     session_id = create_session(client)["id"]
     samples = [
         {"elapsed_seconds": index, "throughput_mbps": 4.0, "unit": "Mbps", "source": "obs_websocket_5"}
-        for index in range(120)
+        for index in range(600)
     ]
     response = client.post(
         "/api/v1/predict/predictive",

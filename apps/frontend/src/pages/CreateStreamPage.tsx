@@ -272,7 +272,7 @@ export default function CreateStreamPage() {
             
             <div className="rounded-xl bg-primary/10 p-4 text-center">
               <p className="text-sm font-medium">La configuración inicial quedó registrada.</p>
-              <p className="mt-1 text-xs text-muted-foreground">El monitor mostrará únicamente estados y métricas que estén realmente disponibles. StreamML no iniciará ni modificará OBS.</p>
+              <p className="mt-1 text-xs text-muted-foreground">El agente podrá ajustar el perfil de OBS y cambiar entre las escenas StreamML Live y StreamML Backup mediante comandos autenticados.</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col-reverse gap-3 border-t sm:flex-row sm:justify-between">

@@ -1,4 +1,4 @@
-"""Strictly read-only OBS WebSocket 5.x adapter."""
+"""OBS WebSocket 5.x telemetry and narrowly-scoped control adapter."""
 
 from __future__ import annotations
 
@@ -56,15 +56,16 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-class ReadOnlyObsClient:
-    """OBS client whose public surface contains no control operation.
+class ObsClient:
+    """OBS client restricted to telemetry and explicit StreamML actions.
 
-    The only OBS RPCs invoked are ``GetStats`` and ``GetStreamStatus``. The
-    obsws-python constructor performs the protocol's authenticated Identify
-    handshake; it receives the password in memory and never sends it to StreamML.
+    Control calls are only reached through authenticated, session-scoped API
+    commands.
     """
 
-    ALLOWED_REQUESTS = frozenset({"GetStats", "GetStreamStatus"})
+    ALLOWED_REQUESTS = frozenset(
+        {"GetStats", "GetStreamStatus", "SetProfileParameter", "SetCurrentProgramScene"}
+    )
 
     def __init__(
         self,
@@ -140,6 +141,52 @@ class ReadOnlyObsClient:
         self._previous_sample_time = sample_time
         return None if bitrate is None else round(bitrate, 3)
 
+    def apply_command(self, command: dict[str, Any]) -> None:
+        """Apply one validated server command or fail without partial ambiguity."""
+
+        if self._client is None:
+            raise RuntimeError("OBS is not connected.")
+        command_type = command.get("command_type")
+        payload = command.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("Control command payload must be an object.")
+        if command_type == "set_profile":
+            self._apply_profile(payload)
+            return
+        if command_type == "activate_backup":
+            self._client.set_current_program_scene(self._config.backup_scene)
+            return
+        if command_type == "restore_live":
+            self._client.set_current_program_scene(self._config.live_scene)
+            return
+        raise ValueError("Unsupported control command.")
+
+    def _apply_profile(self, payload: dict[str, Any]) -> None:
+        profile = payload.get("profile")
+        spec = payload.get("spec")
+        if profile not in {"low", "medium", "high"} or not isinstance(spec, dict):
+            raise ValueError("Invalid StreamML profile command.")
+        required = {
+            "width", "height", "fps", "video_bitrate_kbps", "audio_bitrate_kbps"
+        }
+        if not required.issubset(spec):
+            raise ValueError("Profile specification is incomplete.")
+        values = {name: int(spec[name]) for name in required}
+        if any(value <= 0 for value in values.values()):
+            raise ValueError("Profile values must be positive.")
+
+        # OBS stores these values in the active profile.  Encoder bitrate is
+        # updated first, followed by scaled output size and frame rate.
+        parameters = (
+            ("SimpleOutput", "VBitrate", values["video_bitrate_kbps"]),
+            ("SimpleOutput", "ABitrate", values["audio_bitrate_kbps"]),
+            ("Video", "OutputCX", values["width"]),
+            ("Video", "OutputCY", values["height"]),
+            ("Video", "FPSCommon", values["fps"]),
+        )
+        for category, name, value in parameters:
+            self._client.set_profile_parameter(category, name, str(value))
+
     def disconnect(self) -> None:
         if self._client is not None:
             try:
@@ -149,3 +196,7 @@ class ReadOnlyObsClient:
         self._previous_output_bytes = None
         self._previous_sample_time = None
 
+
+# Backward-compatible import for integrations built before authenticated OBS
+# control was introduced. New code should use ``ObsClient``.
+ReadOnlyObsClient = ObsClient

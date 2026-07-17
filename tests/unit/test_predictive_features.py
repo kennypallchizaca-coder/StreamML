@@ -28,11 +28,11 @@ def test_feature_order_matches_official_contract() -> None:
     contract = load_feature_contract(
         ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json"
     )
-    assert contract["contract_version"] == "2.0.0-official"
+    assert contract["contract_version"] == "3.0.0-official"
     assert contract["features"] == FEATURE_COLUMNS
     assert len(contract["features"]) == 19
-    assert contract["lookback_seconds"] == 120
-    assert contract["future_horizon_seconds"] == 30
+    assert contract["lookback_seconds"] == 600
+    assert contract["future_horizon_seconds"] == 600
 
 
 def test_future_and_target_columns_are_not_model_inputs() -> None:

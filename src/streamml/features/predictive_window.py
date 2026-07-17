@@ -1,4 +1,4 @@
-"""Build the immutable 19-feature predictive input from a compatible 120 s window."""
+"""Build the immutable predictive input from the configured historical window."""
 
 from __future__ import annotations
 
@@ -39,7 +39,9 @@ def build_predictive_features(
     normalized = [value - elapsed[0] for value in elapsed]
     expected = [float(index) for index in range(required_count)]
     if any(abs(actual - target) > 1e-6 for actual, target in zip(normalized, expected, strict=True)):
-        raise IncompatibleFeatures(["la ventana predictiva debe contener 120 muestras ordenadas a intervalos de 1 s"])
+        raise IncompatibleFeatures([
+            f"la ventana predictiva debe contener {required_count} muestras ordenadas a intervalos de 1 s"
+        ])
     row = build_feature_row(
         throughput, normalized, current_profile, lookback_duration_seconds=float(contract["lookback_seconds"])
     )

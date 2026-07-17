@@ -1,5 +1,5 @@
 {
-  "dataset_version": "2.0.0",
+  "dataset_version": "3.0.0",
   "random_state": 42,
   "source": {
     "article_id": 19096823,
@@ -9,12 +9,12 @@
     "source_version": "2"
   },
   "selection": {
-    "session_count": 120,
-    "minimum_total_playtime_seconds": 180,
+    "session_count": 17,
+    "minimum_total_playtime_seconds": 1200,
     "strata": {
-      "constant_bandwidth": 40,
-      "one_to_ten_changes": 40,
-      "more_than_ten_changes": 40
+      "constant_bandwidth": 9,
+      "one_to_ten_changes": 8,
+      "more_than_ten_changes": 0
     },
     "files_per_session": [
       "application_data.csv",
@@ -22,11 +22,11 @@
     ]
   },
   "windowing": {
-    "lookback_seconds": 120,
-    "future_horizon_seconds": 30,
+    "lookback_seconds": 600,
+    "future_horizon_seconds": 600,
     "step_seconds": 10,
     "sampling_interval_seconds": 1,
-    "minimum_measurements": 120
+    "minimum_measurements": 600
   },
   "profiles": {
     "mapping": {

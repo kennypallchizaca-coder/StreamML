@@ -29,8 +29,23 @@ export interface TelemetrySnapshot {
   dropped_frames?: number | null;
   packet_loss_percent?: number | null;
   latency_ms?: number | null;
+  jitter_ms?: number | null;
+  upload_mbps?: number | null;
+  download_mbps?: number | null;
+  connection_capacity_mbps?: number | null;
   current_profile?: string | null;
   features?: FeatureAvailability[];
+}
+
+export interface AgentDecision {
+  action?: "maintain" | "increase" | "reduce" | "switch_to_backup" | "maintain_backup" | "restore_live" | string;
+  current_profile?: string | null;
+  target_profile?: string | null;
+  backup_active?: boolean;
+  reason?: string | null;
+  apply_profile?: boolean;
+  apply_backup?: boolean;
+  updated_at?: string | null;
 }
 
 export interface PredictionSnapshot {
@@ -68,6 +83,7 @@ export interface StreamSession {
   updated_at?: string | null;
   telemetry?: TelemetrySnapshot | null;
   latest_prediction?: PredictionSnapshot | null;
+  agent_decision?: AgentDecision | null;
   stream?: VideoEndpoints | null;
   vdo_ninja?: VdoNinjaSession | null;
 }
@@ -116,6 +132,7 @@ export interface SessionSocketMessage {
   session_id?: string;
   telemetry?: TelemetrySnapshot;
   prediction?: PredictionSnapshot;
+  agent_decision?: AgentDecision;
   stream?: VideoEndpoints;
   session?: StreamSession;
 }

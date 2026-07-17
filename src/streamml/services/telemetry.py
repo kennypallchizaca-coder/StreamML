@@ -8,7 +8,10 @@ from typing import Any
 INSUFFICIENT_DATA = "Datos insuficientes para una predicción válida"
 
 
-def feature_availability(metrics: dict[str, Any]) -> dict[str, dict[str, bool]]:
+def feature_availability(
+    metrics: dict[str, Any], network: dict[str, Any] | None = None
+) -> dict[str, dict[str, bool]]:
+    network = network or {}
     return {
         "dashboard": {
             "obs_connected": metrics.get("obs_connected") is not None,
@@ -19,13 +22,13 @@ def feature_availability(metrics: dict[str, Any]) -> dict[str, dict[str, bool]]:
             "output_congestion": metrics.get("output_congestion") is not None,
         },
         "reactive_model": {
-            "upload_mbps": False,
-            "download_mbps": False,
-            "latency_ms": False,
+            "upload_mbps": network.get("upload_mbps") is not None,
+            "download_mbps": network.get("download_mbps") is not None,
+            "latency_ms": network.get("latency_ms") is not None,
         },
         "predictive_model": {
-            "connection_capacity_history_mbps": False,
-            "current_profile": False,
+            "connection_capacity_history_mbps": network.get("connection_capacity_mbps") is not None,
+            "current_profile": network.get("current_profile") is not None,
         },
     }
 
@@ -34,6 +37,7 @@ def telemetry_snapshot(record: dict[str, Any] | None, registry: Any) -> dict[str
     if not record:
         return None
     metrics = record.get("metrics", {})
+    network = record.get("network") or {}
     if metrics.get("stream_reconnecting"):
         obs_status = "reconnecting"
     elif metrics.get("obs_connected") is True:
@@ -50,12 +54,17 @@ def telemetry_snapshot(record: dict[str, Any] | None, registry: Any) -> dict[str
             metadata = contract.get("feature_metadata", {}).get(name, {})
             features.append({
                 "name": name,
-                "state": "missing",
+                "state": (
+                    "available"
+                    if name in {"upload_mbps", "download_mbps", "latency_ms"}
+                    and network.get(name) is not None
+                    else "missing"
+                ),
                 "unit": metadata.get("unit"),
                 "reason": (
                     "OBS WebSocket no proporciona esta medición compatible."
                     if role == "reactive"
-                    else "No existe una ventana de capacidad de red compatible de 120 segundos."
+                    else "No existe una ventana de capacidad de red compatible de 600 segundos."
                 ),
             })
 
@@ -67,8 +76,12 @@ def telemetry_snapshot(record: dict[str, Any] | None, registry: Any) -> dict[str
         "bitrate_kbps": metrics.get("output_bitrate_kbps"),
         "fps": metrics.get("active_fps"),
         "dropped_frames": metrics.get("output_skipped_frames"),
-        "packet_loss_percent": None,
-        "latency_ms": None,
-        "current_profile": None,
+        "packet_loss_percent": network.get("packet_loss_percent"),
+        "latency_ms": network.get("latency_ms"),
+        "jitter_ms": network.get("jitter_ms"),
+        "upload_mbps": network.get("upload_mbps"),
+        "download_mbps": network.get("download_mbps"),
+        "connection_capacity_mbps": network.get("connection_capacity_mbps"),
+        "current_profile": network.get("current_profile"),
         "features": features,
     }

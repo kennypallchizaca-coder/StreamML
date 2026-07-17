@@ -19,7 +19,7 @@ from sklearn.metrics import (
 )
 
 
-RELEASE_VERSION = "2.0.0"
+RELEASE_VERSION = "3.0.0"
 RANDOM_STATE = 42
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import hmac
-import ipaddress
+import re
 from urllib.parse import parse_qs
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
@@ -28,10 +28,7 @@ def _valid_internal_auth(request: Request, configured_secret: str, header_secret
         except (ValueError, UnicodeDecodeError):
             return False
         return username == "mediamtx" and hmac.compare_digest(supplied, configured_secret)
-    try:
-        return bool(request.client) and ipaddress.ip_address(request.client.host).is_private
-    except ValueError:
-        return False
+    return False
 
 
 def _media_token(request: Request, session: dict, scope: str) -> str:
@@ -79,6 +76,16 @@ def authorize_mediamtx(
     settings = request.app.state.settings
     if not _valid_internal_auth(request, settings.media_auth_secret, x_streamml_media_secret):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    if (
+        payload.user == "media-worker"
+        and payload.password
+        and hmac.compare_digest(payload.password, settings.media_auth_secret)
+        and payload.action.lower() == "read"
+        and (payload.protocol or "").lower() == "rtmp"
+    ):
+        if not re.fullmatch(r"stream-[0-9a-f]{32}", payload.path.strip("/")):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+        return {"authorized": True}
     token = payload.token or payload.password
     if not token and payload.query:
         token = parse_qs(payload.query.lstrip("?"), keep_blank_values=False).get("token", [None])[0]

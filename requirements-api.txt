@@ -1,0 +1,7 @@
+# Minimal production API/model inference runtime. Development and notebooks use requirements.txt.
+pandas==3.0.3
+numpy==2.4.6
+scikit-learn==1.9.0
+joblib==1.5.3
+fastapi==0.139.2
+uvicorn[standard]==0.51.0

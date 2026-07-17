@@ -6,10 +6,10 @@ scikit-learn==1.9.0
 joblib==1.5.3
 pytest==9.1.1
 
-# Internal notebooks.
-jupyter
-notebook
-nbformat
+# Internal notebooks. Pinned so the documented executions are reproducible.
+jupyter==1.1.1
+notebook==7.6.0
+nbformat==5.10.4
 
 # Online API. The connector owns its separate dependencies in apps/connector.
 fastapi==0.139.2

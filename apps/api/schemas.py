@@ -53,6 +53,19 @@ class ConnectorLink(StrictModel):
     connector_version: str = Field(min_length=1, max_length=64)
 
 
+class ControlCommandAck(StrictModel):
+    success: bool
+    error_message: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def error_matches_status(self) -> "ControlCommandAck":
+        if self.success and self.error_message:
+            raise ValueError("A successful command cannot include error_message.")
+        if not self.success and not (self.error_message or "").strip():
+            raise ValueError("A failed command must include error_message.")
+        return self
+
+
 class ObsMetrics(StrictModel):
     obs_connected: bool
     stream_active: bool | None = None
@@ -83,12 +96,35 @@ class UnsupportedMetrics(StrictModel):
     connection_capacity_mbps: None = None
 
 
+class NetworkMetrics(StrictModel):
+    """Network-path measurements; never derived from OBS output bitrate."""
+
+    source: Literal["streamml_http_probe", "external_measurement"]
+    upload_mbps: float | int = Field(ge=0)
+    download_mbps: float | int = Field(ge=0)
+    latency_ms: float | int = Field(ge=0)
+    jitter_ms: float | int = Field(ge=0)
+    packet_loss_percent: float | int = Field(ge=0, le=100)
+    connection_capacity_mbps: float | int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def finite_values(self) -> "NetworkMetrics":
+        for name in (
+            "upload_mbps", "download_mbps", "latency_ms", "jitter_ms",
+            "packet_loss_percent", "connection_capacity_mbps",
+        ):
+            if not math.isfinite(float(getattr(self, name))):
+                raise ValueError(f"{name} must be finite.")
+        return self
+
+
 class TelemetryRequest(StrictModel):
     session_id: str
     source: Literal["obs_websocket_5"]
     observed_at: str
     sequence: int = Field(ge=0)
     metrics: ObsMetrics
+    network: NetworkMetrics | None = None
     unsupported: UnsupportedMetrics = Field(default_factory=UnsupportedMetrics)
 
     @field_validator("session_id")

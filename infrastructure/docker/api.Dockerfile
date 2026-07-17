@@ -7,10 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN groupadd --system streamml && useradd --system --gid streamml --home /home/streamml streamml
+RUN groupadd --system streamml \
+    && useradd --system --gid streamml --home-dir /home/streamml --create-home streamml
 
-COPY requirements.txt /app/requirements.txt
-RUN python -m pip install --upgrade pip && python -m pip install -r /app/requirements.txt
+COPY requirements-api.txt /app/requirements-api.txt
+RUN python -m pip install --upgrade pip \
+    && python -m pip install -r /app/requirements-api.txt
 
 COPY apps/__init__.py /app/apps/__init__.py
 COPY apps/api /app/apps/api

@@ -47,7 +47,7 @@ def build_feature_row(
     throughput_mbps: Sequence[float],
     elapsed_seconds: Sequence[float],
     current_profile: int,
-    lookback_duration_seconds: float = 120.0,
+    lookback_duration_seconds: float = 600.0,
 ) -> dict[str, float | int]:
     """Calculate the inherited 19-feature contract from one historical window."""
 

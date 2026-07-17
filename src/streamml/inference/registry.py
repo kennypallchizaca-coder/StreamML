@@ -98,7 +98,8 @@ class OfficialModelRegistry:
         if int(getattr(model, "n_features_in_", -1)) != len(features):
             raise RuntimeError(f"{role} model feature count does not match its official contract.")
         declared_model = self.release[f"{role}_model"]["selected_model"]
-        if type(model).__name__ != declared_model:
+        estimator = getattr(model, "named_steps", {}).get("model", model)
+        if type(estimator).__name__ != declared_model:
             raise RuntimeError(f"Unexpected official {role} model type.")
         classes = list(getattr(model, "classes_", []))
         expected_classes = list(mapping.keys()) if role == "reactive" else list(mapping.values())

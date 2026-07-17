@@ -22,7 +22,9 @@ def main() -> None:
     expected_notebooks = {"01_data_preparation.ipynb", "02_model_training.ipynb", "03_model_inference.ipynb"}
     assert {path.name for path in (ROOT / "notebooks").glob("*.ipynb")} == expected_notebooks
     assert {path.name for path in (ROOT / "scripts").glob("*.py")} == {
-        "prepare_datasets.py", "train_models.py", "evaluate_models.py", "demo_models.py", "verify_release.py"
+        "fetch_predictive_source.py", "prepare_datasets.py", "train_models.py",
+        "evaluate_models.py", "demo_models.py", "verify_release.py",
+        "check_no_secrets.py",
     }
     assert {path.name for path in (ROOT / "data" / "processed").glob("*") if path.is_file()} == {
         "reactive_dataset.csv", "predictive_dataset.csv"
