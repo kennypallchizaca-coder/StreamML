@@ -1,0 +1,66 @@
+{
+  "contract_version": "2.0.0-official",
+  "model_role": "predictive",
+  "lookback_seconds": 120,
+  "future_horizon_seconds": 30,
+  "step_seconds": 10,
+  "random_state": 42,
+  "feature_count": 19,
+  "features": [
+    "throughput_mean",
+    "throughput_median",
+    "throughput_min",
+    "throughput_max",
+    "throughput_std",
+    "throughput_p10",
+    "throughput_p25",
+    "throughput_first",
+    "throughput_last",
+    "throughput_change",
+    "throughput_slope",
+    "throughput_coefficient_variation",
+    "measurements_count",
+    "lookback_duration_seconds",
+    "proportion_below_low",
+    "proportion_below_medium",
+    "proportion_below_high",
+    "current_profile",
+    "required_capacity_mbps"
+  ],
+  "formulas": {
+    "throughput_std": "population standard deviation (ddof=0)",
+    "throughput_p10": "10th percentile of historical throughput_mbps",
+    "throughput_p25": "25th percentile of historical throughput_mbps",
+    "throughput_first": "first historical throughput_mbps ordered by elapsed_seconds",
+    "throughput_last": "last historical throughput_mbps ordered by elapsed_seconds",
+    "throughput_change": "throughput_last - throughput_first",
+    "throughput_slope": "least-squares slope of throughput_mbps against real elapsed_seconds",
+    "throughput_coefficient_variation": "throughput_std / throughput_mean; 0 when mean is 0",
+    "lookback_duration_seconds": "configured historical lookback, fixed at 120 seconds",
+    "proportion_below_low": "fraction of historical measurements below 1.35 Mbps",
+    "proportion_below_medium": "fraction of historical measurements below 3.375 Mbps",
+    "proportion_below_high": "fraction of historical measurements below 6.75 Mbps"
+  },
+  "class_mapping": {
+    "maintain": 0,
+    "downgrade_needed": 1
+  },
+  "target": {
+    "name": "target_code",
+    "definition": "downgrade_needed when the strictly future 30-second horizon contains rebuffering, a quality decrease, p25 throughput below the current profile capacity, or more than 30% of future samples below that capacity.",
+    "pseudo_label": true
+  },
+  "offline_usage": {
+    "required_source": "historical throughput or connection-capacity measurements",
+    "policy": "Build each example exclusively from the 120-second historical window."
+  },
+  "forbidden_input_columns": [
+    "future_throughput_mean",
+    "future_throughput_p25",
+    "future_rebuffer_event",
+    "future_quality_decrease",
+    "future_below_required_fraction",
+    "target",
+    "target_code"
+  ]
+}

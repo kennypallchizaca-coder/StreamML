@@ -1,290 +1,247 @@
-# Streaming Adaptativo mediante Machine Learning
+# StreamML
 
-## 1. Integrantes
-- **Alexis Guamán**
-- **Cinthya Ramón**
+**Streaming Adaptativo y Prediccion de Reduccion de Calidad mediante Machine Learning**
 
-## 2. Descripción general
-Sistema de Machine Learning que analiza las condiciones de red en tiempo real para recomendar el perfil de calidad óptimo durante una transmisión de video en vivo. El proyecto aborda las transmisiones IRL (In Real Life) en entornos urbanos con geografía compleja, donde las fluctuaciones de red hacen inviable una configuración fija de bitrate.
+**Integrantes:** Alexis Guaman y Cinthya Ramon.
 
-## 3. Estado actual del proyecto
+StreamML es una entrega reproducible de Machine Learning offline orientada a dos decisiones relacionadas con la calidad de una transmision: recomendar un perfil segun las condiciones actuales y anticipar si el perfil observado deberia mantenerse o reducirse. El repositorio incluye preparacion de datos, entrenamiento, evaluacion, inferencia, notebooks documentados, pruebas automatizadas y una interfaz Streamlit.
 
-| Componente | Estado |
-|---|---|
-| Modelo reactivo (DecisionTree) | ✅ Entrenado y congelado |
-| Modelo predictivo (RandomForest) | ✅ Entrenado y congelado |
-| Integración OBS Studio | ✅ Funcionando |
-| Servidor MediaMTX | ✅ Funcionando |
-| Recolección de telemetría real | ✅ Funcionando |
-| Etiquetado de sesiones | ✅ Funcionando |
-| Inferencia con datos reales | ⏳ Pendiente (Fase 2) |
-| Control automático de OBS | 🔒 Desactivado |
-| Producción | ❌ No disponible |
+La publicacion actual no controla una transmision real. VDO.Ninja, OBS Studio, RTMP, MediaMTX, FFmpeg, telemetria en vivo, agente autonomo y video de respaldo pertenecen a la arquitectura prevista, pero no tienen una implementacion activa en este arbol.
 
-> [!WARNING]
-> Este proyecto es un prototipo académico. Los modelos actuales no deben utilizarse para controlar automáticamente transmisiones reales ni para tomar decisiones críticas de producción.
-
-## 4. Problema
-Durante una transmisión, la calidad seleccionada puede superar la capacidad real de la red. Cuando esto ocurre pueden aparecer congelamientos, retrasos, cortes, pérdida de audio, reconexiones o interrupción completa.
-
-Una reducción manual puede llegar tarde. Por ello se propone utilizar modelos de Machine Learning que analicen las condiciones actuales y el historial reciente para tomar decisiones proactivas.
-
-## 5. Arquitectura
-
-```text
-VDO.Ninja (Cámara móvil)
-    ↓ WebRTC
-OBS Studio (Composición y codificación)
-    ↓ RTMP
-MediaMTX (Servidor de restreaming)
-    ↓
-Telemetría en tiempo real → Modelos ML (Shadow Mode)
-```
+## Objetivos de Machine Learning
 
 ### Modelo reactivo
-Analiza el estado actual de la red de manera instantánea.
 
-Entrada:
-- `upload_mbps`, `download_mbps`, `latency_ms`
+Clasifica una medicion actual en uno de tres perfiles:
 
-Salida:
-- `low`, `medium`, `high`
+- `low`
+- `medium`
+- `high`
+
+Utiliza exactamente estas variables:
+
+| Variable | Unidad | Significado |
+|---|---|---|
+| `upload_mbps` | Mbps | Velocidad actual de subida |
+| `download_mbps` | Mbps | Velocidad actual de descarga |
+| `latency_ms` | ms | Latencia actual |
+
+El target es una pseudoetiqueta construida con umbrales de capacidad y penalizaciones por latencia. Su definicion completa se conserva en `config/reactive_feature_contract.json`.
 
 ### Modelo predictivo
-Analiza una ventana temporal de 120 segundos buscando detectar patrones de degradación antes de que el evento afecte críticamente la transmisión.
 
-Salida:
-- `maintain`, `downgrade_needed`
+Clasifica una ventana temporal en una de dos clases:
 
-> **Nota importante:** Durante la recolección de telemetría actual, los modelos de ML permanecen desactivados. El bitrate reportado por OBS no se utiliza como indicador de capacidad de red disponible.
+- `maintain`: las condiciones permiten mantener el perfil actual.
+- `downgrade_needed`: el horizonte posterior contiene evidencia para reducirlo.
 
-## 6. Resultados de la Fase 1
+El contrato utiliza 19 estadisticas calculadas exclusivamente sobre **120 segundos historicos** y una etiqueta calculada en los **30 segundos estrictamente posteriores**. Entre las variables se encuentran media, mediana, minimos, maximos, percentiles, dispersion, pendiente, cambio de throughput, proporciones bajo capacidades requeridas y perfil actual.
 
-### Modelo reactivo final
-- Algoritmo: `DecisionTreeClassifier`
-- Variables: `upload_mbps`, `download_mbps`, `latency_ms`
-- Macro F1 test: **0.9977**
+El modelo no recibe columnas futuras ni el target como entrada. La lista y el orden exactos se encuentran en `config/predictive_feature_contract.json`.
 
-### Modelo predictivo final
-- Algoritmo: `RandomForestClassifier`
-- Umbral: 0.55
-- Macro F1 validación agrupada: **0.5952**
-- Mejor baseline: 0.4799
-- Macro F1 test: **0.4950**
-- Recall downgrade_needed (test): 0.3333
-- Falsos positivos: 21
-- Falsos negativos: 4
-- Generalization gap: **0.1002** (attention)
+## Metodologia
 
-### Pseudoetiquetas reactivas
+El flujo aplica las siguientes reglas:
 
-| Perfil | Bitrate | Capacidad mínima |
-|---|---:|---:|
-| low | 1000 kbps | 1.35 Mbps |
-| medium | 2500 kbps | 3.375 Mbps |
-| high | 5000 kbps | 6.75 Mbps |
+1. Se utilizan datos publicos y no se generan observaciones sinteticas.
+2. Las variables de entrada se obtienen de contratos versionados.
+3. Las sesiones completas se mantienen separadas entre train, validacion y test.
+4. La busqueda de hiperparametros se realiza dentro de entrenamiento con grupos de sesiones.
+5. El algoritmo y el threshold predictivo se seleccionan con validacion.
+6. Test se utiliza unicamente para estimar generalizacion final.
+7. Se comparan los modelos contra `DummyClassifier(strategy='most_frequent')`.
+8. Se reportan accuracy, balanced accuracy, Macro F1, recall, F1 por clase y matrices de confusion.
+9. Los modelos se publican junto con contratos, metricas, procedencia, versiones y hashes.
 
-El alto rendimiento del modelo reactivo significa que aprendió la heurística. No significa que esté validado en producción.
+Macro F1 y balanced accuracy son especialmente importantes porque el dataset predictivo esta desbalanceado. Una accuracy elevada por si sola no demostraria que el modelo reconoce correctamente ambas clases.
 
-## 7. Avance de la Fase 2
+## Datos oficiales
 
-### Recolección de telemetría real
-Se ha implementado un sistema completo de recolección que captura métricas segundo a segundo desde OBS Studio, la red del sistema y MediaMTX.
+| Dataset | Filas | Sesiones | Variables del modelo | Target |
+|---|---:|---:|---:|---|
+| `data/processed/reactive_dataset.csv` | 26,686 | 26,686 | 3 | `low`, `medium`, `high` |
+| `data/processed/predictive_dataset.csv` | 3,306 | 120 | 19 | `maintain`, `downgrade_needed` |
 
-### Primera sesión estable validada
-Se ejecutó una sesión de recolección de 60 segundos en condiciones estables:
-- **60 muestras** registradas
-- `invalid_rows = 0`
-- `timestamp_errors = 0`
-- `validation_status = valid`
-- Sin frames omitidos
-- Sin acciones automáticas aplicadas (`action_applied = none`)
-- `models_executed = false` (modelos desactivados durante recolección)
+La procedencia, licencia, URLs y hashes conocidos se documentan en `data/raw/source_manifest.json`. El archivo bruto reactivo y su licencia se conservan localmente; los CSV y ZIP grandes estan excluidos de Git. La fuente predictiva bruta no esta fisicamente incluida en el checkout actual, por lo que `scripts/prepare_datasets.py` requiere restaurarla antes de reconstruir completamente ese dataset.
 
-## 8. Datasets
-Para el modelo reactivo se utiliza un dataset público de mediciones de red que contiene velocidad de subida, velocidad de descarga y latencia.
-Para el modelo predictivo se agrupan sesiones temporales de throughput utilizando ventanas de observación para capturar tendencias y predecir degradaciones futuras.
+`data/interim/` esta reservado para esquemas, estadisticas y transformaciones generadas durante la preparacion. `data/processed/` contiene unicamente los dos datasets finales de entrenamiento.
 
-**Fuentes:**
-- Reactivo: [RTR-NetzTest Open Data](https://www.netztest.at/en/Opendata)
-- Predictivo: [Ghent University 4G/LTE Dataset](http://users.ugent.be/~jvdrhoof/dataset-4g/)
+## Resultados reales
 
-**Limitaciones:** La utilización de datos públicos y estáticos implica que el entorno de entrenamiento carece de la telemetría específica que producirán las herramientas de video localmente.
+| Modelo | Algoritmo seleccionado | Validacion Macro F1 | Test Macro F1 | Test balanced accuracy | Baseline test Macro F1 |
+|---|---|---:|---:|---:|---:|
+| Reactivo | `DecisionTreeClassifier` | 100.00% | 99.91% | 99.83% | 30.17% |
+| Predictivo | `RandomForestClassifier` | 99.06% | 93.25% | 95.68% | 47.99% |
 
-## 9. Preparación de datos
-- Limpieza y normalización de nombres
-- Conversión de unidades
-- Tratamiento de valores nulos
-- Eliminación de columnas incompatibles con un entorno puramente local
-- Separación train, validation y test
-- División por sesiones (para evitar fuga temporal)
-- Creación de características temporales basadas en ventanas de 120 segundos
+El modelo predictivo utiliza un threshold de `0.50`, elegido con validacion. En test obtuvo 53 aciertos y 4 errores para `maintain`, ademas de 671 aciertos y 11 errores para `downgrade_needed`. Las cifras completas se generan mediante Python y se almacenan en los `metrics.json` de cada modelo.
 
-## 10. Características del modelo predictivo
-- `throughput_mean`: Promedio de velocidad en la ventana.
-- `throughput_median`: Mediana para robustez ante picos.
-- `throughput_min`, `throughput_max`: Rango de la conexión.
-- `throughput_std`, `throughput_coefficient_variation`: Medidas de inestabilidad de la red.
-- `throughput_p10`, `throughput_p25`: Cuantiles de caídas críticas.
-- `throughput_first`, `throughput_last`: Valores en los extremos de la ventana temporal.
-- `throughput_change`, `throughput_slope`: Evolución y tendencia temporal de la capacidad.
-- `measurements_count`, `lookback_duration_seconds`: Metadatos de la propia ventana temporal (para asegurar suficiencia de datos).
-- `proportion_below_low`, `proportion_below_medium`, `proportion_below_high`: Porcentaje de tiempo que la red pasa por debajo del umbral de seguridad de cada perfil.
-- `current_profile`: El perfil actual asignado a la transmisión.
-- `required_capacity_mbps`: La capacidad teórica necesaria que exige el perfil actual.
+## Modelos publicados
 
-## 11. Modelos evaluados
-**Modelos reactivos evaluados:** DummyClassifier, LogisticRegression, DecisionTree, RandomForest, GradientBoosting.
-**Modelos predictivos evaluados:** LogisticRegression, DecisionTree, RandomForest, GradientBoosting, HistGradientBoosting.
-
-## 12. Validación agrupada
-Para asegurar que el modelo sea generalizable, no se utilizó una división aleatoria por filas.
-Se implementó `GroupKFold` agrupando por `session_id`, validando sobre 27 sesiones a través de 5 folds. Esto evita que las ventanas temporales superpuestas de una misma sesión aparezcan simultáneamente en entrenamiento y validación (Data Leakage).
-
-## 13. Generalization gap
-El generalization_gap se calcula como la diferencia entre la media de validación agrupada y la métrica de test en conjuntos aislados:
-`generalization_gap = validation_cv_macro_f1_mean - test_macro_f1`
-`0.5952 - 0.4950 = 0.1002`
-
-Clasificación: **attention**
-El modelo mejoró frente a la primera versión tras aplicar mitigaciones de fuga de datos, pero todavía presenta variabilidad e inestabilidad entre sesiones invisibles.
-
-## 14. Interpretación de resultados
-- El modelo reactivo logra una alta precisión al reproducir la heurística introducida originalmente.
-- El modelo predictivo supera al baseline estadístico de forma clara en validación cruzada.
-- Sin embargo, el predictivo tiene un desempeño moderado en test.
-- El recall para eventos de degradación es limitado. Todavía puede omitir degradaciones y generar falsas alarmas.
-- Por ende, no debe controlar automáticamente una transmisión bajo el estado actual.
-
-## 15. Estructura del repositorio
-```
-StreamML — Streaming Adaptativo mediante Machine Learning/
-├── config/
-│   ├── model_input_contract_v2.json
-│   ├── data_collection_config.json
-│   ├── shadow_agent_config.json
-│   └── telemetry_schema.json
-├── data/
-│   ├── processed/
-│   │   ├── dataset_reactivo.csv
-│   │   ├── dataset_predictivo.csv
-│   │   ├── dataset_metadata.json
-│   │   └── data_dictionary.csv
-│   └── telemetry/
-│       ├── example_telemetry.csv
-│       ├── telemetry_schema.json
-│       └── .gitignore
-├── docs/
-│   ├── arquitectura_fase2.md
-│   ├── auditoria_paridad_features.md
-│   ├── guia_demostracion.md
-│   ├── protocolo_recoleccion_fase2.md
-│   ├── reporte_avance_fase2.md
-│   └── validacion_shadow_mode.md
-├── models/
-│   ├── phase1_final_release/
-│   │   ├── manifest.json
-│   │   ├── model_input_contract_v2.json
-│   │   ├── model_metadata_phase1_final.json
-│   │   ├── modelo_reactivo_phase1_final.joblib
-│   │   ├── modelo_predictivo_phase1_final.joblib
-│   │   ├── preprocesador_reactivo_phase1_final.joblib
-│   │   └── preprocesador_predictivo_phase1_final.joblib
-│   ├── modelo_reactivo_phase1_final.joblib
-│   ├── modelo_predictivo_phase1_final.joblib
-│   ├── preprocesador_reactivo_phase1_final.joblib
-│   ├── preprocesador_predictivo_phase1_final.joblib
-│   └── model_metadata_phase1_final.json
-├── notebooks/
-│   ├── 01_carga_preparacion_dataset.ipynb
-│   ├── 02_entrenamiento_modelos.ipynb
-│   └── 03_prediccion_nuevos_ejemplos.ipynb
-├── reports/
-│   └── figures/
-│       ├── ghent_sample_sessions.png
-│       ├── ghent_session_duration.png
-│       ├── ghent_throughput_dist.png
-│       └── reactivo_target_dist.png
-├── scripts/
-│   ├── audit_shadow.py
-│   ├── check_presentation_ready.py
-│   ├── label_session.py
-│   ├── run_data_collection_session.py
-│   ├── run_shadow_agent.py
-│   ├── run_shadow_runtime.py
-│   ├── run_telemetry_collector.py
-│   ├── test_obs_connection.py
-│   └── verify_phase1_release.py
-├── src/
-│   ├── feature_builder_v2.py
-│   ├── obs_telemetry_collector.py
-│   ├── session_data_collector.py
-│   ├── shadow_agent.py
-│   ├── telemetry_buffer.py
-│   └── telemetry_collector.py
-├── tests/
-│   ├── test_label_session.py
-│   ├── test_model_input_contract_v2.py
-│   ├── test_obs_telemetry_collector.py
-│   ├── test_phase1_final_release.py
-│   ├── test_session_data_collector.py
-│   ├── test_shadow_agent.py
-│   ├── test_telemetry_buffer.py
-│   └── test_telemetry_collector.py
-├── .env.example
-├── .gitignore
-├── README.md
-└── requirements.txt
+```text
+models/release/
+├── release_manifest.json
+├── reactive/
+│   ├── model.joblib
+│   ├── feature_contract.json
+│   ├── class_mapping.json
+│   ├── metrics.json
+│   ├── training_manifest.json
+│   ├── source_manifest.json
+│   └── requirements_snapshot.txt
+└── predictive/
+    ├── model.joblib
+    ├── feature_contract.json
+    ├── class_mapping.json
+    ├── metrics.json
+    ├── threshold.json
+    ├── training_manifest.json
+    ├── source_manifest.json
+    └── requirements_snapshot.txt
 ```
 
-## 16. Demostración rápida
+Los JSON no son modelos duplicados. Cada uno conserva una responsabilidad: orden de variables, clases, metricas, procedimiento de entrenamiento, procedencia o threshold. Las copias junto al modelo hacen que cada publicacion sea autocontenida y verificable mediante los hashes de `release_manifest.json`.
 
-### Requisitos previos
-- OBS Studio abierto con WebSocket habilitado
-- VDO.Ninja transmitiendo hacia OBS
-- MediaMTX ejecutándose
+## Notebooks oficiales
 
-### Ejecutar sesión de recolección (30 segundos)
-```bash
-python scripts/run_data_collection_session.py --duration 30 --profile high --condition stable
+El proyecto mantiene exactamente tres notebooks, todos ejecutados desde kernels nuevos y sin errores:
+
+### `01_data_preparation.ipynb`
+
+- Revisa procedencia y licencia.
+- Carga y audita ambos datasets.
+- Normaliza tipos y elimina registros incompatibles.
+- Analiza variables y distribuciones de clases.
+- Valida contratos, targets y columnas prohibidas.
+- Comprueba particiones disjuntas por `session_id`.
+- Audita una ventana temporal real y la ausencia de fuga futura.
+- Guarda y vuelve a cargar los CSV finales.
+
+### `02_model_training.ipynb`
+
+- Carga datasets y contratos preparados.
+- Ejecuta el entrenamiento mediante scripts reproducibles.
+- Compara baseline, regresion logistica, arbol y random forest.
+- Selecciona modelos y threshold con validacion.
+- Presenta accuracy, balanced accuracy, Macro F1, recall y F1 por clase.
+- Genera matrices de confusion e importancia de variables.
+- Compara la mejora real frente al baseline.
+- Comprueba todos los artefactos publicados.
+
+### `03_model_inference.ipynb`
+
+- Carga los dos modelos oficiales sin reentrenarlos.
+- Verifica nombres y orden de variables.
+- Ejecuta ejemplos reactivos reales para `low`, `medium` y `high`.
+- Ejecuta ejemplos predictivos reales para ambas clases disponibles.
+- Muestra probabilidades, threshold, target, prediccion y acierto.
+- Explica como interpretar cada salida y sus limitaciones.
+
+Para ejecutarlos desde cero y en orden:
+
+```powershell
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/01_data_preparation.ipynb
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/02_model_training.ipynb
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/03_model_inference.ipynb
 ```
 
-### Verificar integridad del release
-```bash
-python scripts/verify_phase1_release.py
+## Interfaz Streamlit
+
+La aplicacion ofrece cinco vistas:
+
+1. Inicio.
+2. Modelo reactivo.
+3. Modelo predictivo.
+4. Prediccion mediante CSV.
+5. Resultados y metricas.
+
+La GUI carga exclusivamente:
+
+- `models/release/reactive/model.joblib`
+- `models/release/predictive/model.joblib`
+
+Los contratos y el threshold se leen de los artefactos oficiales. Si un CSV no contiene las columnas requeridas, la aplicacion informa cuales faltan y no ejecuta una prediccion incompatible.
+
+```powershell
+streamlit run app.py
 ```
 
-### Ejecutar pruebas automatizadas
-```bash
-pytest -v
+## Estructura del repositorio
+
+```text
+config/             configuracion del dataset y contratos de entrada
+data/raw/           manifiesto, licencia y fuentes locales ignoradas por Git
+data/interim/       transformaciones y metadatos regenerables
+data/processed/     datasets finales de entrenamiento
+models/release/     modelos oficiales y artefactos verificables
+notebooks/          preparacion, entrenamiento e inferencia documentados
+reports/            fichas de los datasets
+scripts/            comandos reproducibles del flujo
+src/                implementacion reutilizable de datos y modelos
+tests/              pruebas de contratos, splits, etiquetas y publicacion
+app.py              interfaz Streamlit
 ```
 
-### Verificar preparación para presentación
-```bash
-python scripts/check_presentation_ready.py
-```
+## Instalacion
 
-## 17. Instalación
-```bash
-py -3.11 -m venv .venv
-.venv\Scripts\activate
+Se recomienda Python 3.11. En Windows:
+
+```powershell
+py -3.11 -m venv .venv311
+.venv311\Scripts\activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## 18. Limitaciones
-- Uso extensivo de datasets públicos con features limitados.
-- Dependencia directa de pseudoetiquetas.
-- Dependencia de throughput como proxy ante la falta temporal de métricas audiovisuales locales (FPS, dropped frames).
-- Pocas degradaciones presentes en el set de datos.
-- Fuertes diferencias estadísticas entre sesiones.
-- Recall muy bajo para predicción adelantada (`downgrade_needed`).
-- El bitrate de OBS no se usa como capacidad disponible de la red.
-- Los modelos no han sido validados con datos reales aún.
-- Ausencia de control automático (solo predicción sin impacto real).
-- Ausencia de un mecanismo de fallback robusto implementado.
-- El repositorio no está listo para producción.
+Los entornos virtuales, secretos, caches, ZIP y CSV brutos grandes estan excluidos mediante `.gitignore`.
 
-## 19. Advertencia final
+## Flujo reproducible
 
-> [!WARNING]
-> Este proyecto es un prototipo académico. Los modelos actuales no deben utilizarse para controlar automáticamente transmisiones reales ni para tomar decisiones críticas de producción.
+```powershell
+# Requiere que todas las fuentes brutas declaradas esten disponibles localmente.
+python scripts\prepare_datasets.py
+
+# Entrena los dos modelos y publica sus artefactos.
+python scripts\train_models.py
+
+# Recalcula la evaluacion final y actualiza el manifiesto de publicacion.
+python scripts\evaluate_models.py
+
+# Ejecuta un ejemplo reproducible de cada modelo.
+python scripts\demo_models.py
+
+# Verifica archivos, hashes, contratos, modelos y metricas.
+python scripts\verify_release.py
+
+# Ejecuta todas las pruebas.
+pytest -v
+```
+
+El entrenamiento utiliza `random_state = 42`. Los scripts fallan de forma explicita si falta una fuente, contrato, columna o artefacto obligatorio.
+
+## Verificacion actual
+
+La ultima ejecucion completa produjo:
+
+- Notebook de preparacion: 9/9 celdas de codigo, sin errores.
+- Notebook de entrenamiento: 9/9 celdas de codigo, sin errores.
+- Notebook de inferencia: 8/8 celdas de codigo, sin errores.
+- Pruebas automatizadas: `24 passed`.
+- Verificador: `STREAMML RELEASE VERIFIED`.
+- `git diff --check`: sin errores de whitespace.
+
+## Limitaciones
+
+Los artefactos actuales no soportan:
+
+- Predicciones a 5, 10, 20 o 30 minutos.
+- Jitter o perdida de paquetes como entradas.
+- Clase predictiva `critical`.
+- Control directo de OBS o FFmpeg.
+- Decisiones de un agente autonomo.
+- Histeresis, tiempo minimo entre cambios o video de respaldo.
+
+Estas capacidades requieren datos operativos reales, nuevos contratos, nuevas etiquetas, reentrenamiento y pruebas de integracion. No se simulan mediante reglas manuales porque eso produciria resultados que no pertenecen a los modelos publicados.
+
+## Seguridad
+
+`.env` permanece excluido de Git. `.env.example` contiene solo nombres y valores neutros para una posible integracion futura con OBS WebSocket. Las credenciales reales nunca deben almacenarse en notebooks, codigo, documentacion o commits. Si una clave fue compartida, debe rotarse antes de publicar el repositorio.

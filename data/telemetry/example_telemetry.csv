@@ -1,1 +1,0 @@
-timestamp_utc,session_id,source,upload_mbps,download_mbps,latency_ms,jitter_ms,packet_loss_percent,fps,dropped_frames,total_frames,bitrate_kbps,encoder_cpu_percent,obs_output_active,reconnect_count,current_profile,stream_status,signal_available

@@ -35,31 +35,38 @@ credentials/
 # Logs
 *.log
 reports/*.log
+logs/
+runtime/
 
 # Temporales
 tmp/
 temp/
 *.tmp
+*.temp
 *.bak
+*.orig
 *.swp
 
 # Datos originales grandes
 data/raw/**
-
-# Telemetría privada
-data/telemetry/raw/**
-data/telemetry/obs/**
-data/telemetry/pilot/**
-data/telemetry/events/**
-data/telemetry/metadata/**
-data/telemetry/predictions/**
+data/processed/private/
+*.pcap
+*.pcapng
+*.tar.gz
+*.zip
 
 # Coverage
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
+build/
+dist/
+*.egg-info/
 
 # Mantener estructura de carpetas
 !data/raw/.gitkeep
-!data/telemetry/raw/.gitkeep
-!data/telemetry/obs/.gitkeep
-!data/telemetry/pilot/.gitkeep
+!data/raw/source_manifest.json
+!data/raw/reactive/
+data/raw/reactive/*
+!data/raw/reactive/LIZENZ.txt

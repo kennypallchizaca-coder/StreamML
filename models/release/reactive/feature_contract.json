@@ -1,0 +1,63 @@
+{
+  "contract_version": "2.0.0-official",
+  "model_role": "reactive",
+  "random_state": 42,
+  "feature_count": 3,
+  "features": [
+    "upload_mbps",
+    "download_mbps",
+    "latency_ms"
+  ],
+  "feature_metadata": {
+    "upload_mbps": {
+      "definition": "Current measured upstream throughput.",
+      "unit": "Mbps",
+      "training_source": "RTR-NetzTest upload_kbit converted to Mbps",
+      "offline_example_source": "numeric upstream throughput measurement",
+      "formula": "upload_kbit / 1000",
+      "availability": "required",
+      "offline_only": true
+    },
+    "download_mbps": {
+      "definition": "Current measured downstream throughput.",
+      "unit": "Mbps",
+      "training_source": "RTR-NetzTest download_kbit converted to Mbps",
+      "offline_example_source": "numeric downstream throughput measurement",
+      "formula": "download_kbit / 1000",
+      "availability": "required",
+      "offline_only": true
+    },
+    "latency_ms": {
+      "definition": "Current latency measurement.",
+      "unit": "ms",
+      "training_source": "RTR-NetzTest ping_ms",
+      "offline_example_source": "numeric latency measurement",
+      "formula": "ping_ms renamed to latency_ms",
+      "availability": "required",
+      "offline_only": true
+    }
+  },
+  "class_mapping": {
+    "low": 1,
+    "medium": 2,
+    "high": 3
+  },
+  "target": {
+    "name": "target",
+    "type": "pseudo_label",
+    "definition": "Recommended profile from upload capacity thresholds and latency penalties.",
+    "required_capacity_mbps": {
+      "low": 1.35,
+      "medium": 3.375,
+      "high": 6.75
+    }
+  },
+  "forbidden_input_columns": [
+    "target",
+    "target_code",
+    "recommended_profile",
+    "split",
+    "session_id",
+    "timestamp_utc"
+  ]
+}
