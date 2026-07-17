@@ -47,18 +47,30 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
         max_age=settings.session_ttl_seconds,
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite="strict",
         path="/",
     )
     database.record_audit(
         user_id=user["id"], actor_type="user", action="auth.login", outcome="success", client_ip=ip
     )
-    return {"user": {"id": user["id"], "email": user["email"]}, "authenticated": True}
+    return {
+        "user": {
+            "id": user["id"], "email": user["email"],
+            "display_name": user.get("display_name") or user["email"],
+        },
+        "authenticated": True,
+    }
 
 
 @router.get("/me")
 def me(user: dict = Depends(current_user)) -> dict:
-    return {"user": {"id": user["id"], "email": user["email"]}, "authenticated": True}
+    return {
+        "user": {
+            "id": user["id"], "email": user["email"],
+            "display_name": user.get("display_name") or user["email"],
+        },
+        "authenticated": True,
+    }
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

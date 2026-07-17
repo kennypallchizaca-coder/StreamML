@@ -53,6 +53,7 @@ temp/
 
 # Frontend
 node_modules/
+.playwright-cli/
 
 # Datos originales grandes
 data/raw/**

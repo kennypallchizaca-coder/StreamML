@@ -64,7 +64,7 @@ class ObsClient:
     """
 
     ALLOWED_REQUESTS = frozenset(
-        {"GetStats", "GetStreamStatus", "SetProfileParameter", "SetCurrentProgramScene"}
+        {"GetStats", "GetStreamStatus", "GetSceneList", "SetProfileParameter", "SetCurrentProgramScene"}
     )
 
     def __init__(
@@ -78,6 +78,8 @@ class ObsClient:
         self._client_factory = client_factory
         self._monotonic = monotonic
         self._client: Any | None = None
+        self._live_scene = config.live_scene
+        self._backup_scene = config.backup_scene
         self._previous_output_bytes: int | None = None
         self._previous_sample_time: float | None = None
 
@@ -95,6 +97,16 @@ class ObsClient:
         )
         self._previous_output_bytes = None
         self._previous_sample_time = None
+
+    def set_scene_names(self, *, live_scene: str, backup_scene: str) -> None:
+        """Apply validated server-side defaults without exposing OBS credentials."""
+
+        cleaned_live = live_scene.strip()
+        cleaned_backup = backup_scene.strip()
+        if not cleaned_live or not cleaned_backup:
+            raise ValueError("OBS scene names cannot be blank.")
+        self._live_scene = cleaned_live
+        self._backup_scene = cleaned_backup
 
     def collect(self) -> ObsSnapshot:
         if self._client is None:
@@ -122,6 +134,22 @@ class ObsClient:
             # Derived strictly from OBS output byte counter; this is not network capacity.
             output_bitrate_kbps=bitrate,
         )
+
+    def validate_scenes(self) -> list[str]:
+        """Return required scene names missing from the connected OBS instance."""
+
+        if self._client is None:
+            raise RuntimeError("OBS is not connected.")
+        response = self._client.get_scene_list()
+        names: set[str] = set()
+        for scene in getattr(response, "scenes", ()):
+            if isinstance(scene, dict):
+                name = scene.get("sceneName") or scene.get("scene_name")
+            else:
+                name = getattr(scene, "scene_name", None) or getattr(scene, "sceneName", None)
+            if name:
+                names.add(str(name))
+        return [name for name in (self._live_scene, self._backup_scene) if name not in names]
 
     def _derive_output_bitrate(
         self, output_bytes: int, sample_time: float, stream_active: bool
@@ -154,10 +182,10 @@ class ObsClient:
             self._apply_profile(payload)
             return
         if command_type == "activate_backup":
-            self._client.set_current_program_scene(self._config.backup_scene)
+            self._client.set_current_program_scene(self._backup_scene)
             return
         if command_type == "restore_live":
-            self._client.set_current_program_scene(self._config.live_scene)
+            self._client.set_current_program_scene(self._live_scene)
             return
         raise ValueError("Unsupported control command.")
 

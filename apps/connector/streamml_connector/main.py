@@ -9,7 +9,7 @@ import re
 import time
 from typing import Any, Sequence
 
-from .api_client import ApiClientError, StreamMLApiClient
+from .api_client import ApiClientError, ConnectorRuntimeSettings, StreamMLApiClient
 from .config import ConfigurationError, ConnectorConfig, load_config
 from .obs_client import ObsClient, ObsSnapshot
 from .network_probe import NetworkMeasurement, NetworkProbe
@@ -50,9 +50,10 @@ def _configure_logging(level: str) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(level)
-    # obsws-python logs connection state; keep it at warning to avoid verbose
-    # protocol details while retaining authentication/connectivity failures.
-    logging.getLogger("obsws_python").setLevel(logging.WARNING)
+    # obsws-python logs connection state and errors verbosely; keep it at critical
+    # to avoid spamming the console when OBS is not running, since we already
+    # catch and log the connection failure cleanly at the connector level.
+    logging.getLogger("obsws_python").setLevel(logging.CRITICAL)
 
 
 def _telemetry_payload(
@@ -107,6 +108,12 @@ def _send_disconnected(
         LOGGER.warning("OBS is unavailable and the disconnected state could not reach the API.")
 
 
+def _apply_runtime_settings(
+    obs_client: ObsClient, settings: ConnectorRuntimeSettings
+) -> None:
+    obs_client.set_scene_names(live_scene=settings.live_scene, backup_scene=settings.backup_scene)
+
+
 def run(*, pair: bool, once: bool, forget_token: bool) -> int:
     config = load_config()
     _configure_logging(config.log_level)
@@ -139,9 +146,13 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
         obs_password = read_obs_password()
         delay = config.reconnect_initial_seconds
         sequence = time.time_ns()
-        network_probe = NetworkProbe(api, credentials, config.network_probe_bytes)
+        remote_settings = api.connector_settings(credentials)
+        _apply_runtime_settings(obs_client, remote_settings)
+        network_probe = NetworkProbe(api, credentials, remote_settings.network_probe_bytes)
+        network_probe_interval = remote_settings.network_probe_interval_seconds
         last_network: NetworkMeasurement | None = None
         next_network_probe_at = 0.0
+        next_settings_refresh_at = 0.0
 
         while True:
             try:
@@ -151,11 +162,18 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
                 while True:
                     snapshot = obs_client.collect()
                     now = time.monotonic()
+                    if now >= next_settings_refresh_at:
+                        remote_settings = api.connector_settings(credentials)
+                        _apply_runtime_settings(obs_client, remote_settings)
+                        if remote_settings.network_probe_bytes != network_probe.payload_bytes:
+                            network_probe = NetworkProbe(api, credentials, remote_settings.network_probe_bytes)
+                        network_probe_interval = remote_settings.network_probe_interval_seconds
+                        next_settings_refresh_at = now + 30.0
                     if now >= next_network_probe_at:
                         measured = network_probe.measure()
                         if measured is not None:
                             last_network = measured
-                        next_network_probe_at = now + config.network_probe_interval_seconds
+                        next_network_probe_at = now + network_probe_interval
                     payload = _telemetry_payload(
                         config, credentials, snapshot, sequence, last_network
                     )
@@ -224,11 +242,20 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="remove the connector API token from the operating-system keyring",
     )
+    parser.add_argument(
+        "--setup-gui",
+        action="store_true",
+        help="open the local graphical setup assistant",
+    )
     return parser
 
 
 def cli(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.setup_gui:
+        from .setup_ui import cli as setup_cli
+
+        return setup_cli([])
     try:
         return run(pair=args.pair, once=args.once, forget_token=args.forget_token)
     except (ConfigurationError, SecretStorageError, ApiClientError) as exc:

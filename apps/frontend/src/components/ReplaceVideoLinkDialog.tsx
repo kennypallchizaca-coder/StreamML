@@ -5,25 +5,14 @@ import { Link2 } from "lucide-react";
 import ExistingVideoLinkForm from "./ExistingVideoLinkForm";
 
 interface ReplaceVideoLinkDialogProps {
-  onLinkUpdated: (newUrl: string) => void;
+  onLinkUpdated: (newUrl: string) => Promise<void> | void;
 }
 
 export default function ReplaceVideoLinkDialog({ onLinkUpdated }: ReplaceVideoLinkDialogProps) {
   const [open, setOpen] = useState(false);
-  const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
-
-  const handleUpdate = () => {
-    if (validatedUrl) {
-      onLinkUpdated(validatedUrl);
-      setOpen(false);
-      setValidatedUrl(null);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={(o) => {
       setOpen(o);
-      if (!o) setValidatedUrl(null);
     }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2 font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors">
@@ -42,8 +31,10 @@ export default function ReplaceVideoLinkDialog({ onLinkUpdated }: ReplaceVideoLi
         
         <div className="bg-muted/20 px-5 py-5 sm:px-7 sm:py-6">
           <ExistingVideoLinkForm 
-            onValidatedLink={setValidatedUrl} 
-            onContinue={handleUpdate} 
+            onContinue={async (url) => {
+              await onLinkUpdated(url);
+              setOpen(false);
+            }}
           />
         </div>
 

@@ -16,10 +16,16 @@ from src.streamml.security.crypto import hash_password, redact_mapping
 SCHEMA = """
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    applied_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -35,10 +41,17 @@ CREATE TABLE IF NOT EXISTS sessions (
     name TEXT NOT NULL,
     status TEXT NOT NULL,
     stream_id TEXT NOT NULL UNIQUE,
+    configuration_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    preferences_json TEXT NOT NULL,
+    stream_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS pairing_codes (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -122,9 +135,38 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 """
 
+LATEST_SCHEMA_VERSION = 3
+
 
 def _expiry(seconds: int) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
+
+
+DEFAULT_PREFERENCES = {
+    "language": "es",
+    "timezone": "auto",
+    "dark_mode": True,
+    "alert_detail": "normal",
+}
+DEFAULT_STREAM_SETTINGS = {
+    "preferred_resolution": "1080p",
+    "preferred_profile": "high",
+    "platform": "youtube",
+    "live_scene": "StreamML Live",
+    "backup_scene": "StreamML Backup",
+    "network_probe_interval_seconds": 5,
+    "network_probe_bytes": 262144,
+}
+
+
+def _json_object(raw: str | None, defaults: dict[str, Any]) -> dict[str, Any]:
+    """Read a persisted settings object without letting a bad row break the UI."""
+
+    try:
+        loaded = json.loads(raw or "{}")
+    except (TypeError, json.JSONDecodeError):
+        loaded = {}
+    return {**defaults, **(loaded if isinstance(loaded, dict) else {})}
 
 
 class _ClosingConnection(sqlite3.Connection):
@@ -149,12 +191,65 @@ class Database:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.executescript(SCHEMA)
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(1,?,?)",
+                ("baseline_schema", utc_now_iso()),
+            )
             columns = {
                 row["name"]
                 for row in connection.execute("PRAGMA table_info(telemetry)").fetchall()
             }
             if "network_json" not in columns:
                 connection.execute("ALTER TABLE telemetry ADD COLUMN network_json TEXT")
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(2,?,?)",
+                ("telemetry_network_metrics", utc_now_iso()),
+            )
+            user_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(users)").fetchall()
+            }
+            if "display_name" not in user_columns:
+                connection.execute("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
+            session_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(sessions)").fetchall()
+            }
+            if "configuration_json" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE sessions ADD COLUMN configuration_json TEXT NOT NULL DEFAULT '{}'"
+                )
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(3,?,?)",
+                ("gui_settings_and_profiles", utc_now_iso()),
+            )
+
+    def schema_version(self) -> int:
+        try:
+            with self._connect() as connection:
+                row = connection.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()
+            return int(row[0]) if row else 0
+        except sqlite3.Error:
+            return 0
+
+    def integrity_check(self) -> bool:
+        try:
+            with self._connect() as connection:
+                row = connection.execute("PRAGMA quick_check").fetchone()
+            return bool(row and row[0] == "ok")
+        except sqlite3.Error:
+            return False
+
+    def cleanup_expired_credentials(self) -> int:
+        """Remove expired or revoked short-lived credentials without deleting stream history."""
+
+        now = utc_now_iso()
+        with self._connect() as connection:
+            tokens = connection.execute(
+                "DELETE FROM auth_tokens WHERE expires_at<=? OR revoked_at IS NOT NULL", (now,)
+            ).rowcount
+            pairings = connection.execute(
+                "DELETE FROM pairing_codes WHERE expires_at<=? OR used_at IS NOT NULL", (now,)
+            ).rowcount
+        return tokens + pairings
 
     def ping(self) -> bool:
         try:
@@ -181,6 +276,31 @@ class Database:
             row = connection.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         return dict(row) if row else None
 
+    def get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+    def update_user_profile(
+        self, user_id: str, *, display_name: str, new_password: str | None = None
+    ) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            if new_password is None:
+                connection.execute(
+                    "UPDATE users SET display_name=? WHERE id=?", (display_name, user_id)
+                )
+            else:
+                connection.execute(
+                    "UPDATE users SET display_name=?,password_hash=? WHERE id=?",
+                    (display_name, hash_password(new_password), user_id),
+                )
+        return self.get_user_by_id(user_id)
+
+    def delete_user(self, user_id: str) -> bool:
+        with self._connect() as connection:
+            deleted = connection.execute("DELETE FROM users WHERE id=?", (user_id,))
+        return deleted.rowcount == 1
+
     def save_auth_token(self, user_id: str, token_hash: str, ttl_seconds: int) -> None:
         with self._connect() as connection:
             connection.execute(
@@ -195,42 +315,159 @@ class Database:
                 (utc_now_iso(), token_hash),
             )
 
+    def revoke_other_auth_tokens(self, user_id: str, current_token_hash: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE auth_tokens SET revoked_at=?
+                   WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL""",
+                (utc_now_iso(), user_id, current_token_hash),
+            )
+
     def user_from_token_hash(self, token_hash: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
-                """SELECT u.id,u.email,u.created_at FROM auth_tokens t
+                """SELECT u.id,u.email,u.display_name,u.created_at FROM auth_tokens t
                    JOIN users u ON u.id=t.user_id
                    WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>?""",
                 (token_hash, utc_now_iso()),
             ).fetchone()
         return dict(row) if row else None
 
-    def create_session(self, user_id: str, name: str) -> dict[str, Any]:
+    def create_session(
+        self, user_id: str, name: str, configuration: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         session_id = str(uuid.uuid4())
         now = utc_now_iso()
         stream_id = "stream-" + uuid.uuid4().hex
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO sessions(id,user_id,name,status,stream_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
-                (session_id, user_id, name, "created", stream_id, now, now),
+                """INSERT INTO sessions
+                   (id,user_id,name,status,stream_id,configuration_json,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?)""",
+                (
+                    session_id, user_id, name, "created", stream_id,
+                    json.dumps(configuration or {}, separators=(",", ":"), sort_keys=True), now, now,
+                ),
             )
         return self.get_session(user_id, session_id) or {}
 
     def get_session(self, user_id: str, session_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT id,user_id,name,status,stream_id,created_at,updated_at FROM sessions WHERE id=? AND user_id=?",
+                """SELECT id,user_id,name,status,stream_id,configuration_json,created_at,updated_at
+                   FROM sessions WHERE id=? AND user_id=?""",
                 (session_id, user_id),
             ).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        result = dict(row)
+        result["configuration"] = _json_object(result.pop("configuration_json", None), {})
+        return result
 
     def list_sessions(self, user_id: str) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT id,user_id,name,status,stream_id,created_at,updated_at FROM sessions WHERE user_id=? ORDER BY created_at DESC",
+                """SELECT id,user_id,name,status,stream_id,configuration_json,created_at,updated_at
+                   FROM sessions WHERE user_id=? ORDER BY created_at DESC""",
+                (user_id,),
+            ).fetchall()
+        results = []
+        for row in rows:
+            item = dict(row)
+            item["configuration"] = _json_object(item.pop("configuration_json", None), {})
+            results.append(item)
+        return results
+
+    def update_session_configuration(
+        self, user_id: str, session_id: str, changes: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        session = self.get_session(user_id, session_id)
+        if not session:
+            return None
+        configuration = {**session.get("configuration", {}), **changes}
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE sessions SET configuration_json=?,updated_at=? WHERE id=? AND user_id=?",
+                (
+                    json.dumps(configuration, separators=(",", ":"), sort_keys=True),
+                    utc_now_iso(), session_id, user_id,
+                ),
+            )
+        return self.get_session(user_id, session_id)
+
+    def get_user_settings(self, user_id: str) -> dict[str, Any]:
+        now = utc_now_iso()
+        with self._connect() as connection:
+            connection.execute(
+                """INSERT OR IGNORE INTO user_settings(user_id,preferences_json,stream_json,updated_at)
+                   VALUES(?,?,?,?)""",
+                (
+                    user_id,
+                    json.dumps(DEFAULT_PREFERENCES, separators=(",", ":"), sort_keys=True),
+                    json.dumps(DEFAULT_STREAM_SETTINGS, separators=(",", ":"), sort_keys=True),
+                    now,
+                ),
+            )
+            row = connection.execute(
+                "SELECT preferences_json,stream_json,updated_at FROM user_settings WHERE user_id=?", (user_id,)
+            ).fetchone()
+        assert row is not None
+        return {
+            "preferences": _json_object(row["preferences_json"], DEFAULT_PREFERENCES),
+            "stream": _json_object(row["stream_json"], DEFAULT_STREAM_SETTINGS),
+            "updated_at": row["updated_at"],
+        }
+
+    def update_user_settings(
+        self, user_id: str, *, preferences: dict[str, Any] | None = None,
+        stream: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        current = self.get_user_settings(user_id)
+        updated_preferences = {**current["preferences"], **(preferences or {})}
+        updated_stream = {**current["stream"], **(stream or {})}
+        now = utc_now_iso()
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE user_settings SET preferences_json=?,stream_json=?,updated_at=? WHERE user_id=?""",
+                (
+                    json.dumps(updated_preferences, separators=(",", ":"), sort_keys=True),
+                    json.dumps(updated_stream, separators=(",", ":"), sort_keys=True), now, user_id,
+                ),
+            )
+        return self.get_user_settings(user_id)
+
+    def list_connectors(self, user_id: str) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT id,session_id,name,version,created_at,last_seen_at,expires_at
+                   FROM connectors WHERE user_id=? ORDER BY created_at DESC""",
                 (user_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def delete_user_history(self, user_id: str) -> int:
+        """Delete transmission data while preserving the account and saved defaults."""
+
+        with self._connect() as connection:
+            deleted = connection.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
+        return deleted.rowcount
+
+    def export_user_data(self, user_id: str) -> dict[str, Any]:
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return {}
+        user.pop("password_hash", None)
+        sessions = self.list_sessions(user_id)
+        for session in sessions:
+            session_id = session["id"]
+            session["telemetry"] = self.latest_telemetry(user_id, session_id)
+            session["predictions"] = self.recent_predictions(user_id, session_id, limit=100)
+        return {
+            "exported_at": utc_now_iso(),
+            "user": user,
+            "settings": self.get_user_settings(user_id),
+            "sessions": sessions,
+        }
 
     def update_session_status(self, user_id: str, session_id: str, status: str) -> None:
         if status not in {"created", "ready", "active", "offline"}:

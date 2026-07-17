@@ -206,6 +206,7 @@ Para preparar y compilar el frontend con el lockfile versionado:
 ```powershell
 Set-Location apps/frontend
 npm ci
+npm test
 npm run build
 Set-Location ../..
 ```
@@ -217,9 +218,11 @@ python -m pip install -e apps/connector
 streamml-connector --help
 ```
 
+En Windows, el asistente gráfico evita estos comandos para la configuración diaria: abre con doble clic `scripts\Abrir-Configuracion-StreamML.cmd`. Consulta [la guía de configuración gráfica](docs/configuracion-gui.md) para vincular OBS, iniciar Docker, renovar credenciales y crear copias de seguridad sin exponer secretos.
+
 ## Inicio local de desarrollo
 
-1. Copia `.env.example` como `.env`, genera secretos aleatorios de al menos 32 caracteres y completa las variables requeridas. Para HTTP local, usa `STREAMML_COOKIE_SECURE=false` y `STREAMML_ENFORCE_HTTPS=false`; no desactives estas protecciones en un servidor.
+1. Copia `.env.example` como `.env`, usa `STREAMML_ENVIRONMENT=development`, genera secretos aleatorios de al menos 32 caracteres y completa las variables requeridas. Para HTTP local, usa `STREAMML_COOKIE_SECURE=false` y `STREAMML_ENFORCE_HTTPS=false`; no desactives estas protecciones en un servidor. El `.env` está ignorado por Git. Para operación normal y producción, introduce secretos desde el asistente gráfico para guardarlos cifrados en el almacén del sistema.
 2. Inicia la API desde la raiz:
 
    ```powershell
@@ -234,6 +237,29 @@ streamml-connector --help
    ```
 
 Para el despliegue integrado con nginx, MediaMTX y FFmpeg, utiliza `deployment/.env.example` y sigue `docs/deployment.md`. El conector local se vincula despues mediante un codigo temporal; su procedimiento completo tambien esta en esa guia.
+
+## Verificación completa
+
+Desde la raíz del repositorio:
+
+```powershell
+py -3.11 -m pytest -q
+py -3.11 -m compileall -q apps src scripts
+py -3.11 scripts/verify_release.py
+py -3.11 scripts/demo_models.py
+py -3.11 scripts/check_no_secrets.py --history
+Set-Location apps/frontend
+npm ci
+npm test
+npm run build
+Set-Location ../..
+docker compose --env-file deployment/.env.example -f infrastructure/docker/docker-compose.yml config --quiet
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml build
+```
+
+Las migraciones y la inicialización de la base se ejecutan automáticamente al arrancar la API. Los endpoints `/health/live`, `/health/ready` y `/health` separan vida, preparación y diagnóstico. En producción, `production_ready` solo es verdadero si la base, el esquema, los modelos verificados y los controles HTTPS están listos.
+
+Consulta [configuración gráfica](docs/configuracion-gui.md), [despliegue y recuperación](docs/deployment.md) y [decisiones técnicas](docs/decisiones-tecnicas.md).
 
 ## Flujo reproducible
 

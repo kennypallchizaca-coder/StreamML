@@ -11,9 +11,69 @@ from getpass import getpass
 import hashlib
 import json
 import os
+from typing import Final
 
 class SecretStorageError(RuntimeError):
     """Raised when a secret cannot be stored securely."""
+
+
+_LOCAL_SETUP_SERVICE: Final = "streamml-local-setup"
+
+
+class LocalSecretVault:
+    """Small typed facade over the operating-system credential vault.
+
+    The setup GUI stores only opaque values here.  It deliberately exposes
+    presence checks rather than listing or rendering the stored values.
+    """
+
+    _allowed_names = {
+        "obs_websocket_password",
+        "deployment_token_secret",
+        "deployment_media_auth_secret",
+        "deployment_bootstrap_password",
+        "deployment_restream_config_json",
+    }
+
+    def __init__(self, service: str = _LOCAL_SETUP_SERVICE) -> None:
+        self._service = service
+
+    def get(self, name: str) -> str | None:
+        self._validate_name(name)
+        keyring = _load_keyring()
+        try:
+            return keyring.get_password(self._service, name)
+        except Exception as exc:
+            raise SecretStorageError("El almacén de credenciales del sistema no está disponible.") from exc
+
+    def has(self, name: str) -> bool:
+        return bool(self.get(name))
+
+    def set(self, name: str, value: str) -> None:
+        self._validate_name(name)
+        if not isinstance(value, str) or not value:
+            raise SecretStorageError("No se puede guardar una credencial vacía.")
+        keyring = _load_keyring()
+        try:
+            keyring.set_password(self._service, name, value)
+        except Exception as exc:
+            raise SecretStorageError(
+                "La credencial no se pudo guardar en el almacén seguro del sistema."
+            ) from exc
+
+    def delete(self, name: str) -> None:
+        self._validate_name(name)
+        keyring = _load_keyring()
+        try:
+            keyring.delete_password(self._service, name)
+        except keyring.errors.PasswordDeleteError:
+            return
+        except Exception as exc:
+            raise SecretStorageError("La credencial segura no se pudo eliminar.") from exc
+
+    def _validate_name(self, name: str) -> None:
+        if name not in self._allowed_names:
+            raise SecretStorageError("Nombre de credencial no permitido.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +87,10 @@ def read_obs_password() -> str:
     """Read the OBS password from the environment or a non-echoing prompt."""
 
     password = os.getenv("OBS_WEBSOCKET_PASSWORD")
+    if password is None:
+        # A password saved through the local GUI never enters a process
+        # environment or a plaintext configuration file.
+        password = LocalSecretVault().get("obs_websocket_password")
     if password is None:
         password = getpass("OBS WebSocket password: ")
     if not password:

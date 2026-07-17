@@ -4,7 +4,7 @@ import { api, normalizeSessions } from "../api";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
-import { Radio, Clock, Activity, Bell, ChevronRight, Video } from "lucide-react";
+import { Radio, Clock, Activity, ChevronRight, ExternalLink, Settings2, Video } from "lucide-react";
 import type { StreamSession } from "../types";
 import { useAuth } from "../App";
 import PageHeader from "../components/PageHeader";
@@ -51,12 +51,20 @@ export default function DashboardPage() {
         eyebrow="Panel principal"
         title={`¡Hola, ${userName}!`}
         description="Aquí tienes un resumen del estado de tus transmisiones."
-        action={<Button size="lg" className="w-full gap-2 sm:w-auto" asChild>
-          <Link to="/sessions/new">
-            <Radio className="size-5" />
-            Iniciar nueva transmisión
-          </Link>
-        </Button>}
+        action={<>
+          <Button variant="outline" size="lg" className="w-full gap-2 sm:w-auto" asChild>
+            <a href="http://127.0.0.1:8765/" target="_blank" rel="noopener noreferrer">
+              <Settings2 className="size-5" />
+              Configurar equipo <ExternalLink className="size-4" />
+            </a>
+          </Button>
+          <Button size="lg" className="w-full gap-2 sm:w-auto" asChild>
+            <Link to="/sessions/new">
+              <Radio className="size-5" />
+              Iniciar nueva transmisión
+            </Link>
+          </Button>
+        </>}
       />
 
       {error ? <div className="text-sm font-medium text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-lg" role="alert">{error}</div> : null}

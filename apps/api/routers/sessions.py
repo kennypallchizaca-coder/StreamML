@@ -26,11 +26,18 @@ def _vdo_ninja(request: Request, session: dict) -> dict:
         request.app.state.settings.media_auth_secret.encode("utf-8"), seed, hashlib.sha256
     ).hexdigest()[:32]
     encoded = quote(room_id, safe="")
-    return {
+    generated = {
         "phone_url": f"https://vdo.ninja/?push={encoded}&webcam&autostart",
         "embed_url": f"https://vdo.ninja/?view={encoded}&cleanoutput&autostart",
         "expires_at": None,
     }
+    external_embed_url = session.get("configuration", {}).get("vdo_embed_url")
+    if isinstance(external_embed_url, str) and external_embed_url:
+        generated["embed_url"] = external_embed_url
+        generated["source"] = "external"
+    else:
+        generated["source"] = "streamml"
+    return generated
 
 
 def _detail_response(request: Request, session: dict, *, include_private_links: bool) -> dict:
@@ -43,7 +50,17 @@ def _detail_response(request: Request, session: dict, *, include_private_links: 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_session(payload: SessionCreate, request: Request, user: dict = Depends(current_user)) -> dict:
-    session = request.app.state.database.create_session(user["id"], payload.name)
+    defaults = request.app.state.database.get_user_settings(user["id"])["stream"]
+    session = request.app.state.database.create_session(
+        user["id"], payload.name,
+        {
+            "platform": payload.platform or defaults["platform"],
+            "resolution": payload.resolution or defaults["preferred_resolution"],
+            "initial_profile": defaults["preferred_profile"],
+            "planned_duration_hours": payload.planned_duration_hours,
+            "connection_type": payload.connection_type,
+        },
+    )
     request.app.state.database.record_audit(
         user_id=user["id"], actor_type="user", action="session.create", resource_type="session",
         resource_id=session["id"], outcome="success", client_ip=client_ip(request),

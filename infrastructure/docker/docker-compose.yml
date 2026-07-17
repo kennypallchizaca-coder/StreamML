@@ -15,6 +15,7 @@ services:
     init: true
     stop_grace_period: 20s
     environment:
+      STREAMML_ENVIRONMENT: production
       STREAMML_DATABASE_PATH: /app/runtime/streamml.sqlite3
       STREAMML_TOKEN_SECRET: ${STREAMML_TOKEN_SECRET:?Set STREAMML_TOKEN_SECRET in the deployment env file}
       STREAMML_MEDIA_AUTH_SECRET: ${STREAMML_MEDIA_AUTH_SECRET:?Set STREAMML_MEDIA_AUTH_SECRET in the deployment env file}
@@ -36,7 +37,7 @@ services:
     logging: *default-logging
     networks: [backend]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -51,6 +52,7 @@ services:
         VITE_WS_BASE_URL: /ws
     restart: unless-stopped
     init: true
+    stop_grace_period: 15s
     read_only: true
     tmpfs:
       - /var/cache/nginx:size=16m,nosuid,nodev
@@ -59,6 +61,12 @@ services:
       - no-new-privileges:true
     logging: *default-logging
     networks: [edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   mediamtx:
     image: ${MEDIAMTX_IMAGE:-bluenviron/mediamtx:1.19.2}
@@ -88,6 +96,12 @@ services:
         condition: service_healthy
       media-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/mediamtx", "--version"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   media-init:
     build:
@@ -125,7 +139,13 @@ services:
     networks: [backend]
     depends_on:
       mediamtx:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; assert Path('/fallback/fallback.mp4').stat().st_size > 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   nginx:
     image: nginx:1.30.3-alpine
@@ -133,8 +153,8 @@ services:
     init: true
     stop_grace_period: 20s
     ports:
-      - "80:80"
-      - "443:443"
+      - "${STREAMML_HTTP_PORT_BIND:-80}:80"
+      - "${STREAMML_HTTPS_PORT_BIND:-443}:443"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ${TLS_CERT_FILE:?Set TLS_CERT_FILE}:/etc/nginx/certs/fullchain.pem:ro
@@ -152,9 +172,15 @@ services:
       api:
         condition: service_healthy
       frontend:
-        condition: service_started
+        condition: service_healthy
       mediamtx:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--no-check-certificate", "--spider", "https://127.0.0.1/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   edge:

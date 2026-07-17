@@ -28,6 +28,10 @@ class LoginRequest(StrictModel):
 
 class SessionCreate(StrictModel):
     name: str = Field(min_length=1, max_length=120)
+    platform: Literal["youtube", "twitch", "facebook", "kick", "custom"] | None = None
+    resolution: Literal["480p", "720p", "1080p"] | None = None
+    planned_duration_hours: Literal["1", "2", "4", "8"] | None = None
+    connection_type: Literal["cable", "wifi", "mobile"] | None = None
 
     @field_validator("name")
     @classmethod
@@ -36,6 +40,60 @@ class SessionCreate(StrictModel):
         if not cleaned:
             raise ValueError("Session name cannot be blank.")
         return cleaned
+
+
+class AccountSettingsUpdate(StrictModel):
+    display_name: str = Field(min_length=1, max_length=100)
+    current_password: SecretStr | None = None
+    new_password: SecretStr | None = Field(default=None, min_length=12, max_length=1024)
+
+    @model_validator(mode="after")
+    def password_change_is_complete(self) -> "AccountSettingsUpdate":
+        if (self.current_password is None) != (self.new_password is None):
+            raise ValueError("Current and new passwords are both required to change the password.")
+        return self
+
+    @field_validator("display_name")
+    @classmethod
+    def clean_display_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Display name cannot be blank.")
+        return cleaned
+
+
+class PreferencesSettingsUpdate(StrictModel):
+    language: Literal["es"]
+    timezone: Literal["auto", "America/Guayaquil", "UTC"]
+    dark_mode: bool
+    alert_detail: Literal["low", "normal", "high"]
+
+
+class StreamSettingsUpdate(StrictModel):
+    preferred_resolution: Literal["480p", "720p", "1080p"]
+    preferred_profile: Literal["low", "medium", "high"]
+    platform: Literal["youtube", "twitch", "facebook", "kick", "custom"]
+    live_scene: str = Field(min_length=1, max_length=120)
+    backup_scene: str = Field(min_length=1, max_length=120)
+    network_probe_interval_seconds: int = Field(ge=1, le=60)
+    network_probe_bytes: int = Field(ge=1024, le=524288)
+
+    @field_validator("live_scene", "backup_scene")
+    @classmethod
+    def clean_scene_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Scene name cannot be blank.")
+        return cleaned
+
+
+class SessionVideoLinkUpdate(StrictModel):
+    embed_url: str = Field(min_length=12, max_length=2048)
+
+
+class DestructiveActionConfirmation(StrictModel):
+    confirmation: str = Field(min_length=1, max_length=254)
+    current_password: SecretStr | None = Field(default=None, max_length=1024)
 
 
 class PairingCodeCreate(StrictModel):

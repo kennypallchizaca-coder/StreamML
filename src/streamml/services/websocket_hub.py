@@ -36,3 +36,9 @@ class WebSocketHub:
                 except asyncio.QueueEmpty:
                     pass
             queue.put_nowait(event)
+
+    async def close(self) -> None:
+        """Release all subscribers during application shutdown."""
+
+        async with self._lock:
+            self._queues.clear()

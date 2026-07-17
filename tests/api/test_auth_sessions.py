@@ -4,7 +4,12 @@ from conftest import TEST_PASSWORD, create_session, login
 
 
 def test_auth_session_creation_and_listing(client: TestClient):
-    assert client.get("/health").json()["production_ready"] is False
+    health = client.get("/health").json()
+    assert health["production_ready"] is False
+    assert health["ready"] is True
+    assert health["schema_version"] > 0
+    assert client.get("/health/live").json() == {"status": "ok"}
+    assert client.get("/health/ready").status_code == 200
     assert client.post(
         "/api/v1/auth/login",
         json={"email": "owner@example.com", "password": "incorrect"},

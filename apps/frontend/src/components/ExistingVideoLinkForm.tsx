@@ -8,19 +8,31 @@ import CopyLinkButton from "./CopyLinkButton";
 import VideoPreview from "./VideoPreview";
 
 interface ExistingVideoLinkFormProps {
-  onValidatedLink: (url: string) => void;
-  onContinue: () => void;
+  onContinue: (url: string) => Promise<void> | void;
 }
 
-export default function ExistingVideoLinkForm({ onValidatedLink, onContinue }: ExistingVideoLinkFormProps) {
+export default function ExistingVideoLinkForm({ onContinue }: ExistingVideoLinkFormProps) {
   const [linkInput, setLinkInput] = useState("");
   const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleCheck = () => {
     const result = validateVdoNinjaLink(linkInput);
     setValidation(result);
-    if (result.isValid && result.sanitizedUrl) {
-      onValidatedLink(result.sanitizedUrl);
+    setSaveError(null);
+  };
+
+  const handleContinue = async () => {
+    if (!validation?.isValid || !validation.sanitizedUrl) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onContinue(validation.sanitizedUrl);
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? reason.message : "No pudimos guardar el enlace de video.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -63,10 +75,11 @@ export default function ExistingVideoLinkForm({ onValidatedLink, onContinue }: E
           
           <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-border/50 justify-end items-center">
             <CopyLinkButton link={validation.sanitizedUrl} variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl" />
-            <Button onClick={onContinue} size="lg" className="w-full sm:w-auto h-11 px-8 rounded-xl font-semibold">
-              Continuar al paso 3
+            <Button onClick={() => void handleContinue()} size="lg" className="w-full sm:w-auto h-11 px-8 rounded-xl font-semibold" disabled={saving}>
+              {saving ? "Guardando…" : "Guardar y continuar"}
             </Button>
           </div>
+          {saveError ? <Alert variant="destructive"><AlertTitle>No se pudo guardar el enlace</AlertTitle><AlertDescription>{saveError}</AlertDescription></Alert> : null}
         </div>
       )}
     </div>

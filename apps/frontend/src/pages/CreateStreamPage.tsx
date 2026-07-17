@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import VideoConnectionMethod from "../components/VideoConnectionMethod";
@@ -31,6 +31,18 @@ export default function CreateStreamPage() {
   
   const [appStatus, setAppStatus] = useState<"pending" | "connected">("pending");
 
+  useEffect(() => {
+    let active = true;
+    void api.getSettings().then((settings) => {
+      if (!active) return;
+      setPlatform(settings.stream.platform);
+      setResolution(settings.stream.preferred_resolution);
+    }).catch(() => {
+      // La creación sigue disponible con los valores por defecto del servidor.
+    });
+    return () => { active = false; };
+  }, []);
+
   const safePhoneUrl = useMemo(() => {
     if (!vdo?.phone_url) return null;
     try {
@@ -49,8 +61,12 @@ export default function CreateStreamPage() {
     setBusy(true);
     setError(null);
     try {
-      // In a real app we might pass platform/resolution, but our current API only takes name.
-      const response = await api.createSession(name);
+      const response = await api.createSession(name, {
+        platform: platform || undefined,
+        resolution,
+        planned_duration_hours: duration,
+        connection_type: connectionType,
+      });
       const created = response.session ?? {
         id: response.id ?? "",
         name: response.name,
@@ -173,10 +189,10 @@ export default function CreateStreamPage() {
               safePhoneUrl={safePhoneUrl} 
               embedUrl={vdo?.embed_url || null}
               onContinue={() => setStep(3)}
-              onLinkUpdated={(newUrl) => {
-                // Here we would ideally save the new URL to the session in the backend.
-                // For now, we'll update local state.
-                if (vdo) setVdo({ ...vdo, embed_url: newUrl });
+              onLinkUpdated={async (newUrl) => {
+                if (!session) throw new Error("Primero crea la transmisión antes de guardar el enlace.");
+                const updated = await api.updateVideoLink(session.id, newUrl);
+                setVdo((current) => current ? { ...current, embed_url: updated.embed_url, source: "external" } : current);
               }}
             />
           </CardContent>

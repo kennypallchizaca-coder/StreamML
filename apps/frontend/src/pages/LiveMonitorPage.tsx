@@ -93,7 +93,6 @@ export default function LiveMonitorPage() {
   const [monitoring, setMonitoring] = useState(true);
   const socket = useSessionSocket(sessionId);
 
-  const [customEmbedUrl, setCustomEmbedUrl] = useState<string | null>(null);
   const [hideVideo, setHideVideo] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
 
@@ -127,7 +126,7 @@ export default function LiveMonitorPage() {
   const agentView = translateAgentDecision(agentDecision);
   const featureStates = prediction?.features ?? telemetry?.features ?? [];
 
-  const activeEmbedUrl = customEmbedUrl || session?.vdo_ninja?.embed_url;
+  const activeEmbedUrl = session?.vdo_ninja?.embed_url;
 
   return (
     <div className="app-page app-page-wide">
@@ -186,7 +185,14 @@ export default function LiveMonitorPage() {
             </div>
             
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
-              <ReplaceVideoLinkDialog onLinkUpdated={setCustomEmbedUrl} />
+              <ReplaceVideoLinkDialog onLinkUpdated={async (url) => {
+                if (!sessionId) throw new Error("No se encontró la transmisión para actualizar.");
+                const updated = await api.updateVideoLink(sessionId, url);
+                setSession((current) => current ? {
+                  ...current,
+                  vdo_ninja: { ...(current.vdo_ninja ?? {}), embed_url: updated.embed_url, source: "external" },
+                } : current);
+              }} />
               
               <Button variant="outline" size="sm" onClick={() => setReconnectKey(k => k + 1)}>
                 Reconectar video

@@ -18,10 +18,12 @@ async def session_websocket(websocket: WebSocket, session_id: str) -> None:
     settings = websocket.app.state.settings
     origin = (websocket.headers.get("origin") or "").rstrip("/")
     if origin not in settings.allowed_origins:
+        await websocket.accept()
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     user = websocket_user(websocket)
     if not user or not websocket.app.state.database.get_session(user["id"], session_id):
+        await websocket.accept()
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     await websocket.accept()

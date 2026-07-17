@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 streamml-connector = "streamml_connector.main:cli"
+streamml-setup = "streamml_connector.setup_ui:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]

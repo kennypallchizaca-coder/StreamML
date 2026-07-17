@@ -22,6 +22,14 @@ class TelemetryReceipt:
     telemetry_id: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ConnectorRuntimeSettings:
+    live_scene: str
+    backup_scene: str
+    network_probe_interval_seconds: float
+    network_probe_bytes: int
+
+
 class StreamMLApiClient:
     def __init__(
         self,
@@ -88,6 +96,23 @@ class StreamMLApiClient:
         if not isinstance(command, dict) or not command.get("id"):
             raise ApiClientError("The command response was invalid.")
         return command
+
+    def connector_settings(self, credentials: ConnectorCredentials) -> ConnectorRuntimeSettings:
+        response = self._request(
+            "GET", "/api/v1/connectors/settings",
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+        )
+        data = self._json_object(response)
+        try:
+            live_scene = str(data["live_scene"]).strip()
+            backup_scene = str(data["backup_scene"]).strip()
+            interval = float(data["network_probe_interval_seconds"])
+            probe_bytes = int(data["network_probe_bytes"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ApiClientError("The connector settings response was invalid.") from exc
+        if not live_scene or not backup_scene or not 1 <= interval <= 60 or not 1024 <= probe_bytes <= 512 * 1024:
+            raise ApiClientError("The connector settings response was outside safe limits.")
+        return ConnectorRuntimeSettings(live_scene, backup_scene, interval, probe_bytes)
 
     def acknowledge_command(
         self,

@@ -1,8 +1,9 @@
 # StreamML online deployment
 
-This deployment is an implementation baseline, not evidence that the system is
-production-ready. Real OBS, phone, network, MediaMTX, WebRTC and TLS tests remain
-mandatory before any production claim.
+This repository contains a production-capable single-node implementation. A
+specific public installation is accepted only after its real OBS, phone,
+network, MediaMTX, WebRTC, platform credentials and trusted TLS certificate pass
+the go-live gate below.
 
 ## Prerequisites
 
@@ -74,7 +75,7 @@ source. The deployment does not train, overwrite or regenerate model artifacts.
 6. Confirm the API from inside the private Docker network:
 
    ```powershell
-   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml exec api python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read().decode())"
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml exec api python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).read().decode())"
    ```
 
 The public entry point is nginx on HTTPS/WSS. The API database uses a persistent
@@ -103,13 +104,17 @@ container health status; preserve logs outside Docker if retention longer than
 that bound is required.
 
 The API SQLite database is a single-node deployment store. Back it up before
-an update and test restoration on a non-production host. A safe export copies
-the file out of the named volume without deleting it:
+an update and test restoration on a non-production host. The script uses the
+SQLite Online Backup API, so the result includes committed WAL data consistently:
 
 ```powershell
-New-Item -ItemType Directory -Force backups | Out-Null
-docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml cp api:/app/runtime/streamml.sqlite3 ("backups/streamml-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".sqlite3")
+./scripts/Backup-StreamML.ps1
 ```
+
+Store the resulting file encrypted and outside the server. To verify a restore,
+copy it to a non-production installation, start the API and require
+`/health/ready` to report the expected schema version and a healthy database.
+Do not overwrite a running production database.
 
 For an update: back up the database, review image and dependency changes, run
 the release and secret guards, then use `up -d --build`. Never run `down

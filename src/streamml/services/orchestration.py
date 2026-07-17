@@ -54,7 +54,16 @@ def process_telemetry(
             _blocked(database, registry, user_id, session_id, "reactive")
         )
 
-    state = AgentState.from_dict(database.load_agent_state(user_id, session_id))
+    stored_state = database.load_agent_state(user_id, session_id)
+    if stored_state is None:
+        configured_profile = (
+            (database.get_session(user_id, session_id) or {}).get("configuration", {}).get("initial_profile")
+        )
+        state = AgentState(
+            current_profile=configured_profile if configured_profile in {"low", "medium", "high"} else "medium"
+        )
+    else:
+        state = AgentState.from_dict(stored_state)
     required_count = int(registry.contracts["predictive"]["lookback_seconds"])
     history = database.recent_network_telemetry(user_id, session_id, required_count)
     history_is_continuous = _continuous_one_hz_window(history, required_count)

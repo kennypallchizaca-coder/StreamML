@@ -73,6 +73,15 @@ export interface VdoNinjaSession {
   phone_url?: string | null;
   embed_url?: string | null;
   expires_at?: string | null;
+  source?: "streamml" | "external" | string;
+}
+
+export interface SessionConfiguration {
+  platform?: "youtube" | "twitch" | "facebook" | "kick" | "custom" | string | null;
+  resolution?: "480p" | "720p" | "1080p" | string | null;
+  planned_duration_hours?: "1" | "2" | "4" | "8" | string | null;
+  connection_type?: "cable" | "wifi" | "mobile" | string | null;
+  vdo_embed_url?: string | null;
 }
 
 export interface StreamSession {
@@ -86,6 +95,7 @@ export interface StreamSession {
   agent_decision?: AgentDecision | null;
   stream?: VideoEndpoints | null;
   vdo_ninja?: VdoNinjaSession | null;
+  configuration?: SessionConfiguration | null;
 }
 
 export interface SessionListResponse {
@@ -125,6 +135,42 @@ export interface ModelsResponse {
 export interface PairingCodeResponse {
   code: string;
   expires_at?: string | null;
+  session_id?: string;
+}
+
+export interface PreferencesSettings {
+  language: "es";
+  timezone: "auto" | "America/Guayaquil" | "UTC";
+  dark_mode: boolean;
+  alert_detail: "low" | "normal" | "high";
+}
+
+export interface StreamSettings {
+  preferred_resolution: "480p" | "720p" | "1080p";
+  preferred_profile: "low" | "medium" | "high";
+  platform: "youtube" | "twitch" | "facebook" | "kick" | "custom";
+  live_scene: string;
+  backup_scene: string;
+  network_probe_interval_seconds: number;
+  network_probe_bytes: number;
+}
+
+export interface ConnectorStatus {
+  id: string;
+  session_id: string;
+  name: string;
+  version: string;
+  last_seen_at?: string | null;
+  connected: boolean;
+}
+
+export interface SettingsResponse {
+  user: UserSummary;
+  preferences: PreferencesSettings;
+  stream: StreamSettings;
+  connectors: ConnectorStatus[];
+  updated_at?: string;
+  security?: { server_secrets_managed_externally?: boolean; message?: string };
 }
 
 export interface SessionSocketMessage {

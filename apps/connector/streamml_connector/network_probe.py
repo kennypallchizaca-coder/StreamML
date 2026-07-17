@@ -45,6 +45,10 @@ class NetworkProbe:
         self._outcomes: deque[bool] = deque(maxlen=20)
         self._last: NetworkMeasurement | None = None
 
+    @property
+    def payload_bytes(self) -> int:
+        return len(self._payload)
+
     def measure(self) -> NetworkMeasurement | None:
         try:
             latency_ms = self._latency()

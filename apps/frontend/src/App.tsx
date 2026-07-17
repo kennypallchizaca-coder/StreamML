@@ -19,6 +19,7 @@ interface AuthContextValue {
   user: UserSummary | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (user: UserSummary) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -62,6 +63,10 @@ export default function App() {
     }
   }, [navigate]);
 
+  const updateUser = useCallback((nextUser: UserSummary) => {
+    setUser(nextUser);
+  }, []);
+
   useEffect(() => {
     const handleUnauthorized = () => {
       setAuthenticated(false);
@@ -89,7 +94,10 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
-  const auth = useMemo(() => ({ authenticated, user, login, logout }), [authenticated, user, login, logout]);
+  const auth = useMemo(
+    () => ({ authenticated, user, login, logout, updateUser }),
+    [authenticated, user, login, logout, updateUser],
+  );
 
   if (checkingAuth) {
     return <main className="route-loading" aria-live="polite">Verificando sesión…</main>;

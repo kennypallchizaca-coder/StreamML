@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { HelpCircle, Smartphone, Video, Radio, Activity, AlertTriangle, MonitorPlay } from "lucide-react";
+import { Smartphone, Radio, MonitorPlay, Settings } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import PageHeader from "../components/PageHeader";
+import { Link } from "react-router-dom";
 
 export default function HelpPage() {
   return (
@@ -19,7 +20,7 @@ export default function HelpPage() {
             <ol className="list-decimal list-inside space-y-4 text-sm font-medium">
               <li className="p-3 bg-background rounded-lg border">Dirígete a la sección <strong>Nueva transmisión</strong> en el menú principal.</li>
               <li className="p-3 bg-background rounded-lg border">Escribe un nombre para identificar tu evento y elige la configuración.</li>
-              <li className="p-3 bg-background rounded-lg border">Escanea el código QR en la pantalla con la cámara de tu teléfono.</li>
+              <li className="p-3 bg-background rounded-lg border">Abre VDO.Ninja en tu teléfono y escanea el código QR, o usa el enlace para teléfono generado por StreamML.</li>
               <li className="rounded-lg border bg-background p-3">Abre OBS en la computadora y confirma visualmente que la fuente de video funciona.</li>
               <li className="rounded-lg border bg-background p-3">Abre el monitoreo; los estados reales aparecerán cuando lleguen video y telemetría.</li>
             </ol>
@@ -34,10 +35,10 @@ export default function HelpPage() {
           <CardContent className="text-sm space-y-4 text-muted-foreground">
             <p>Usaremos la cámara de tu teléfono para capturar la imagen en tiempo real y enviarla a tu computadora.</p>
             <ul className="list-disc list-inside space-y-2">
-              <li>Abre la aplicación de cámara de tu celular.</li>
-              <li>Apunta al código QR que aparece al crear una transmisión.</li>
-              <li>Toca el enlace que aparecerá en tu pantalla.</li>
-              <li>Permite el uso de la cámara y el micrófono cuando el navegador te lo solicite.</li>
+              <li>Abre VDO.Ninja en tu celular.</li>
+              <li>Escanea el código QR o pega el enlace de emisión de StreamML en la aplicación.</li>
+              <li>Permite el uso de cámara y micrófono si la aplicación lo solicita.</li>
+              <li>En OBS usa el enlace de visualización, no el enlace de emisión del teléfono.</li>
             </ul>
             <p className="font-semibold text-amber-500 mt-2">Importante: No bloquees la pantalla de tu teléfono mientras transmites.</p>
           </CardContent>
@@ -49,11 +50,11 @@ export default function HelpPage() {
             <CardTitle className="flex items-center gap-2"><MonitorPlay className="size-5 text-primary" />Conectar aplicación de transmisión</CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-4 text-muted-foreground">
-            <p>StreamML recibe telemetría de tu software de transmisión para mostrar recomendaciones que tú decides si aplicar.</p>
+            <p>StreamML Connector recibe telemetría de OBS y aplica únicamente los comandos autenticados del agente para perfiles y escenas configuradas.</p>
             <ul className="list-disc list-inside space-y-2">
               <li>Abre tu software de transmisión.</li>
               <li>Instala y vincula StreamML Connector con el código temporal de tu sesión.</li>
-              <li>El conector solo lee estadísticas; nunca cambia la configuración de OBS.</li>
+              <li>Configura las escenas de señal y respaldo en <strong>Configuración → Transmisión</strong>; el conector las sincroniza automáticamente.</li>
             </ul>
           </CardContent>
         </Card>
@@ -94,10 +95,10 @@ export default function HelpPage() {
       <Card className="mt-6 border-dashed bg-muted/10">
         <CardContent className="flex flex-col sm:flex-row items-center justify-between p-6 gap-4">
           <div>
-            <h4 className="font-semibold">¿Necesitas más ayuda?</h4>
-            <p className="text-sm text-muted-foreground">Nuestro equipo de soporte técnico está disponible para ayudarte.</p>
+            <h4 className="font-semibold">¿Necesitas ajustar una conexión?</h4>
+            <p className="text-sm text-muted-foreground">Revisa el estado del conector y genera un nuevo código temporal desde la configuración.</p>
           </div>
-          <Button>Contactar a soporte</Button>
+          <Button asChild><Link to="/settings"><Settings className="mr-2 size-4" />Abrir conexiones</Link></Button>
         </CardContent>
       </Card>
     </div>

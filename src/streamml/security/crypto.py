@@ -84,7 +84,12 @@ SENSITIVE_KEYS = {
 def redact_mapping(value: Any) -> Any:
     if isinstance(value, dict):
         return {
-            key: ("[REDACTED]" if key.lower() in SENSITIVE_KEYS else redact_mapping(item))
+            key: (
+                "[REDACTED]"
+                if key.lower() in SENSITIVE_KEYS
+                or any(key.lower().endswith(f"_{sensitive}") for sensitive in SENSITIVE_KEYS)
+                else redact_mapping(item)
+            )
             for key, item in value.items()
         }
     if isinstance(value, list):

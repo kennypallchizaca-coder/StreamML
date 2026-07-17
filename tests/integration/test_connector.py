@@ -27,6 +27,10 @@ class FakeObs:
             output_bytes=2_000_000,
         )
 
+    def get_scene_list(self):
+        self.calls.append("GetSceneList")
+        return SimpleNamespace(scenes=[{"sceneName": "StreamML Live"}, {"sceneName": "StreamML Backup"}])
+
     def disconnect(self):
         self.calls.append("disconnect")
 
@@ -68,8 +72,9 @@ def test_obs_adapter_collects_telemetry_without_inventing_network_metrics():
     assert second.latency_ms is None
     assert second.packet_loss_percent is None
     assert ObsClient.ALLOWED_REQUESTS == {
-        "GetStats", "GetStreamStatus", "SetProfileParameter", "SetCurrentProgramScene"
+        "GetStats", "GetStreamStatus", "GetSceneList", "SetProfileParameter", "SetCurrentProgramScene"
     }
+    assert client.validate_scenes() == []
 
 
 def test_obs_adapter_applies_only_validated_profile_and_scene_commands():

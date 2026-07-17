@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Search, Filter, Download, ArrowLeft, Video, Activity, Clock, Bell, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Search, ArrowLeft, Video, Activity, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Input } from "../components/ui/input";
 import PageHeader from "../components/PageHeader";
 
@@ -138,9 +138,6 @@ export default function HistoryPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -231,25 +228,4 @@ export default function HistoryPage() {
       </Card>
     </div>
   );
-}
-
-function AlertTriangleIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  )
 }

@@ -3,8 +3,11 @@ import type {
   LoginResponse,
   ModelsResponse,
   PairingCodeResponse,
+  PreferencesSettings,
   SessionListResponse,
+  SettingsResponse,
   StreamSession,
+  StreamSettings,
   VideoEndpoints,
 } from "./types";
 
@@ -75,10 +78,18 @@ export const api = {
   listSessions() {
     return request<SessionListResponse | StreamSession[]>("/sessions");
   },
-  createSession(name: string) {
+  createSession(
+    name: string,
+    options: {
+      platform?: string;
+      resolution?: string;
+      planned_duration_hours?: string;
+      connection_type?: string;
+    } = {},
+  ) {
     return request<CreateSessionResponse>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ name: name.trim() || undefined }),
+      body: JSON.stringify({ name: name.trim() || undefined, ...options }),
     });
   },
   getSession(id: string) {
@@ -94,6 +105,43 @@ export const api = {
     return request<PairingCodeResponse>("/pairing/codes", {
       method: "POST",
       body: JSON.stringify({ session_id: sessionId }),
+    });
+  },
+  getSettings() {
+    return request<SettingsResponse>("/settings");
+  },
+  updateAccount(payload: { display_name: string; current_password?: string; new_password?: string }) {
+    return request<{ user: LoginResponse["user"] }>("/settings/account", {
+      method: "PUT", body: JSON.stringify(payload),
+    });
+  },
+  updatePreferences(payload: PreferencesSettings) {
+    return request<{ preferences: PreferencesSettings; updated_at?: string }>("/settings/preferences", {
+      method: "PUT", body: JSON.stringify(payload),
+    });
+  },
+  updateStreamSettings(payload: StreamSettings) {
+    return request<{ stream: StreamSettings; updated_at?: string }>("/settings/stream", {
+      method: "PUT", body: JSON.stringify(payload),
+    });
+  },
+  updateVideoLink(sessionId: string, embedUrl: string) {
+    return request<{ session_id: string; embed_url: string }>(
+      `/settings/sessions/${encodeURIComponent(sessionId)}/video-link`,
+      { method: "PUT", body: JSON.stringify({ embed_url: embedUrl }) },
+    );
+  },
+  exportData() {
+    return request<Record<string, unknown>>("/settings/export");
+  },
+  deleteHistory() {
+    return request<{ deleted_sessions: number }>("/settings/history", {
+      method: "DELETE", body: JSON.stringify({ confirmation: "DELETE_HISTORY" }),
+    });
+  },
+  deleteAccount(confirmation: string, currentPassword: string) {
+    return request<void>("/settings/account", {
+      method: "DELETE", body: JSON.stringify({ confirmation, current_password: currentPassword }),
     });
   },
 };

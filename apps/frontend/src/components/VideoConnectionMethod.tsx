@@ -4,12 +4,13 @@ import { Radio, Link2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import VideoPreview from "./VideoPreview";
 import ExistingVideoLinkForm from "./ExistingVideoLinkForm";
+import CopyLinkButton from "./CopyLinkButton";
 
 interface VideoConnectionMethodProps {
   safePhoneUrl: string | null;
   embedUrl: string | null;
   onContinue: () => void;
-  onLinkUpdated: (newUrl: string) => void;
+  onLinkUpdated: (newUrl: string) => Promise<void> | void;
 }
 
 type MethodType = "new" | "existing";
@@ -51,12 +52,7 @@ export default function VideoConnectionMethod({ safePhoneUrl, embedUrl, onContin
                     <h4 className="font-bold text-lg tracking-tight">Escanea este código</h4>
                     <p className="text-sm text-muted-foreground max-w-62.5 mx-auto leading-relaxed">Abre la cámara de tu teléfono y apunta al código para conectar.</p>
                   </div>
-                  <Button variant="outline" className="mt-2 w-full max-w-50" onClick={() => {
-                    navigator.clipboard.writeText(safePhoneUrl);
-                    alert("Enlace copiado al portapapeles.");
-                  }}>
-                    Copiar enlace manual
-                  </Button>
+                  <CopyLinkButton link={safePhoneUrl} label="Copiar enlace para el teléfono" variant="outline" className="mt-2 w-full max-w-60" />
                 </>
               ) : (
                 <div className="text-center text-muted-foreground p-12">
@@ -75,8 +71,10 @@ export default function VideoConnectionMethod({ safePhoneUrl, embedUrl, onContin
         {method === "existing" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <ExistingVideoLinkForm 
-              onValidatedLink={onLinkUpdated}
-              onContinue={onContinue}
+              onContinue={async (url) => {
+                await onLinkUpdated(url);
+                onContinue();
+              }}
             />
           </div>
         )}
