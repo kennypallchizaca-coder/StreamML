@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import type { FeatureAvailability } from "../types";
 import { Badge } from "./ui/badge";
-import { CheckCircle2, XCircle, AlertCircle, HelpCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, HelpCircle } from "@/components/icons";
 
 const labels: Record<FeatureAvailability["state"], string> = {
   available: "Disponible",
@@ -11,9 +11,9 @@ const labels: Record<FeatureAvailability["state"], string> = {
 };
 
 const StatusIcons: Record<FeatureAvailability["state"], JSX.Element> = {
-  available: <CheckCircle2 className="size-4 text-emerald-500" />,
+  available: <CheckCircle2 className="size-4 text-success" />,
   missing: <XCircle className="size-4 text-destructive" />,
-  stale: <AlertCircle className="size-4 text-amber-500" />,
+  stale: <AlertCircle className="size-4 text-warning" />,
   unsupported: <HelpCircle className="size-4 text-muted-foreground" />,
 };
 

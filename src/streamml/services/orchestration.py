@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import math
 from typing import Any
 
 from src.streamml.agent import AgentInput, AgentState, AutonomousStreamingAgent
@@ -65,19 +66,14 @@ def process_telemetry(
     else:
         state = AgentState.from_dict(stored_state)
     required_count = int(registry.contracts["predictive"]["lookback_seconds"])
-    history = database.recent_network_telemetry(user_id, session_id, required_count)
-    history_is_continuous = _continuous_one_hz_window(history, required_count)
-    if history_is_continuous:
-        first_timestamp = _timestamp(history[0]["observed_at"])
-        samples = [
-            {
-                "elapsed_seconds": round(_timestamp(row["observed_at"]) - first_timestamp),
-                "throughput_mbps": row["network"]["connection_capacity_mbps"],
-                "unit": "Mbps",
-                "source": "connection_capacity_mbps",
-            }
-            for index, row in enumerate(history)
-        ]
+    # The connector cadence includes request time and is therefore not exactly
+    # one second. Fetch enough real observations for the fastest supported
+    # cadence, then interpolate only inside a continuous measured interval.
+    history = database.recent_network_telemetry(
+        user_id, session_id, required_count * 5 + 5
+    )
+    samples = _predictive_samples(history, required_count)
+    if samples is not None:
         try:
             predictive_result = engine.predict_predictive(
                 samples, _profile_level(state.current_profile)
@@ -159,20 +155,69 @@ def process_telemetry(
     }
 
 
-def _continuous_one_hz_window(history: list[dict[str, Any]], required_count: int) -> bool:
-    """Reject stale, reordered or gapped telemetry instead of inventing samples."""
+def _predictive_samples(
+    history: list[dict[str, Any]], required_count: int
+) -> list[dict[str, Any]] | None:
+    """Resample real, continuous capacity observations to the model's 1 Hz grid."""
 
-    if len(history) != required_count:
-        return False
+    if required_count < 2 or len(history) < 2:
+        return None
     try:
-        timestamps = [_timestamp(row["observed_at"]) for row in history]
+        points = [
+            (
+                _timestamp(row["observed_at"]),
+                float(row["network"]["connection_capacity_mbps"]),
+            )
+            for row in history
+        ]
     except (KeyError, TypeError, ValueError):
-        return False
-    deltas = [later - earlier for earlier, later in zip(timestamps, timestamps[1:])]
+        return None
+    if any(not math.isfinite(value) or value < 0 for _, value in points):
+        return None
+    end_at = points[-1][0]
+    start_at = end_at - (required_count - 1)
+    if points[0][0] > start_at:
+        return None
+    coverage_start = max(
+        index for index, point in enumerate(points[:-1]) if point[0] <= start_at
+    )
+    points = points[coverage_start:]
+    deltas = [later[0] - earlier[0] for earlier, later in zip(points, points[1:])]
     if any(delta <= 0 or delta > 2.0 for delta in deltas):
-        return False
-    expected_span = required_count - 1
-    return abs((timestamps[-1] - timestamps[0]) - expected_span) <= 2.0
+        return None
+
+    samples: list[dict[str, Any]] = []
+    right = 1
+    for elapsed in range(required_count):
+        target = start_at + elapsed
+        while right < len(points) and points[right][0] < target:
+            right += 1
+        if right >= len(points):
+            return None
+        left_point = points[right - 1]
+        right_point = points[right]
+        if target < left_point[0] or target > right_point[0]:
+            return None
+        if target == right_point[0]:
+            capacity = right_point[1]
+        elif target == left_point[0]:
+            capacity = left_point[1]
+        else:
+            ratio = (target - left_point[0]) / (right_point[0] - left_point[0])
+            capacity = left_point[1] + ratio * (right_point[1] - left_point[1])
+        samples.append({
+            "elapsed_seconds": elapsed,
+            "throughput_mbps": capacity,
+            "unit": "Mbps",
+            "source": "connection_capacity_mbps",
+        })
+    return samples
+
+
+def _continuous_one_hz_window(history: list[dict[str, Any]], required_count: int) -> bool:
+    """Compatibility predicate retained for callers and focused unit tests."""
+
+    return _predictive_samples(history, required_count) is not None
 
 
 def _blocked(

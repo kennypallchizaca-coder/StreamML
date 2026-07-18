@@ -1,6 +1,6 @@
 import type HlsType from "hls.js";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, VideoOff } from "lucide-react";
+import { AlertCircle, VideoOff } from "@/components/icons";
 import { Badge } from "./ui/badge";
 
 interface MediaMtxPlayerProps {
@@ -40,12 +40,13 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
     if (mode !== "webrtc" || !whepUrl || !videoRef.current) return;
     const controller = new AbortController();
     const peer = new RTCPeerConnection();
+    const video = videoRef.current;
     let resourceUrl: string | null = null;
 
     peer.addTransceiver("video", { direction: "recvonly" });
     peer.addTransceiver("audio", { direction: "recvonly" });
     peer.ontrack = (event) => {
-      if (videoRef.current) videoRef.current.srcObject = event.streams[0];
+      video.srcObject = event.streams[0];
     };
     peer.onconnectionstatechange = () => {
       if (["failed", "disconnected", "closed"].includes(peer.connectionState) && hlsUrl) setMode("hls");
@@ -77,7 +78,7 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
     return () => {
       controller.abort();
       peer.close();
-      if (videoRef.current) videoRef.current.srcObject = null;
+      video.srcObject = null;
       if (resourceUrl) void fetch(resourceUrl, { method: "DELETE", credentials: "omit" }).catch(() => undefined);
     };
   }, [mode, whepUrl, hlsUrl]);
@@ -116,18 +117,18 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
 
   if (mode === "unavailable") {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-6 text-center text-slate-300">
-        <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10">
-          <VideoOff className="size-7 text-slate-400" />
+      <div className="flex h-full w-full flex-col items-center justify-center bg-media-background p-6 text-center text-media-muted">
+        <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-media-foreground/5 ring-1 ring-media-foreground/10">
+          <VideoOff className="size-7 text-media-muted" />
         </div>
-        <strong className="text-lg font-semibold text-white">Vídeo no disponible</strong>
-        <span className="mt-1 max-w-sm text-sm leading-5 text-slate-400">{error ?? "MediaMTX no proporcionó endpoints de reproducción."}</span>
+        <strong className="text-lg font-semibold text-media-foreground">Vídeo no disponible</strong>
+        <span className="mt-1 max-w-sm text-sm leading-5 text-media-muted">{error ?? "MediaMTX no proporcionó endpoints de reproducción."}</span>
       </div>
     );
   }
 
   return (
-    <div className="group relative h-full w-full bg-black">
+    <div className="group relative h-full w-full bg-media-background">
       <video 
         ref={videoRef} 
         controls 
@@ -139,11 +140,11 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
       />
       
       <div className="absolute top-2 left-2 flex gap-2 pointer-events-none transition-opacity opacity-70 group-hover:opacity-100">
-        <Badge variant="secondary" className="bg-black/50 text-white border-none backdrop-blur-sm">
+        <Badge variant="secondary" className="border-none bg-overlay text-media-foreground backdrop-blur-sm">
           {mode === "webrtc" ? "WebRTC · WHEP" : "HLS"}
         </Badge>
         {error && mode === "hls" ? (
-          <Badge variant="destructive" className="bg-destructive/80 text-white border-none backdrop-blur-sm gap-1">
+          <Badge variant="destructive" className="border-none bg-destructive/80 text-destructive-foreground backdrop-blur-sm gap-1">
             <AlertCircle className="size-3" />
             WebRTC falló
           </Badge>

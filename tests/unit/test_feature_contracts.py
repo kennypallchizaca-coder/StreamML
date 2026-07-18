@@ -73,7 +73,8 @@ def test_model_loading_and_reproducibility():
     mod_p = joblib.load(os.path.join(release_dir, 'predictive', 'model.joblib'))
 
     data = []
-    for i in range(600): data.append({'timestamp_utc': i, 'upload_mbps': 5.0})
+    for i in range(600):
+        data.append({'timestamp_utc': i, 'upload_mbps': 5.0})
     feat = build_predictive_features(pd.DataFrame(data))
     pp1 = mod_p.predict(feat)
     pp2 = mod_p.predict(feat)

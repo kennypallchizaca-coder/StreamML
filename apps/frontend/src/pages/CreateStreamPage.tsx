@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { CheckCircle2, CircleDashed, Smartphone, Radio, Settings2, PlayCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Copy, ExternalLink, LoaderCircle, Smartphone, Radio, Settings2, PlayCircle } from "@/components/icons";
 import type { StreamSession, VdoNinjaSession } from "../types";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -30,6 +30,10 @@ export default function CreateStreamPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [appStatus, setAppStatus] = useState<"pending" | "connected">("pending");
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingBusy, setPairingBusy] = useState(false);
+  const [connectorLinked, setConnectorLinked] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +46,24 @@ export default function CreateStreamPage() {
     });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (step !== 4 || !session?.id || connectorLinked) return;
+    let active = true;
+    async function refreshConnector() {
+      try {
+        const settings = await api.getSettings();
+        if (active && settings.connectors.some((connector) => connector.session_id === session?.id)) {
+          setConnectorLinked(true);
+        }
+      } catch {
+        // The main alert already reports API failures from explicit actions.
+      }
+    }
+    void refreshConnector();
+    const timer = window.setInterval(() => void refreshConnector(), 2500);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [connectorLinked, session?.id, step]);
 
   const safePhoneUrl = useMemo(() => {
     if (!vdo?.phone_url) return null;
@@ -88,6 +110,27 @@ export default function CreateStreamPage() {
     setAppStatus("connected");
   }
 
+  async function generatePairingCode() {
+    if (!session?.id) return;
+    setPairingBusy(true);
+    setError(null);
+    try {
+      const result = await api.createPairingCode(session.id);
+      setPairingCode(result.code);
+      setCopied(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "No se pudo generar el código temporal.");
+    } finally {
+      setPairingBusy(false);
+    }
+  }
+
+  async function copyPairingCode() {
+    if (!pairingCode) return;
+    await navigator.clipboard.writeText(pairingCode);
+    setCopied(true);
+  }
+
   return (
     <div className="app-page max-w-5xl">
       <PageHeader eyebrow={`Paso ${step} de 4`} title="Nueva transmisión" description="Configura la cámara, OBS y el monitoreo con una guía clara de cuatro pasos." />
@@ -99,7 +142,7 @@ export default function CreateStreamPage() {
           { num: 2, label: "Teléfono", icon: Smartphone },
           { num: 3, label: "Aplicación", icon: Radio },
           { num: 4, label: "Comprobación", icon: CheckCircle2 }
-        ].map((s, i) => (
+        ].map((s) => (
           <li key={s.num} aria-current={step === s.num ? "step" : undefined} className={`flex min-w-0 flex-col items-center gap-2 rounded-xl px-1 py-2 text-center sm:px-3 ${step === s.num ? 'bg-primary/5 text-primary' : step > s.num ? 'text-primary/70' : 'text-muted-foreground'}`}>
             <div className={`flex size-9 items-center justify-center rounded-full border-2 transition-colors sm:size-10 ${step === s.num ? 'border-primary bg-primary/10' : step > s.num ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted/40'}`}>
               <s.icon className="size-4 sm:size-5" />
@@ -130,6 +173,7 @@ export default function CreateStreamPage() {
                       <SelectItem value="youtube">YouTube Live</SelectItem>
                       <SelectItem value="twitch">Twitch</SelectItem>
                       <SelectItem value="facebook">Facebook Live</SelectItem>
+                      <SelectItem value="kick">Kick</SelectItem>
                       <SelectItem value="custom">Servidor personalizado</SelectItem>
                     </SelectContent>
                   </Select>
@@ -240,11 +284,11 @@ export default function CreateStreamPage() {
                 )}
                 {appStatus === "connected" && (
                   <>
-                    <div className="size-16 bg-green-500/10 rounded-full flex items-center justify-center text-green-500">
+                    <div className="size-16 bg-success/10 rounded-full flex items-center justify-center text-success">
                       <CheckCircle2 className="size-8" />
                     </div>
                     <div className="text-center">
-                      <p className="font-medium text-green-600">Configuración confirmada</p>
+                      <p className="font-medium text-success">Configuración confirmada</p>
                       <p className="text-sm text-muted-foreground">Comprueba visualmente la fuente de navegador dentro de OBS.</p>
                     </div>
                   </>
@@ -273,18 +317,47 @@ export default function CreateStreamPage() {
                 { label: "Sesión creada en StreamML", ready: Boolean(session), detail: "Registrada" },
                 { label: "Enlace de cámara configurado", ready: Boolean(vdo?.embed_url), detail: vdo?.embed_url ? "Configurado" : "Pendiente" },
                 { label: "Fuente agregada en OBS", ready: appStatus === "connected", detail: appStatus === "connected" ? "Confirmado por ti" : "Pendiente" },
+                { label: "Conector vinculado a esta transmisión", ready: connectorLinked, detail: connectorLinked ? "Vinculado" : "Pendiente" },
                 { label: "Telemetría de OBS", ready: false, detail: "Se validará en monitoreo" },
                 { label: "Variables para predicción", ready: false, detail: "Dependen de datos reales" },
               ].map((item) => (
-                <div key={item.label} className={`flex items-center justify-between gap-4 rounded-xl border p-4 ${item.ready ? "border-green-500/20 bg-green-500/5" : "border-border bg-muted/20"}`}>
+                <div key={item.label} className={`flex items-center justify-between gap-4 rounded-xl border p-4 ${item.ready ? "border-success/20 bg-success-muted" : "border-border bg-muted/20"}`}>
                   <div className="flex min-w-0 items-center gap-3">
-                    {item.ready ? <CheckCircle2 className="size-5 shrink-0 text-green-600" /> : <CircleDashed className="size-5 shrink-0 text-muted-foreground" />}
+                    {item.ready ? <CheckCircle2 className="size-5 shrink-0 text-success" /> : <CircleDashed className="size-5 shrink-0 text-muted-foreground" />}
                     <span className="font-medium">{item.label}</span>
                   </div>
-                  <span className={`shrink-0 text-right text-xs sm:text-sm ${item.ready ? "text-green-700" : "text-muted-foreground"}`}>{item.detail}</span>
+                  <span className={`shrink-0 text-right text-xs sm:text-sm ${item.ready ? "text-success-foreground" : "text-muted-foreground"}`}>{item.detail}</span>
                 </div>
               ))}
             </div>
+
+            <div className="space-y-4 rounded-xl border bg-muted/20 p-4 sm:p-5">
+              <div>
+                <h3 className="font-semibold">Vincular el conector sin salir de este flujo</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Genera el código aquí, abre el asistente local y pégalo en “Código temporal de vínculo”. El estado se comprobará automáticamente.</p>
+              </div>
+              {pairingCode ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input value={pairingCode} readOnly aria-label="Código temporal de vínculo" className="font-mono text-lg tracking-wider" />
+                  <Button type="button" variant="outline" onClick={() => void copyPairingCode()}>
+                    <Copy className="mr-2 size-4" />{copied ? "Copiado" : "Copiar código"}
+                  </Button>
+                </div>
+              ) : null}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" onClick={() => void generatePairingCode()} disabled={pairingBusy || connectorLinked}>
+                  {pairingBusy ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+                  {connectorLinked ? "Conector vinculado" : pairingCode ? "Generar otro código" : "Generar código temporal"}
+                </Button>
+                <Button type="button" variant="outline" asChild>
+                  <a href="http://127.0.0.1:8765/" target="_blank" rel="noopener noreferrer">Abrir asistente local <ExternalLink className="ml-2 size-4" /></a>
+                </Button>
+              </div>
+              {pairingCode && !connectorLinked ? <p className="text-xs text-warning">El código es de un solo uso y caduca en pocos minutos. Guarda y vincula desde el asistente local.</p> : null}
+              {connectorLinked ? <p className="text-sm font-medium text-success">El conector quedó vinculado a esta transmisión.</p> : null}
+            </div>
+
+            {error ? <Alert variant="destructive"><AlertTitle>No se pudo completar la comprobación</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
             
             <div className="rounded-xl bg-primary/10 p-4 text-center">
               <p className="text-sm font-medium">La configuración inicial quedó registrada.</p>
@@ -293,7 +366,7 @@ export default function CreateStreamPage() {
           </CardContent>
           <CardFooter className="flex flex-col-reverse gap-3 border-t sm:flex-row sm:justify-between">
             <Button variant="ghost" onClick={() => setStep(3)}>Volver</Button>
-            <Button size="lg" className="w-full gap-2 sm:w-auto" onClick={() => navigate(`/sessions/${encodeURIComponent(session!.id)}/live`)}>
+            <Button size="lg" className="w-full gap-2 sm:w-auto" disabled={!connectorLinked} onClick={() => navigate(`/sessions/${encodeURIComponent(session!.id)}/live`)}>
               <PlayCircle className="size-5" />
               Abrir monitoreo
             </Button>

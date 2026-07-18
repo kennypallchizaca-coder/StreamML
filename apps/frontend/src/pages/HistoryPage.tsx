@@ -3,20 +3,24 @@ import { Link } from "react-router-dom";
 import { api, normalizeSessions } from "../api";
 import { Badge } from "../components/ui/badge";
 import type { StreamSession } from "../types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Search, ArrowLeft, Video, Activity, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Search, ArrowLeft, Video, Activity, Clock, CheckCircle2, AlertTriangle } from "@/components/icons";
 import { Input } from "../components/ui/input";
 import PageHeader from "../components/PageHeader";
+import { isSessionLive, needsQualityAttention, sessionStateLabel } from "../lib/sessionPresentation";
 
 // Helper to translate final internal prediction
 function translateFinalQuality(rec?: string | null) {
-  if (!rec) return { text: "No disponible", color: "text-muted-foreground" };
-  if (rec === "high" || rec === "maintain") return { text: "Excelente", color: "text-green-500" };
-  if (rec === "medium") return { text: "Buena", color: "text-blue-500" };
-  return { text: "Inestable", color: "text-amber-500" };
+  if (!rec) return { text: "No disponible", color: "text-muted-foreground", conclusion: "La sesión no tiene una recomendación de modelo registrada." };
+  if (rec === "high") return { text: "Perfil alto", color: "text-success", conclusion: "La última inferencia reactiva recomendó el perfil alto." };
+  if (rec === "medium") return { text: "Perfil medio", color: "text-info", conclusion: "La última inferencia reactiva recomendó el perfil medio." };
+  if (rec === "low") return { text: "Perfil básico", color: "text-warning", conclusion: "La última inferencia reactiva recomendó reducir al perfil básico." };
+  if (rec === "maintain") return { text: "Mantener", color: "text-success", conclusion: "La última inferencia predictiva indicó que el perfil actual podía mantenerse." };
+  if (rec === "downgrade_needed" || rec === "downgrade") return { text: "Reducir calidad", color: "text-warning", conclusion: "La última inferencia predictiva anticipó que era necesario reducir la calidad." };
+  return { text: rec, color: "text-muted-foreground", conclusion: `La API informó la recomendación ${rec}.` };
 }
 
 export default function HistoryPage() {
@@ -53,16 +57,12 @@ export default function HistoryPage() {
       }
     }
 
-    let conclusionText = "No hay suficientes datos para generar una conclusión.";
-    let conclusionIcon = <Activity className="size-6 text-muted-foreground shrink-0 mt-0.5" />;
-    
-    if (quality.text === "Excelente" || quality.text === "Buena") {
-      conclusionText = "La transmisión mantuvo una buena estabilidad durante la mayor parte de la sesión.";
-      conclusionIcon = <CheckCircle2 className="size-6 text-green-500 shrink-0 mt-0.5" />;
-    } else if (quality.text === "Inestable") {
-      conclusionText = "Se registraron variaciones de calidad que podrían haber afectado a los espectadores.";
-      conclusionIcon = <AlertTriangle className="size-6 text-amber-500 shrink-0 mt-0.5" />;
-    }
+    const requiresAttention = needsQualityAttention(selectedSession.latest_prediction?.recommendation);
+    const conclusionIcon = requiresAttention
+      ? <AlertTriangle className="size-6 text-warning shrink-0 mt-0.5" />
+      : selectedSession.latest_prediction
+        ? <CheckCircle2 className="size-6 text-success shrink-0 mt-0.5" />
+        : <Activity className="size-6 text-muted-foreground shrink-0 mt-0.5" />;
 
     return (
       <div className="app-page max-w-5xl">
@@ -106,7 +106,8 @@ export default function HistoryPage() {
             <div className="p-4 rounded-xl bg-muted/30 border border-muted flex items-start gap-4">
               {conclusionIcon}
               <div>
-                <p className="font-medium text-foreground">{conclusionText}</p>
+                <p className="font-medium text-foreground">{quality.conclusion}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Este resumen corresponde a la última inferencia disponible, no a una estimación de toda la sesión.</p>
               </div>
             </div>
           </CardContent>
@@ -167,7 +168,9 @@ export default function HistoryPage() {
                 <TableBody>
                   {filteredSessions.map((session) => {
                     const quality = translateFinalQuality(session.latest_prediction?.recommendation);
-                    const isActive = ["active", "live", "streaming"].includes(session.status?.toLowerCase() ?? "");
+                    const isActive = isSessionLive(session.status);
+                    const recommendation = session.latest_prediction?.recommendation;
+                    const alertCount = recommendation ? (needsQualityAttention(recommendation) ? "1" : "0") : "--";
                     
                     let durationStr = "--";
                     if (session.created_at && session.updated_at) {
@@ -192,13 +195,13 @@ export default function HistoryPage() {
                         </TableCell>
                         <TableCell>
                           {isActive ? (
-                            <Badge variant="default" className="bg-green-500 hover:bg-green-600">En vivo</Badge>
+                            <Badge variant="default" className="bg-success text-success-foreground hover:bg-success/90">{sessionStateLabel(session.status)}</Badge>
                           ) : (
                             <Badge variant="outline" className={quality.color + " border-current/20 bg-current/10"}>{quality.text}</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {isActive ? "--" : "Ninguna"}
+                          {isActive ? "--" : alertCount}
                         </TableCell>
                         <TableCell className="text-right">
                           {isActive ? (

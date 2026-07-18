@@ -194,7 +194,7 @@ Se recomienda Python 3.11. En Windows:
 
 ```powershell
 py -3.11 -m venv .venv311
-.venv311\Scripts\activate
+.\.venv311\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -238,19 +238,227 @@ En Windows, el asistente gráfico evita estos comandos para la configuración di
 
 Para el despliegue integrado con nginx, MediaMTX y FFmpeg, utiliza `deployment/.env.example` y sigue `docs/deployment.md`. El conector local se vincula despues mediante un codigo temporal; su procedimiento completo tambien esta en esa guia.
 
+## Prueba del sistema paso a paso
+
+La prueba se divide en tres niveles. Completa primero la prueba local, después la integración con OBS/VDO.Ninja y finalmente, si tienes dominio y certificado, el flujo Docker equivalente a producción.
+
+### 1. Preparar el entorno local
+
+Desde la raíz del repositorio:
+
+```powershell
+py -3.11 -m venv .venv311
+.\.venv311\Scripts\python.exe -m pip install --upgrade pip
+.\.venv311\Scripts\python.exe -m pip install -r requirements.txt -e apps/connector
+Set-Location apps/frontend
+npm ci
+Set-Location ../..
+```
+
+Copia `.env.example` como `.env` y completa los valores locales. Los dos secretos deben ser diferentes y tener más de 32 caracteres. La configuración mínima de desarrollo es:
+
+```dotenv
+STREAMML_ENVIRONMENT=development
+STREAMML_TOKEN_SECRET=PEGA_AQUI_EL_PRIMER_VALOR_ALEATORIO_DE_MAS_DE_32_CARACTERES
+STREAMML_MEDIA_AUTH_SECRET=PEGA_AQUI_OTRO_VALOR_ALEATORIO_DIFERENTE
+STREAMML_ALLOWED_ORIGINS=http://127.0.0.1:5173
+STREAMML_DATABASE_PATH=deployment/streamml.local.sqlite3
+STREAMML_MEDIAMTX_PUBLIC_BASE=http://127.0.0.1:8888
+STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE=rtmp://127.0.0.1:1935
+STREAMML_BOOTSTRAP_EMAIL=admin@local.test
+STREAMML_BOOTSTRAP_PASSWORD=DEFINE_UNA_CLAVE_LOCAL_DE_AL_MENOS_12_CARACTERES
+STREAMML_COOKIE_SECURE=false
+STREAMML_ENFORCE_HTTPS=false
+```
+
+No confirmes `.env`: está ignorado por Git. Para generar valores aleatorios localmente puedes ejecutar dos veces este comando y utilizar un resultado distinto en cada secreto:
+
+```powershell
+[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+```
+
+### 2. Iniciar API, dashboard y asistente
+
+Abre tres terminales.
+
+Terminal 1, desde la raíz:
+
+```powershell
+.\.venv311\Scripts\python.exe -m uvicorn apps.api.main:app --reload --env-file .env
+```
+
+Terminal 2:
+
+```powershell
+Set-Location apps/frontend
+npm run dev
+```
+
+Terminal 3, o mediante doble clic:
+
+```powershell
+scripts\Abrir-Configuracion-StreamML.cmd
+```
+
+Comprueba estos enlaces:
+
+| Componente | URL | Resultado esperado |
+|---|---|---|
+| API | `http://127.0.0.1:8000/health` | `status: ok`, `ready: true`, base y modelos disponibles |
+| Dashboard | `http://127.0.0.1:5173` | Formulario de inicio de sesión |
+| Asistente local | `http://127.0.0.1:8765` | Pestañas de OBS, servidor Docker y ayuda |
+
+En desarrollo es correcto que `/health` muestre `production_ready: false`: HTTP y las cookies locales no son controles de producción.
+
+#### Navegación de la GUI
+
+Después de iniciar sesión, el **Centro de control** muestra únicamente datos reales: transmisiones registradas, sesiones activas, predicciones disponibles y última actividad. La navegación lateral se divide en **Operación**, **Inteligencia** y **Sistema**. Usa `Ctrl+K` (o `Cmd+K` en macOS) para buscar y abrir cualquier sección, y el botón de tema de la barra superior para alternar entre modo oscuro y claro; la preferencia se guarda en la cuenta. En pantallas pequeñas, abre el menú con el botón situado en la esquina superior izquierda.
+
+El panel web y el asistente local comparten el tema global de `apps/frontend/src/theme.css`, incluidos los colores semánticos de éxito, advertencia, error e información. El enlace **Abrir conector** transmite el tema activo al asistente, que también permite alternarlo desde su propia barra superior.
+
+### 3. Preparar OBS Studio
+
+1. Abre OBS y entra en **Herramientas → Configuración del servidor WebSocket**.
+2. Activa el servidor WebSocket, conserva `4455` si está disponible o elige otro puerto libre y define una contraseña. El asistente debe usar exactamente el mismo puerto que muestra OBS.
+3. No publiques el puerto WebSocket en el router. El host utilizado por el conector debe ser `127.0.0.1` o `localhost`.
+4. Crea una escena llamada `StreamML Live`.
+5. Crea otra escena llamada `StreamML Backup`.
+6. En `StreamML Backup`, agrega una **Fuente multimedia** con un MP4 en bucle, o una imagen mediante **Fuente de imagen**.
+7. En `StreamML Live`, agrega una **Fuente de navegador** para el enlace de visualización de VDO.Ninja.
+
+### 4. Conectar el teléfono con VDO.Ninja
+
+Puedes utilizar el enlace generado por StreamML o el que entrega la aplicación VDO.Ninja del teléfono:
+
+1. Abre VDO.Ninja en el teléfono y comienza a compartir la cámara.
+2. Copia el enlace de visualización o sala. Un enlace de visualización normalmente contiene `view=`; no pegues en StreamML un enlace `push=`, porque ese es el enlace emisor del teléfono.
+3. En StreamML crea una transmisión y selecciona la opción para usar un enlace existente si el enlace proviene de la aplicación móvil.
+4. Pega el enlace `view` o `room` en StreamML y valida la vista previa.
+5. Usa ese mismo enlace como URL de la Fuente de navegador dentro de `StreamML Live`.
+
+El enlace aparece en StreamML y en OBS porque son dos consumidores distintos: StreamML lo valida y muestra la vista previa, mientras OBS captura realmente el video que será codificado y transmitido.
+
+### 5. Crear y vincular una transmisión
+
+1. Abre `http://127.0.0.1:5173` e inicia sesión con `STREAMML_BOOTSTRAP_EMAIL` y `STREAMML_BOOTSTRAP_PASSWORD`.
+2. Pulsa **Nueva transmisión**, define un nombre y completa el método VDO.Ninja.
+3. En el paso **Comprobación**, genera el código temporal sin abandonar el asistente de nueva transmisión. También puedes generarlo después en **Configuración → Conexiones**.
+4. Abre el asistente local desde ese mismo paso o en `http://127.0.0.1:8765`.
+5. Completa los campos de OBS:
+
+   | Campo | Valor local recomendado |
+   |---|---|
+   | URL de la API | `http://127.0.0.1:8000` |
+   | Nombre del conector | Un nombre reconocible, por ejemplo `OBS Alexis` |
+   | Host de OBS | `127.0.0.1` |
+   | Puerto | El mismo que muestra OBS (`4455` normalmente) |
+   | Escena en vivo | `StreamML Live` |
+   | Escena de respaldo | `StreamML Backup` |
+   | Telemetría | `1` segundo |
+   | Prueba de red | `5` segundos y `262144` bytes |
+
+6. Escribe la contraseña de OBS y el código temporal.
+7. Antes de guardar, pulsa **Comprobar conexión**. La GUI comprueba los valores visibles aunque todavía no estén guardados.
+8. Debes obtener API disponible, código listo/vinculación correcta y OBS conectado con las dos escenas encontradas.
+9. Pulsa **Guardar y vincular** y después **Iniciar monitorización**. La aplicación detecta el vínculo y habilita **Abrir monitoreo**.
+
+Los códigos temporales son de un solo uso y cada vinculación pertenece a una transmisión concreta. Si se vincula un código nuevo mientras el monitor está activo, el asistente reinicia el conector automáticamente para cargar el token nuevo; ya no es necesario detenerlo manualmente. Si el código caduca o se consume, genera otro desde el flujo de transmisión o desde Configuración.
+
+### 6. Comprobar telemetría y modelos
+
+1. Abre la transmisión y entra en **Monitor en vivo**. El distintivo solo dice **EN VIVO** si OBS informa que su salida está activa; antes muestra **OBS LISTO** o **ESPERANDO SEÑAL**.
+2. Inicia la salida de OBS o una grabación/prueba que produzca estadísticas del codificador.
+3. Espera entre 5 y 15 segundos.
+4. Confirma que cambien FPS, bitrate de salida, frames omitidos y congestión.
+5. Confirma que aparezcan subida, descarga, latencia y jitter después de la primera prueba HTTP.
+6. El modelo reactivo debe recomendar `low`, `medium` o `high` con las condiciones actuales.
+7. El predictivo necesita aproximadamente 600 muestras históricas: espera al menos 10 minutos de telemetría continua para obtener `maintain` o `downgrade_needed`.
+8. Revisa en **Historial** que la sesión, telemetría, predicciones y decisiones se mantengan después de reiniciar la API.
+
+Para una prueba física de adaptación, utiliza un hotspot móvil y reduce gradualmente la cobertura o limita la subida. Verifica que el agente reduzca un nivel antes de una interrupción, respete el cooldown y no oscile rápidamente entre perfiles. No uses una transmisión pública importante durante esta prueba.
+
+### 7. Probar respaldo y recuperación
+
+1. Mantén OBS abierto y WebSocket conectado.
+2. Inicia la transmisión desde OBS y confirma la escena `StreamML Live`.
+3. Detén la salida de streaming de OBS, pero no cierres OBS.
+4. Comprueba que el sistema marque pérdida de señal y active `StreamML Backup` después del tiempo configurado.
+5. Inicia nuevamente la salida de OBS.
+6. Mantén la señal estable durante el periodo de recuperación.
+7. Comprueba que el sistema restaure `StreamML Live` y registre ambas decisiones.
+
+Cuando se usa el worker FFmpeg de producción, también debes confirmar que el destino RTMP(S) continúa recibiendo `/fallback/fallback.mp4` durante la pérdida y vuelve al vivo después de tres comprobaciones correctas.
+
+### 8. Probar el despliegue Docker
+
+La forma recomendada es **Asistente local → Servidor Docker**. Completa dominio HTTPS, certificado, correo administrador, contraseña y destinos; pulsa **Guardar servidor**, **Validar Docker Compose** e **Iniciar o actualizar servicios**.
+
+La alternativa por terminal es:
+
+```powershell
+Copy-Item deployment/.env.example deployment/.env
+# Edita deployment/.env con valores reales y rutas TLS válidas.
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml config --quiet
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build --wait
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml ps
+```
+
+API, frontend, MediaMTX, media-worker y nginx deben aparecer `healthy`; `media-init` debe finalizar con código `0`. En `https://TU_DOMINIO/health`, `production_ready` debe ser `true`.
+
+Usa la URL RTMP o WHIP devuelta por la transmisión para configurar OBS. Después valida en orden: publicación OBS → MediaMTX, reproducción WHEP/WebRTC, HLS de respaldo y retransmisión hacia YouTube/Twitch/Facebook/Kick.
+
+### 9. Ejecutar las pruebas automatizadas
+
+Desde la raíz:
+
+```powershell
+.\.venv311\Scripts\python.exe -m pytest -q
+.\.venv311\Scripts\python.exe -m ruff check apps src scripts tests
+.\.venv311\Scripts\python.exe scripts/verify_release.py
+.\.venv311\Scripts\python.exe scripts/demo_models.py
+.\.venv311\Scripts\python.exe scripts/check_no_secrets.py --history
+Set-Location apps/frontend
+npm test
+npm run lint
+npm run build
+npm audit --omit=dev --audit-level=high
+Set-Location ../..
+docker compose --env-file deployment/.env.example -f infrastructure/docker/docker-compose.yml config --quiet
+```
+
+Resultado de referencia: `71 passed` en Python, 12 pruebas frontend aprobadas, lint Python/TypeScript limpio, `STREAMML RELEASE VERIFIED`, cero vulnerabilidades npm de producción y Compose válido.
+
+### 10. Detener la prueba
+
+En el asistente pulsa **Detener monitorización**. Detén API y frontend con `Ctrl+C`. Para Docker:
+
+```powershell
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml down
+```
+
+No agregues `--volumes`: eliminaría la base persistente. Para crear una copia consistente antes de actualizar utiliza:
+
+```powershell
+.\scripts\Backup-StreamML.ps1
+```
+
+Si algo falla, consulta [configuración gráfica](docs/configuracion-gui.md) y [despliegue y recuperación](docs/deployment.md).
+
 ## Verificación completa
 
 Desde la raíz del repositorio:
 
 ```powershell
-py -3.11 -m pytest -q
-py -3.11 -m compileall -q apps src scripts
-py -3.11 scripts/verify_release.py
-py -3.11 scripts/demo_models.py
-py -3.11 scripts/check_no_secrets.py --history
+.\.venv311\Scripts\python.exe -m pytest -q
+.\.venv311\Scripts\python.exe -m ruff check apps src scripts tests
+.\.venv311\Scripts\python.exe -m compileall -q apps src scripts
+.\.venv311\Scripts\python.exe scripts/verify_release.py
+.\.venv311\Scripts\python.exe scripts/demo_models.py
+.\.venv311\Scripts\python.exe scripts/check_no_secrets.py --history
 Set-Location apps/frontend
 npm ci
 npm test
+npm run lint
 npm run build
 Set-Location ../..
 docker compose --env-file deployment/.env.example -f infrastructure/docker/docker-compose.yml config --quiet
@@ -259,7 +467,7 @@ docker compose --env-file deployment/.env -f infrastructure/docker/docker-compos
 
 Las migraciones y la inicialización de la base se ejecutan automáticamente al arrancar la API. Los endpoints `/health/live`, `/health/ready` y `/health` separan vida, preparación y diagnóstico. En producción, `production_ready` solo es verdadero si la base, el esquema, los modelos verificados y los controles HTTPS están listos.
 
-Consulta [configuración gráfica](docs/configuracion-gui.md), [despliegue y recuperación](docs/deployment.md) y [decisiones técnicas](docs/decisiones-tecnicas.md).
+Consulta [configuración gráfica](docs/configuracion-gui.md), [despliegue y recuperación](docs/deployment.md), [decisiones técnicas](docs/decisiones-tecnicas.md) y el [informe de revisión final](reports/final_review.md).
 
 ## Flujo reproducible
 
@@ -295,9 +503,9 @@ La ultima ejecucion completa produjo:
 - Notebook de preparacion: 9/9 celdas de codigo, sin errores.
 - Notebook de entrenamiento: 9/9 celdas de codigo, sin errores.
 - Notebook de inferencia: 8/8 celdas de codigo, sin errores.
-- Pruebas automatizadas: `53 passed`.
-- Frontend React: compilacion de produccion correcta.
-- Docker Compose: configuracion valida; las cuatro imagenes construidas y API/MediaMTX/worker iniciados correctamente.
+- Pruebas automatizadas: `71 passed` y lint Python limpio.
+- Frontend React: 12 pruebas unitarias, lint TypeScript/React limpio, auditoria sin vulnerabilidades de produccion y compilacion correcta.
+- Docker Compose: configuracion valida; imagenes construidas y API, frontend, MediaMTX, worker y nginx saludables en la prueba equivalente a produccion.
 - Verificador: `STREAMML RELEASE VERIFIED`.
 - `git diff --check`: sin errores de whitespace.
 

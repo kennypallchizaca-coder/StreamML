@@ -29,6 +29,10 @@ El registro oficial comprueba hashes, versiones de librerías, contratos y clase
 
 Las acciones de ML no llegan directamente a OBS. El agente determinista aplica margen de seguridad, histéresis, cambios de un solo nivel, tiempo mínimo entre cambios y recuperación estable. El conector solo acepta comandos autenticados y de tipos permitidos: perfil, escena de respaldo y restauración del vivo.
 
+El modelo predictivo exige 600 puntos a 1 Hz. La cadencia real incluye el tiempo de las solicitudes y puede quedar ligeramente por encima de un segundo; la orquestación toma una ventana continua de mediciones reales, rechaza huecos mayores de dos segundos y aplica interpolación lineal únicamente dentro del intervalo observado para normalizarla a la cuadrícula del contrato. No extrapola valores fuera de datos medidos.
+
+Un error de autorización de la API se trata de forma distinta a una caída de OBS: el conector se detiene con un mensaje de revinculación y no abre conexiones WebSocket repetidas. Los fallos transitorios de API conservan la conexión local con OBS y aplican reintento con backoff.
+
 ## Observabilidad y cierre
 
 La API emite JSON estructurado con identificador de solicitud, latencia y valores sensibles redactados. nginx excluye parámetros de consulta de sus registros. Uvicorn, los workers y los contenedores tienen periodos de cierre; el hub WebSocket libera sus suscriptores al finalizar.

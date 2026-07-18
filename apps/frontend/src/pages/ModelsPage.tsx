@@ -4,7 +4,7 @@ import StatusBadge from "../components/StatusBadge";
 import type { ModelSummary, ModelsResponse } from "../types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { Cpu } from "lucide-react";
+import { Cpu } from "@/components/icons";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import PageHeader from "../components/PageHeader";

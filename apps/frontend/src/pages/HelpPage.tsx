@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Smartphone, Radio, MonitorPlay, Settings } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Smartphone, Radio, MonitorPlay, Settings } from "@/components/icons";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import PageHeader from "../components/PageHeader";
@@ -40,7 +40,7 @@ export default function HelpPage() {
               <li>Permite el uso de cámara y micrófono si la aplicación lo solicita.</li>
               <li>En OBS usa el enlace de visualización, no el enlace de emisión del teléfono.</li>
             </ul>
-            <p className="font-semibold text-amber-500 mt-2">Importante: No bloquees la pantalla de tu teléfono mientras transmites.</p>
+            <p className="font-semibold text-warning mt-2">Importante: No bloquees la pantalla de tu teléfono mientras transmites.</p>
           </CardContent>
         </Card>
 
@@ -65,9 +65,9 @@ export default function HelpPage() {
         <div className="border rounded-lg p-4">
           <h4 className="font-semibold mb-2">¿Qué significan los estados de transmisión?</h4>
           <div className="space-y-4 text-muted-foreground">
-            <div className="flex gap-2 items-center"><Badge className="bg-green-500">Excelente</Badge> Todo funciona a la perfección.</div>
-            <div className="flex gap-2 items-center"><Badge className="bg-blue-500">Buena</Badge> Hay pequeñas variaciones normales en Internet.</div>
-            <div className="flex gap-2 items-center"><Badge className="bg-amber-500">Inestable</Badge> Tu red tiene problemas. Podría haber retrasos.</div>
+            <div className="flex gap-2 items-center"><Badge className="bg-success text-success-foreground">Excelente</Badge> Todo funciona a la perfección.</div>
+            <div className="flex gap-2 items-center"><Badge className="bg-info text-info-foreground">Buena</Badge> Hay pequeñas variaciones normales en Internet.</div>
+            <div className="flex gap-2 items-center"><Badge className="bg-warning text-warning-foreground">Inestable</Badge> Tu red tiene problemas. Podría haber retrasos.</div>
             <div className="flex gap-2 items-center"><Badge className="bg-destructive">Crítica</Badge> Riesgo alto de que la transmisión se corte.</div>
           </div>
         </div>

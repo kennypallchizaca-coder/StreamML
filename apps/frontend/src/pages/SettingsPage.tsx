@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "../components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import type { PreferencesSettings, SettingsResponse, StreamSession, StreamSettings } from "../types";
-import { CheckCircle2, Download, ExternalLink, Link2, LoaderCircle, LogOut, RefreshCw, Settings, ShieldAlert, Trash2, User, Video } from "lucide-react";
+import { CheckCircle2, Download, ExternalLink, Link2, LoaderCircle, LogOut, RefreshCw, Settings, ShieldAlert, Trash2, User, Video } from "@/components/icons";
 import PageHeader from "../components/PageHeader";
 
 type Notice = { tone: "success" | "error" | "info"; text: string } | null;
@@ -28,8 +28,8 @@ const initialStream: StreamSettings = {
 function Message({ notice }: { notice: Notice }) {
   if (!notice) return null;
   return (
-    <Alert variant={notice.tone === "error" ? "destructive" : "default"} className={notice.tone === "success" ? "border-green-500/30 bg-green-500/5" : undefined}>
-      {notice.tone === "success" ? <CheckCircle2 className="text-green-600" /> : null}
+    <Alert variant={notice.tone === "error" ? "destructive" : "default"} className={notice.tone === "success" ? "border-success/30 bg-success-muted" : undefined}>
+      {notice.tone === "success" ? <CheckCircle2 className="text-success" /> : null}
       <AlertTitle>{notice.tone === "success" ? "Guardado" : notice.tone === "error" ? "No fue posible completar la acción" : "Información"}</AlertTitle>
       <AlertDescription>{notice.text}</AlertDescription>
     </Alert>
@@ -38,6 +38,14 @@ function Message({ notice }: { notice: Notice }) {
 
 function errorText(reason: unknown, fallback: string) {
   return reason instanceof Error ? reason.message : fallback;
+}
+
+function pairingSessionLabel(session: StreamSession) {
+  const created = session.created_at
+    ? new Date(session.created_at).toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" })
+    : "fecha no disponible";
+  const state = session.status === "ready" ? "lista" : session.status === "created" ? "sin vincular" : session.status || "sin estado";
+  return `${session.name || "Transmisión sin nombre"} · ${created} · ${state} · …${session.id.slice(-8)}`;
 }
 
 export default function SettingsPage() {
@@ -65,8 +73,12 @@ export default function SettingsPage() {
   const [accountDeletionPassword, setAccountDeletionPassword] = useState("");
   const [accountConfirmation, setAccountConfirmation] = useState("");
 
-  const connectors = settings?.connectors ?? [];
+  const connectors = useMemo(() => settings?.connectors ?? [], [settings?.connectors]);
   const connectorStatus = useMemo(() => connectors.some((connector) => connector.connected), [connectors]);
+  const selectedSessionConnector = useMemo(
+    () => connectors.find((connector) => connector.session_id === pairingSessionId),
+    [connectors, pairingSessionId],
+  );
 
   async function loadConfiguration(showNotice = false) {
     try {
@@ -259,7 +271,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><Label>Idioma</Label><p className="text-sm text-muted-foreground">Idioma disponible en la interfaz.</p></div><Select value={preferences.language} onValueChange={(language: PreferencesSettings["language"]) => setPreferences({ ...preferences, language })}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="es">Español</SelectItem></SelectContent></Select></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><Label>Zona horaria</Label><p className="text-sm text-muted-foreground">Usada al mostrar fechas e historial.</p></div><Select value={preferences.timezone} onValueChange={(timezone: PreferencesSettings["timezone"]) => setPreferences({ ...preferences, timezone })}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="auto">Automática</SelectItem><SelectItem value="America/Guayaquil">Ecuador (Guayaquil)</SelectItem><SelectItem value="UTC">UTC</SelectItem></SelectContent></Select></div>
-              <div className="flex items-center justify-between gap-4"><div><Label htmlFor="dark-mode">Tema oscuro</Label><p className="text-sm text-muted-foreground">Se aplica inmediatamente al guardar.</p></div><Switch id="dark-mode" checked={preferences.dark_mode} onCheckedChange={(dark_mode) => setPreferences({ ...preferences, dark_mode })} /></div>
+              <div className="flex items-center justify-between gap-4"><div><Label htmlFor="dark-mode">Tema oscuro</Label><p className="text-sm text-muted-foreground">Se aplica al panel y se transmite al asistente local cuando lo abres.</p></div><Switch id="dark-mode" checked={preferences.dark_mode} onCheckedChange={(dark_mode) => setPreferences({ ...preferences, dark_mode })} /></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><Label>Detalle de alertas</Label><p className="text-sm text-muted-foreground">Cantidad de contexto mostrado en los avisos.</p></div><Select value={preferences.alert_detail} onValueChange={(alert_detail: PreferencesSettings["alert_detail"]) => setPreferences({ ...preferences, alert_detail })}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Reducido</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="high">Detallado</SelectItem></SelectContent></Select></div>
             </CardContent>
             <CardFooter className="border-t"><Button onClick={() => void savePreferences()} disabled={preferencesBusy}>{preferencesBusy ? <LoaderCircle className="animate-spin" /> : null}Guardar preferencias</Button></CardFooter>
@@ -285,13 +297,13 @@ export default function SettingsPage() {
         <TabsContent value="connections" className="mt-6 space-y-6">
           <Card className="border-primary/30 bg-primary/5">
             <CardHeader><CardTitle>Asistente local de configuración</CardTitle><CardDescription>Configura OBS, guarda su contraseña cifrada en Windows, valida la conexión y arranca el monitor sin editar archivos ni usar comandos.</CardDescription></CardHeader>
-            <CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Si es la primera vez, abre <strong>Abrir-Configuracion-StreamML.cmd</strong> dentro de la carpeta <strong>scripts</strong> del proyecto. Después usa este botón para continuar en el asistente local.</p><Button asChild><a href="http://127.0.0.1:8765/" target="_blank" rel="noopener noreferrer">Abrir asistente local <ExternalLink /></a></Button></CardContent>
+            <CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Si es la primera vez, abre <strong>Abrir-Configuracion-StreamML.cmd</strong> dentro de la carpeta <strong>scripts</strong> del proyecto. Después usa este botón para continuar en el asistente local.</p><Button asChild><a href={`http://127.0.0.1:8765/?theme=${preferences.dark_mode ? "dark" : "light"}`} target="_blank" rel="noopener noreferrer">Abrir asistente local <ExternalLink /></a></Button></CardContent>
           </Card>
           <Card>
             <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between"><div><CardTitle>Vincular StreamML Connector</CardTitle><CardDescription>Genera un código temporal para la aplicación local que se conecta a OBS.</CardDescription></div><Button variant="outline" size="sm" onClick={() => void loadConfiguration(true)}><RefreshCw className="mr-2 size-4" />Comprobar estado</Button></CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-xl border bg-muted/20 p-4"><p className="font-medium">Estado del conector: <span className={connectorStatus ? "text-green-600" : "text-amber-600"}>{connectorStatus ? "conectado recientemente" : "sin conexión reciente"}</span></p><p className="mt-1 text-sm text-muted-foreground">{connectors.length ? connectors.map((connector) => `${connector.name}${connector.last_seen_at ? ` · última señal ${new Date(connector.last_seen_at).toLocaleString()}` : " · pendiente"}`).join("; ") : "Aún no hay un conector vinculado."}</p></div>
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]"><div className="space-y-2"><Label>Transmisión para vincular</Label><Select value={pairingSessionId} onValueChange={setPairingSessionId}><SelectTrigger><SelectValue placeholder="Selecciona una transmisión" /></SelectTrigger><SelectContent>{sessions.map((session) => <SelectItem key={session.id} value={session.id}>{session.name || "Transmisión sin nombre"}</SelectItem>)}</SelectContent></Select></div><div className="flex items-end"><Button onClick={() => void generatePairingCode()} disabled={pairingBusy || !pairingSessionId}>{pairingBusy ? <LoaderCircle className="animate-spin" /> : <Link2 />}Generar código</Button></div></div>
+              <div className="rounded-xl border bg-muted/20 p-4"><p className="font-medium">Estado del conector: <span className={connectorStatus ? "text-success" : "text-warning"}>{connectorStatus ? "conectado recientemente" : "sin conexión reciente"}</span></p><p className="mt-1 text-sm text-muted-foreground">{connectors.length ? connectors.map((connector) => `${connector.name}${connector.last_seen_at ? ` · última señal ${new Date(connector.last_seen_at).toLocaleString()}` : " · pendiente"}`).join("; ") : "Aún no hay un conector vinculado."}</p></div>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]"><div className="space-y-2"><Label>Transmisión para vincular</Label><Select value={pairingSessionId} onValueChange={(value) => { setPairingSessionId(value); setPairingCode(null); }}><SelectTrigger><SelectValue placeholder="Selecciona una transmisión" /></SelectTrigger><SelectContent>{sessions.map((session) => <SelectItem key={session.id} value={session.id}>{pairingSessionLabel(session)}</SelectItem>)}</SelectContent></Select><p className={`text-xs ${selectedSessionConnector?.connected ? "text-success" : "text-warning"}`}>{selectedSessionConnector?.connected ? `Esta transmisión recibe datos de ${selectedSessionConnector.name}.` : "Esta transmisión todavía no tiene un conector activo. Genera un código y vincúlala en el asistente local."}</p></div><div className="flex items-end"><Button onClick={() => void generatePairingCode()} disabled={pairingBusy || !pairingSessionId}>{pairingBusy ? <LoaderCircle className="animate-spin" /> : <Link2 />}Generar código</Button></div></div>
               {pairingCode ? <div className="rounded-xl border border-primary/30 bg-primary/5 p-4"><p className="text-sm font-medium">Código de un solo uso</p><p className="mt-2 break-all font-mono text-2xl font-bold tracking-[0.2em]">{pairingCode.code}</p><p className="mt-2 text-sm text-muted-foreground">Caduca: {pairingCode.expires_at ? new Date(pairingCode.expires_at).toLocaleTimeString() : "pronto"}. Introdúcelo en StreamML Connector con la opción de vincular.</p></div> : null}
             </CardContent>
           </Card>

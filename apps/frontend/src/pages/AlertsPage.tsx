@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { api, normalizeSessions } from "../api";
 import type { StreamSession } from "../types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { AlertTriangle, Clock, Settings, VideoOff, Wifi, ShieldAlert, Check, HelpCircle } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Clock, VideoOff, Wifi, ShieldAlert, Check, HelpCircle } from "@/components/icons";
 import { Badge } from "../components/ui/badge";
 import PageHeader from "../components/PageHeader";
+import { needsQualityAttention } from "../lib/sessionPresentation";
 
 type AlertItem = {
   id: string;
@@ -15,13 +15,12 @@ type AlertItem = {
   time: string;
   stream: string;
   recommendation: string;
-  reviewed: boolean;
 };
 
 function AlertIcon({ type }: { type: AlertItem["type"] }) {
   if (type === "error") return <VideoOff className="size-5 text-destructive" />;
-  if (type === "warning") return <Wifi className="size-5 text-amber-500" />;
-  return <ShieldAlert className="size-5 text-blue-500" />;
+  if (type === "warning") return <Wifi className="size-5 text-warning" />;
+  return <ShieldAlert className="size-5 text-info" />;
 }
 
 function AlertList({ alerts, emptyText }: { alerts: AlertItem[], emptyText: string }) {
@@ -37,7 +36,7 @@ function AlertList({ alerts, emptyText }: { alerts: AlertItem[], emptyText: stri
   return (
     <div className="space-y-4">
       {alerts.map(alert => (
-        <Card key={alert.id} className={!alert.reviewed ? "border-l-4 border-l-primary" : "opacity-80"}>
+        <Card key={alert.id} className="border-l-4 border-l-warning">
           <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
             <div className="bg-muted p-3 rounded-full h-fit w-fit">
               <AlertIcon type={alert.type} />
@@ -61,11 +60,7 @@ function AlertList({ alerts, emptyText }: { alerts: AlertItem[], emptyText: stri
               </div>
             </div>
             <div className="flex flex-col justify-between items-end gap-2 shrink-0">
-              {alert.reviewed ? (
-                <Badge variant="secondary" className="bg-muted text-muted-foreground">Revisada</Badge>
-              ) : (
-                <Badge className="bg-primary/20 text-primary hover:bg-primary/30 cursor-default">Nueva</Badge>
-              )}
+              <Badge variant="secondary" className="bg-warning/10 text-warning">Registrada</Badge>
             </div>
           </CardContent>
         </Card>
@@ -76,12 +71,17 @@ function AlertList({ alerts, emptyText }: { alerts: AlertItem[], emptyText: stri
 
 export default function AlertsPage() {
   const [sessions, setSessions] = useState<StreamSession[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     void api.listSessions().then((response) => {
       if (active) setSessions(normalizeSessions(response));
-    }).catch(() => { if (active) setSessions([]); });
+    }).catch((reason) => {
+      if (!active) return;
+      setError(reason instanceof Error ? reason.message : "No se pudieron cargar las alertas.");
+      setSessions([]);
+    });
     return () => { active = false; };
   }, []);
 
@@ -90,8 +90,8 @@ export default function AlertsPage() {
   if (sessions) {
     const now = new Date();
     sessions.forEach(session => {
-      if (session.latest_prediction?.recommendation === "downgrade_needed" || session.latest_prediction?.recommendation === "low") {
-        const sessionDate = new Date(session.created_at || "");
+      if (needsQualityAttention(session.latest_prediction?.recommendation)) {
+        const sessionDate = new Date(session.latest_prediction?.created_at || session.updated_at || session.created_at || "");
         const isToday = sessionDate.toDateString() === now.toDateString();
         const diffDays = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 3600 * 24));
         
@@ -99,11 +99,10 @@ export default function AlertsPage() {
           id: session.id,
           type: "warning",
           title: "Inestabilidad registrada",
-          description: "La transmisión experimentó variaciones que requirieron reducir la calidad.",
+          description: `El modelo informó la recomendación ${session.latest_prediction?.recommendation}.`,
           time: sessionDate.toLocaleString(),
           stream: session.name || "Sin nombre",
           recommendation: "Revisa tu conexión a internet antes de tu próxima transmisión.",
-          reviewed: true,
         };
 
         if (isToday) dynamicAlerts.today.push(alert);
@@ -117,15 +116,17 @@ export default function AlertsPage() {
     <div className="app-page max-w-5xl">
       <PageHeader eyebrow="Seguimiento" title="Alertas" description="Revisa notificaciones y recomendaciones sobre tus transmisiones." />
 
+      {error ? <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div> : null}
+
       <div className="space-y-10">
         <section>
           <h3 className="text-lg font-semibold mb-4 border-b pb-2">Hoy</h3>
-          <AlertList alerts={dynamicAlerts.today} emptyText="No tienes alertas hoy. ¡Todo funciona excelente!" />
+          <AlertList alerts={dynamicAlerts.today} emptyText="No hay recomendaciones de reducción registradas hoy." />
         </section>
 
         <section>
           <h3 className="text-lg font-semibold mb-4 border-b pb-2">Esta semana</h3>
-          <AlertList alerts={dynamicAlerts.week} emptyText="No hubo problemas destacables esta semana." />
+          <AlertList alerts={dynamicAlerts.week} emptyText="No hay recomendaciones de reducción registradas esta semana." />
         </section>
 
         <section>

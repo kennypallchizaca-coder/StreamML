@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Link2 } from "lucide-react";
+import { Link2 } from "@/components/icons";
 import ExistingVideoLinkForm from "./ExistingVideoLinkForm";
 
 interface ReplaceVideoLinkDialogProps {

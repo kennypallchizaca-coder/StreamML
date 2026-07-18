@@ -3,7 +3,7 @@ import { validateVdoNinjaLink, ValidationResult } from "../lib/VideoLinkValidato
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Link2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Link2, AlertTriangle, CheckCircle2 } from "@/components/icons";
 import CopyLinkButton from "./CopyLinkButton";
 import VideoPreview from "./VideoPreview";
 
@@ -59,8 +59,8 @@ export default function ExistingVideoLinkForm({ onContinue }: ExistingVideoLinkF
         </div>
 
         {validation && (
-          <Alert variant={validation.isError ? "destructive" : "default"} className={`rounded-xl border-l-4 ${!validation.isError ? "border-green-500/50 bg-green-500/5 text-green-600" : "border-destructive/50"}`}>
-            {validation.isError ? <AlertTriangle className="size-5" /> : <CheckCircle2 className="size-5 text-green-500" />}
+          <Alert variant={validation.isError ? "destructive" : "default"} className={`rounded-xl border-l-4 ${!validation.isError ? "border-success/50 bg-success-muted text-success-foreground" : "border-destructive/50"}`}>
+            {validation.isError ? <AlertTriangle className="size-5" /> : <CheckCircle2 className="size-5 text-success" />}
             <AlertTitle className="text-base font-semibold">{validation.isError ? "Atención" : "Enlace válido"}</AlertTitle>
             <AlertDescription className="text-sm opacity-90 mt-1 leading-relaxed">{validation.message}</AlertDescription>
           </Alert>
@@ -69,7 +69,7 @@ export default function ExistingVideoLinkForm({ onContinue }: ExistingVideoLinkF
 
       {validation?.isValid && validation.sanitizedUrl && (
         <div className="space-y-6 rounded-2xl border border-border/70 bg-background p-5 shadow-sm animate-in fade-in zoom-in-95 duration-500 sm:p-6">
-          <div className="ring-1 ring-border/50 rounded-xl overflow-hidden bg-black">
+          <div className="ring-1 ring-border/50 rounded-xl overflow-hidden bg-media-background">
             <VideoPreview embedUrl={validation.sanitizedUrl} />
           </div>
           

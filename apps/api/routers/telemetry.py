@@ -66,8 +66,8 @@ async def receive_telemetry(
         "session_id": connector["session_id"],
         "telemetry": telemetry_snapshot(record, request.app.state.registry),
         "availability": availability,
-        "predictions": [prediction_view(item) for item in predictions],
-        "prediction": prediction_view(predictions[-1]) if predictions else None,
+        "predictions": [prediction_view(item, request.app.state.registry) for item in predictions],
+        "prediction": prediction_view(predictions[-1], request.app.state.registry) if predictions else None,
         "agent_decision": result["decision"] if result else None,
         "control_command": result["command"] if result else None,
     }
@@ -88,7 +88,7 @@ async def receive_telemetry(
         "inference": {
             "status": "executed" if network is not None else "blocked",
             "message": None if network is not None else "Datos insuficientes para una predicción válida",
-            "predictions": [prediction_view(item) for item in predictions],
+            "predictions": [prediction_view(item, request.app.state.registry) for item in predictions],
         },
         "agent_decision": result["decision"] if result else None,
         "control_command": result["command"] if result else None,

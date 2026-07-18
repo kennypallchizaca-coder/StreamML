@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Radio, Link2 } from "lucide-react";
+import { Radio, Link2 } from "@/components/icons";
 import { QRCodeSVG } from "qrcode.react";
 import VideoPreview from "./VideoPreview";
 import ExistingVideoLinkForm from "./ExistingVideoLinkForm";
@@ -45,7 +45,7 @@ export default function VideoConnectionMethod({ safePhoneUrl, embedUrl, onContin
             <div className="flex flex-col items-center gap-5 rounded-2xl border border-border/70 bg-muted/10 p-5 text-center sm:p-7">
               {safePhoneUrl ? (
                 <>
-                  <div className="rounded-2xl bg-white p-4 shadow-md ring-1 ring-black/5 sm:p-5">
+                  <div className="rounded-2xl bg-qr-surface p-4 shadow-md ring-1 ring-qr-ink/5 sm:p-5">
                     <QRCodeSVG value={safePhoneUrl} size={184} level="M" />
                   </div>
                   <div className="space-y-2">

@@ -5,16 +5,27 @@ import VideoConnectionStatus from "./VideoConnectionStatus";
 interface VideoPreviewProps {
   embedUrl: string;
   isLiveMonitor?: boolean;
+  onStatus?: (status: string) => void;
 }
 
-export default function VideoPreview({ embedUrl, isLiveMonitor }: VideoPreviewProps) {
+export default function VideoPreview({ embedUrl, isLiveMonitor, onStatus }: VideoPreviewProps) {
   const [loading, setLoading] = useState(true);
+  const [videoStatus, setVideoStatus] = useState<"connected" | "waiting" | "error">("waiting");
 
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
+    setVideoStatus("waiting");
   }, [embedUrl]);
+
+  function handleStatus(status: string) {
+    const normalized = status.toLowerCase();
+    if (["connected", "active", "streaming", "view-connection"].includes(normalized)) {
+      setVideoStatus("connected");
+    } else if (["disconnected", "failed", "error"].includes(normalized)) {
+      setVideoStatus("error");
+    }
+    onStatus?.(status);
+  }
 
   // Mask the URL for display
   const maskedUrl = embedUrl 
@@ -26,14 +37,18 @@ export default function VideoPreview({ embedUrl, isLiveMonitor }: VideoPreviewPr
       {!isLiveMonitor && (
         <div className="flex justify-between items-center mb-1">
           <h4 className="font-semibold">Vista previa de la cámara</h4>
-          <VideoConnectionStatus status={loading ? "waiting" : "connected"} />
+          <VideoConnectionStatus status={videoStatus} />
         </div>
       )}
       
-      <div className="relative flex min-h-64 w-full flex-1 items-center justify-center overflow-hidden rounded-2xl bg-slate-950">
-        <VdoNinjaCamera embedUrl={embedUrl} />
+      <div className="relative flex min-h-64 w-full flex-1 items-center justify-center overflow-hidden rounded-2xl bg-media-background">
+        <VdoNinjaCamera
+          embedUrl={embedUrl}
+          onLoad={() => setLoading(false)}
+          onStatus={handleStatus}
+        />
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/85 text-white backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-media-background/85 text-media-foreground backdrop-blur-sm">
             <span className="font-medium">Conectando al video…</span>
           </div>
         )}

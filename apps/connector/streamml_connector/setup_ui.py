@@ -16,15 +16,17 @@ import os
 from pathlib import Path
 import secrets
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 from http.cookies import SimpleCookie
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 import webbrowser
 
 import httpx
@@ -38,6 +40,8 @@ from .secrets import LocalSecretVault, SecretStorageError, TokenStore
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 COMPOSE_FILE = REPOSITORY_ROOT / "infrastructure" / "docker" / "docker-compose.yml"
+SHARED_THEME_FILE = REPOSITORY_ROOT / "apps" / "frontend" / "src" / "theme.css"
+SETUP_STYLES_FILE = Path(__file__).with_name("setup.css")
 SETUP_LOG = LocalConfigurationStore().path.parent / "connector.log"
 MAX_REQUEST_BYTES = 64 * 1024
 
@@ -119,6 +123,8 @@ def normalize_connector_values(values: dict[str, Any]) -> dict[str, Any]:
     backup_scene = _as_text(values, "backup_scene", "StreamML Backup")
     if not live_scene or not backup_scene or len(live_scene) > 120 or len(backup_scene) > 120:
         raise SetupValidationError("Los nombres de escena deben tener entre 1 y 120 caracteres.")
+    if live_scene.casefold() == backup_scene.casefold():
+        raise SetupValidationError("Las escenas en vivo y de respaldo deben tener nombres diferentes.")
     return {
         "api_base_url": api_base_url,
         "obs_host": obs_host,
@@ -180,10 +186,22 @@ def normalize_deployment_values(values: dict[str, Any]) -> dict[str, Any]:
         raise SetupValidationError("Indica las rutas del certificado TLS y de su clave privada.")
     if not Path(cert_file).is_file() or not Path(key_file).is_file():
         raise SetupValidationError("No se encontró el certificado TLS o su clave privada en las rutas indicadas.")
+    try:
+        ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER).load_cert_chain(cert_file, key_file)
+    except (OSError, ssl.SSLError) as exc:
+        raise SetupValidationError(
+            "El certificado TLS o su clave privada no son válidos, no están en formato PEM o no coinciden."
+        ) from exc
     rtmp_port_bind = _as_text(values, "rtmp_port_bind", "127.0.0.1:1935")
     webrtc_udp_port_bind = _as_text(values, "webrtc_udp_port_bind", "0.0.0.0:8189")
-    if ":" not in rtmp_port_bind or ":" not in webrtc_udp_port_bind:
-        raise SetupValidationError("Los puertos deben tener formato host:puerto.")
+    for value in (rtmp_port_bind, webrtc_udp_port_bind):
+        host, separator, raw_port = value.rpartition(":")
+        try:
+            port = int(raw_port)
+        except ValueError as exc:
+            raise SetupValidationError("Los puertos deben tener formato host:puerto.") from exc
+        if not separator or not host.strip() or not 1 <= port <= 65535:
+            raise SetupValidationError("Los puertos deben tener formato host:puerto y usar un puerto válido.")
     return {
         "public_origin": public_origin,
         "allowed_origins": ",".join(origins),
@@ -265,6 +283,7 @@ class SetupService:
                 "docker_available": shutil.which("docker") is not None,
                 "compose_file_available": COMPOSE_FILE.is_file(),
                 "connector_running": process_running,
+                "connector_pid": self._connector_process.pid if process_running else None,
                 "log_file": str(SETUP_LOG),
             },
         }
@@ -286,6 +305,7 @@ class SetupService:
         password = _as_text(payload, "obs_password")
         pairing_code = _as_text(payload, "pairing_code")
         linked = False
+        restart_after_save = False
         if pairing_code:
             client = StreamMLApiClient(config)
             try:
@@ -294,10 +314,27 @@ class SetupService:
             finally:
                 client.close()
             linked = True
+            restart_after_save = bool(
+                self._connector_process is not None
+                and self._connector_process.poll() is None
+            )
         if password:
             self.vault.set("obs_websocket_password", password)
         self.store.save_connector(values)
-        return {"message": "La configuración local se guardó de forma segura.", "linked": linked, "state": self.state()}
+        restarted = False
+        if restart_after_save:
+            self.stop_connector()
+            self.start_connector()
+            restarted = True
+        message = "La configuración local se guardó de forma segura."
+        if restarted:
+            message += " El conector se reinició automáticamente con el nuevo vínculo."
+        return {
+            "message": message,
+            "linked": linked,
+            "restarted": restarted,
+            "state": self.state(),
+        }
 
     def connector_checks(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         try:
@@ -359,6 +396,14 @@ class SetupService:
                 "STREAMML_NETWORK_PROBE_INTERVAL_SECONDS", "STREAMML_NETWORK_PROBE_BYTES",
             ):
                 connector_environment.pop(name, None)
+            # Run from source as well as from the installed entry point. This
+            # keeps the local monitor operational if Windows invalidates an
+            # editable-install metadata file while the setup GUI is updated.
+            connector_source = str(REPOSITORY_ROOT / "apps" / "connector")
+            existing_pythonpath = connector_environment.get("PYTHONPATH", "")
+            connector_environment["PYTHONPATH"] = os.pathsep.join(
+                item for item in (connector_source, existing_pythonpath) if item
+            )
             options: dict[str, Any] = {"cwd": str(REPOSITORY_ROOT), "stdout": log_handle, "stderr": subprocess.STDOUT, "close_fds": True, "env": connector_environment}
             if os.name == "nt":
                 options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -368,7 +413,20 @@ class SetupService:
                 )
             finally:
                 log_handle.close()
-        return {"message": "Conector iniciado. Puedes ver su estado desde la transmisión en unos segundos.", "pid": self._connector_process.pid}
+            # A missing module or invalid environment exits immediately. Do
+            # not report a false success to the operator in that situation.
+            time.sleep(0.4)
+            if self._connector_process.poll() is not None:
+                self._connector_process = None
+                raise SetupValidationError(
+                    "El conector no pudo iniciar. El lanzador reparará su instalación al volver a abrir el asistente."
+                )
+            process = self._connector_process
+        return {
+            "message": "Monitorización activa. La primera telemetría aparecerá en la transmisión en unos segundos.",
+            "pid": process.pid,
+            "state": self.state(),
+        }
 
     def stop_connector(self) -> dict[str, Any]:
         with self._lock:
@@ -503,9 +561,14 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
         if not self._allowed_host():
             self._json_error(HTTPStatus.FORBIDDEN, "Este asistente solo acepta conexiones locales.")
             return
-        if self.path == "/":
+        request_path = urlparse(self.path).path
+        if request_path == "/":
             self._html_page()
-        elif self.path == "/favicon.ico":
+        elif request_path == "/theme.css":
+            self._stylesheet(SHARED_THEME_FILE)
+        elif request_path == "/setup.css":
+            self._stylesheet(SETUP_STYLES_FILE)
+        elif request_path == "/favicon.ico":
             self.send_response(HTTPStatus.NO_CONTENT)
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
@@ -585,7 +648,7 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy", f"default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'nonce-{self.server.csp_nonce}'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", f"default-src 'self'; style-src 'self'; script-src 'self' 'nonce-{self.server.csp_nonce}'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 
     def _json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -597,8 +660,22 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
     def _json_error(self, status: HTTPStatus, message: str) -> None:
         self._json(status, {"message": message})
 
+    def _stylesheet(self, path: Path) -> None:
+        try:
+            data = path.read_bytes()
+        except OSError:
+            self._json_error(HTTPStatus.NOT_FOUND, "No se encontró la hoja de estilos de StreamML.")
+            return
+        self.send_response(HTTPStatus.OK)
+        self._headers("text/css; charset=utf-8", len(data))
+        self.end_headers()
+        self.wfile.write(data)
+
     def _html_page(self) -> None:
         page = _PAGE.replace("<script>", f'<script nonce="{self.server.csp_nonce}">')
+        requested_theme = parse_qs(urlparse(self.path).query).get("theme", [""])[0]
+        if requested_theme in {"light", "dark"}:
+            page = page.replace('<html lang="es">', f'<html lang="es" data-theme="{requested_theme}">')
         page = page.replace(
             "location.hash.slice(1)",
             f"location.hash.slice(1) || {json.dumps(self.server.access_token)}",
@@ -618,24 +695,23 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
 
 _PAGE = r"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Asistente local · StreamML</title><style>
-:root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#0b1020;color:#eef2ff}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1050px;margin:auto;padding:30px 20px 70px}h1{margin:0;font-size:clamp(1.65rem,4vw,2.4rem)}h2{margin:0 0 8px;font-size:1.2rem}p{line-height:1.5;color:#b9c3dc}.lead{max-width:800px}.card{background:#141b31;border:1px solid #293454;border-radius:16px;padding:22px;margin-top:20px;box-shadow:0 12px 30px #0002}.grid{display:grid;gap:15px;grid-template-columns:repeat(2,minmax(0,1fr))}.span{grid-column:1/-1}label{display:grid;gap:6px;font-size:.9rem;color:#dce4fa}input,textarea{width:100%;background:#0d1428;border:1px solid #3d4b71;border-radius:9px;padding:10px;color:#fff;font:inherit}textarea{min-height:86px;resize:vertical}input:focus,textarea:focus{outline:2px solid #7c9cff;border-color:transparent}button{border:0;border-radius:9px;padding:10px 14px;background:#7895ff;color:#071023;font:600 .92rem inherit;cursor:pointer}button.secondary{background:#253252;color:#e5ecff}button:disabled{opacity:.55;cursor:wait}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status{display:grid;gap:8px;margin:15px 0}.notice{padding:12px 14px;border-radius:9px;background:#172342;border:1px solid #3a4d7e}.notice.error{background:#3a1c2a;border-color:#a84c6c}.notice.ok{background:#17352e;border-color:#397d67}.check{padding:10px;border-left:4px solid #d6a23b;background:#10182b}.check.ok{border-color:#4fb58b}.check.error{border-color:#dc5a73}.muted{font-size:.86rem;color:#a9b5d1}.secret{color:#9ee6c7;font-weight:600}.tabs{display:flex;gap:7px;margin-top:22px}.tabs button{background:#202b48;color:#dce4fa}.tabs button.active{background:#7895ff;color:#071023}.panel{display:none}.panel.active{display:block}@media(max-width:680px){.grid{grid-template-columns:1fr}.span{grid-column:auto}.wrap{padding:24px 14px}}
-</style></head><body><main class="wrap"><h1>Asistente local de StreamML</h1><p class="lead">Configura este equipo sin editar archivos ni copiar contraseñas a la terminal. Las claves se guardan en el Administrador de credenciales del sistema; la interfaz solo muestra si existen.</p><div id="notice" class="notice">Cargando configuración local…</div><div class="tabs"><button class="active" data-tab="connector">1. OBS y conector</button><button data-tab="server">2. Servidor Docker</button><button data-tab="help">Ayuda</button></div>
+<title>Configuración local · StreamML</title><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/setup.css"></head><body><a href="#main-content" class="skip-link">Saltar al contenido principal</a><div class="app"><aside class="sidebar"><div class="brand"><div class="brand-mark">ML</div><div><div class="brand-name">StreamML</div><div class="brand-sub">Adaptive Control</div></div></div><div class="tabs"><button class="active" data-tab="connector" data-index="01">OBS y conector</button><button data-tab="server" data-index="02">Servidor Docker</button><button data-tab="help" data-index="03">Ayuda y respaldo</button></div><div class="security"><strong>Sesión local protegida</strong><p>Solo accesible en este equipo. Las credenciales se guardan cifradas en Windows.</p></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumb"><small>StreamML Workspace</small><span>Configuración local</span></div><div class="topbar-actions"><button class="theme-toggle secondary" id="theme-toggle" type="button" aria-label="Cambiar tema"><span class="theme-prefix">Tema: </span><span id="theme-label">Automático</span></button><div class="runtime offline" id="runtime-pill"><span id="runtime-text">Comprobando conector</span></div></div></header><main id="main-content" class="wrap"><div class="page-head"><div><div class="eyebrow">ASISTENTE DE INSTALACIÓN</div><h1>Configuración local</h1><p class="lead">Administra OBS, el conector de telemetría y la infraestructura desde una sola interfaz, sin editar archivos ni exponer secretos en la terminal.</p></div><div class="address">127.0.0.1:8765</div></div><div id="notice" class="notice">Cargando configuración local…</div><div class="summary"><div class="metric"><small>ASISTENTE</small><div>Disponible en este equipo</div></div><div class="metric"><small>CONECTOR</small><div id="connector-runtime">Comprobando…</div></div><div class="metric"><small>DOCKER</small><div id="docker-runtime">Comprobando…</div></div></div>
 <section id="connector" class="panel active card"><h2>OBS y monitorización</h2><p>Usa la misma computadora donde está OBS. Genera el código temporal en la aplicación web, en <strong>Configuración → Conexiones</strong>, y pégalo aquí una sola vez.</p><form id="connector-form"><div class="grid"><label>URL de la API<input name="api_base_url" required inputmode="url"></label><label>Nombre de este conector<input name="connector_name" required maxlength="100"></label><label>Host de OBS<input name="obs_host" required></label><label>Puerto de OBS WebSocket<input name="obs_port" required type="number" min="1" max="65535"></label><label>Escena en vivo<input name="live_scene" required maxlength="120"></label><label>Escena de respaldo<input name="backup_scene" required maxlength="120"></label><label>Intervalo de telemetría (s)<input name="poll_interval_seconds" type="number" min="0.2" max="60" step="0.1"></label><label>Tiempo máximo de API (s)<input name="request_timeout_seconds" type="number" min="1" max="60" step="1"></label><label>Intervalo de prueba de red (s)<input name="network_probe_interval_seconds" type="number" min="1" max="60"></label><label>Tamaño de prueba de red (bytes)<input name="network_probe_bytes" type="number" min="1024" max="524288" step="1024"></label><label class="span">Contraseña de OBS <span class="secret" id="obs-secret"></span><input name="obs_password" type="password" autocomplete="new-password" placeholder="Déjala vacía para conservar la guardada"></label><label class="span">Código temporal de vínculo <input name="pairing_code" autocomplete="one-time-code" placeholder="No se guarda; úsalo solo al vincular"></label></div><div class="row"><button type="submit">Guardar y vincular</button><button class="secondary" type="button" id="connector-check">Comprobar conexión</button><button class="secondary" type="button" id="connector-start">Iniciar monitorización</button><button class="secondary" type="button" id="connector-stop">Detener monitorización</button></div></form><div id="connector-checks" class="status"></div></section>
 <section id="server" class="panel card"><h2>Servidor de producción con Docker</h2><p>Esta sección prepara e inicia la infraestructura protegida. Requiere Docker Desktop, un dominio HTTPS y un certificado TLS ya emitido. Para desarrollo local usa la URL de API del primer paso; no abras el servidor de desarrollo a Internet.</p><form id="server-form"><div class="grid"><label>URL pública HTTPS<input name="public_origin" required placeholder="https://streamml.midominio.com"></label><label>Orígenes permitidos (separados por coma)<input name="allowed_origins" placeholder="https://streamml.midominio.com"></label><label>Correo administrador<input name="bootstrap_email" required type="email"></label><label>Contraseña administrador <span class="secret" id="bootstrap-secret"></span><input name="bootstrap_password" type="password" autocomplete="new-password" placeholder="Déjala vacía para conservar la guardada"></label><label>URL pública de MediaMTX<input name="mediamtx_public_base" placeholder="https://streamml.midominio.com/media"></label><label>RTMP público (opcional)<input name="mediamtx_rtmp_publish_base" placeholder="rtmps://streamml.midominio.com:1935"></label><label>Ruta de certificado TLS<input name="tls_cert_file" required placeholder="C:\certs\fullchain.pem"></label><label>Ruta de clave TLS<input name="tls_key_file" required placeholder="C:\certs\privkey.pem"></label><label>Host WebRTC MediaMTX<input name="mediamtx_webrtc_additional_hosts"></label><label>Imagen MediaMTX<input name="mediamtx_image"></label><label>Enlace RTMP de Docker<input name="rtmp_port_bind"></label><label>Enlace UDP WebRTC<input name="webrtc_udp_port_bind"></label><label class="span">Destinos de retransmisión JSON (opcional, contiene claves de plataforma) <span class="secret" id="restream-secret"></span><textarea name="restream_config_json" placeholder='{"stream-id":{"youtube":"rtmps://.../CLAVE"}}'></textarea></label><label>Secreto de tokens de servidor (opcional; se genera y cifra si queda vacío) <span class="secret" id="token-secret"></span><input name="deployment_token_secret" type="password" autocomplete="new-password"></label><label>Secreto de MediaMTX (opcional; se genera y cifra si queda vacío) <span class="secret" id="media-secret"></span><input name="deployment_media_auth_secret" type="password" autocomplete="new-password"></label></div><div class="row"><button type="submit">Guardar servidor</button><button class="secondary" type="button" id="server-check">Validar Docker Compose</button><button class="secondary" type="button" id="server-start">Iniciar o actualizar servicios</button></div></form><div id="server-checks" class="status"></div></section>
-<section id="help" class="panel card"><h2>Uso seguro</h2><p><strong>1.</strong> Abre OBS, activa WebSocket y crea las escenas indicadas. <strong>2.</strong> Guarda aquí la URL de API y la contraseña de OBS. <strong>3.</strong> Crea una transmisión en StreamML, genera el código temporal y pégalo para vincular. <strong>4.</strong> Pulsa “Comprobar conexión” y luego “Iniciar monitorización”.</p><p>Las contraseñas, tokens, claves RTMP y secretos se guardan en el Administrador de credenciales de Windows y nunca se devuelven a la página. Los ajustes no sensibles están en la carpeta de datos de StreamML para que el conector pueda reiniciarse. Para renovar una credencial, escribe el nuevo valor y guarda: el anterior se reemplaza sin mostrarse.</p><p>Si falla OBS, revisa que WebSocket esté activo, que el host sea 127.0.0.1 y que el puerto/contraseña coincidan. Si falla Docker, inicia Docker Desktop, verifica el certificado y vuelve a pulsar “Validar Docker Compose”. El registro sin secretos del conector se guarda localmente.</p><div class="row"><button class="secondary" type="button" id="backup-download">Descargar copia de configuración (sin secretos)</button></div></section></main><script>
+<section id="help" class="panel card"><h2>Uso seguro y solución de problemas</h2><p><strong>1.</strong> Abre OBS, activa WebSocket y crea las escenas indicadas. <strong>2.</strong> Guarda la URL de API y la contraseña. <strong>3.</strong> Genera el código temporal en el dashboard y vincula. <strong>4.</strong> Comprueba la conexión e inicia la monitorización.</p><p>Las contraseñas, tokens, claves RTMP y secretos se guardan en el Administrador de credenciales de Windows y nunca se devuelven a esta página. Para renovar una credencial, escribe el valor nuevo y guarda.</p><p>Si OBS falla, verifica que WebSocket esté activo y que host, puerto y contraseña coincidan. Si no llegan métricas, detén e inicia el monitor: el asistente detectará cualquier fallo de arranque y mostrará el error real.</p><div class="row"><button class="secondary" type="button" id="backup-download">Descargar copia de configuración sin secretos</button></div></section></main></div></div><script>
+const themeQuery=new URLSearchParams(location.search).get('theme'),savedTheme=localStorage.getItem('streamml_setup_theme'),systemTheme=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';let activeTheme=['light','dark'].includes(themeQuery)?themeQuery:(['light','dark'].includes(savedTheme)?savedTheme:systemTheme);function applyTheme(theme,persist=true){activeTheme=theme;document.documentElement.dataset.theme=theme;document.querySelector('#theme-label').textContent=theme==='dark'?'Oscuro':'Claro';if(persist)localStorage.setItem('streamml_setup_theme',theme)}applyTheme(activeTheme,Boolean(themeQuery));document.querySelector('#theme-toggle').onclick=()=>applyTheme(activeTheme==='dark'?'light':'dark');
 const notice=document.querySelector('#notice'), token=location.hash.slice(1);let state={};
 function say(text,type=''){notice.textContent=text;notice.className='notice '+type}
 function formData(id){const data={};new FormData(document.querySelector(id)).forEach((v,k)=>data[k]=v);return data}
 function fill(id,values){const form=document.querySelector(id);Object.entries(values||{}).forEach(([k,v])=>{const input=form.elements.namedItem(k);if(input&&typeof v!=='object')input.value=String(v??'')})}
 function secret(id,present){document.querySelector(id).textContent=present?'Guardada de forma segura.':''}
-function renderChecks(id,checks=[]){const root=document.querySelector(id);root.replaceChildren(...checks.map(c=>{const el=document.createElement('div');el.className='check '+c.status;el.textContent=`${c.label}: ${c.message}`;return el}))}
-function apply(next){state=next;fill('#connector-form',state.connector);fill('#server-form',state.deployment);const s=state.secrets||{};secret('#obs-secret',s.obs_websocket_password);secret('#bootstrap-secret',s.deployment_bootstrap_password);secret('#restream-secret',s.deployment_restream_config_json);secret('#token-secret',s.deployment_token_secret);secret('#media-secret',s.deployment_media_auth_secret)}
+function renderChecks(id,checks=[]){const root=document.querySelector(id);root.replaceChildren(...checks.map(c=>{const el=document.createElement('div');el.className='check '+c.status;el.textContent=c.label+': '+c.message;return el}))}
+function apply(next){state=next;fill('#connector-form',state.connector);fill('#server-form',state.deployment);const s=state.secrets||{},c=state.capabilities||{},running=Boolean(c.connector_running),pill=document.querySelector('#runtime-pill');secret('#obs-secret',s.obs_websocket_password);secret('#bootstrap-secret',s.deployment_bootstrap_password);secret('#restream-secret',s.deployment_restream_config_json);secret('#token-secret',s.deployment_token_secret);secret('#media-secret',s.deployment_media_auth_secret);pill.className='runtime '+(running?'running':'offline');document.querySelector('#runtime-text').textContent=running?'Monitoreo activo':'Monitoreo detenido';document.querySelector('#connector-runtime').textContent=running?'Activo · PID '+c.connector_pid:'Detenido';document.querySelector('#docker-runtime').textContent=c.docker_available?'Disponible':'No detectado'}
 async function call(path,body={}){if(!token)throw Error('Sesión local inválida. Cierra y vuelve a abrir el asistente.');const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-StreamML-Setup-Token':token},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.message||'No se pudo completar la operación.');return j}
-async function load(){const r=await fetch('/api/state',{headers:{'X-StreamML-Setup-Token':token}});const j=await r.json();if(!r.ok)throw Error(j.message||'No se pudo cargar.');apply(j);say('Listo. Completa los pasos en orden.','ok')}
+async function load(){const r=await fetch('/api/state',{headers:{'X-StreamML-Setup-Token':token}});const j=await r.json();if(!r.ok)throw Error(j.message||'No se pudo cargar.');apply(j);say('Configuración cargada. Comprueba la conexión y activa el monitoreo.','ok')}
 async function action(button,fn){button.disabled=true;try{const result=await fn();if(result.state)apply(result.state);if(result.checks)renderChecks(button.id.startsWith('server')?'#server-checks':'#connector-checks',result.checks);say(result.message||'Operación completada.','ok')}catch(e){say(e instanceof Error?e.message:'No se pudo completar la operación.','error')}finally{button.disabled=false}}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===b.dataset.tab))});
-document.querySelector('#connector-form').onsubmit=e=>{e.preventDefault();const b=e.submitter;action(b,()=>call('/api/connector/save',formData('#connector-form')))};
+document.querySelector('#connector-form').onsubmit=e=>{e.preventDefault();const b=e.submitter;action(b,async()=>{const result=await call('/api/connector/save',formData('#connector-form'));document.querySelector('#connector-form').elements.namedItem('pairing_code').value='';return result})};
 document.querySelector('#server-form').onsubmit=e=>{e.preventDefault();const b=e.submitter;action(b,()=>call('/api/deployment/save',formData('#server-form')))};
 document.querySelector('#connector-check').onclick=e=>action(e.currentTarget,()=>call('/api/connector/check',formData('#connector-form')));
 document.querySelector('#connector-start').onclick=e=>action(e.currentTarget,()=>call('/api/connector/start'));

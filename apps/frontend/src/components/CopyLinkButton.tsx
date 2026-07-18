@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check } from "@/components/icons";
 
 interface CopyLinkButtonProps {
   link: string | null;
@@ -49,7 +49,7 @@ export default function CopyLinkButton({ link, label = "Copiar enlace para OBS",
       disabled={!link}
       className={className}
     >
-      {copied ? <Check className="mr-2 size-4 text-green-500" /> : <Copy className="mr-2 size-4" />}
+      {copied ? <Check className="mr-2 size-4 text-success" /> : <Copy className="mr-2 size-4" />}
       {copied ? "¡Copiado!" : copyFailed ? "No se pudo copiar" : label}
     </Button>
   );

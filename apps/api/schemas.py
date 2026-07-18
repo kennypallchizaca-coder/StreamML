@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import math
-from typing import Any, Literal
+from typing import Literal
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
@@ -85,6 +85,12 @@ class StreamSettingsUpdate(StrictModel):
         if not cleaned:
             raise ValueError("Scene name cannot be blank.")
         return cleaned
+
+    @model_validator(mode="after")
+    def scenes_are_distinct(self) -> "StreamSettingsUpdate":
+        if self.live_scene.casefold() == self.backup_scene.casefold():
+            raise ValueError("Live and backup scenes must use different names.")
+        return self
 
 
 class SessionVideoLinkUpdate(StrictModel):

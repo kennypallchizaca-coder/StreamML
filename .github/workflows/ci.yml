@@ -37,6 +37,9 @@ jobs:
       - name: Run automated tests
         run: python -m pytest -q
 
+      - name: Lint Python sources
+        run: python -m ruff check apps src scripts tests
+
       - name: Guard tracked content against common secrets
         run: python scripts/check_no_secrets.py --history
 
@@ -80,6 +83,9 @@ jobs:
 
       - name: Run frontend unit tests
         run: npm test
+
+      - name: Lint frontend sources
+        run: npm run lint
 
       - name: Build production frontend
         run: npm run build

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 interface VdoNinjaCameraProps {
   embedUrl?: string | null;
   onStatus?: (status: string) => void;
+  onLoad?: () => void;
 }
 
 function configuredOrigins(): Set<string> {
@@ -12,7 +13,7 @@ function configuredOrigins(): Set<string> {
 
 /* Placeholder icon for camera unavailable */
 const CameraPlaceholderIcon = () => (
-  <svg className="size-12 text-slate-400" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className="size-12 text-media-muted" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     {/* Phone outline */}
     <rect x="14" y="4" width="20" height="36" rx="3" />
     {/* Screen */}
@@ -27,7 +28,7 @@ const CameraPlaceholderIcon = () => (
   </svg>
 );
 
-export default function VdoNinjaCamera({ embedUrl, onStatus }: VdoNinjaCameraProps) {
+export default function VdoNinjaCamera({ embedUrl, onStatus, onLoad }: VdoNinjaCameraProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
   const origins = useMemo(configuredOrigins, []);
@@ -63,16 +64,16 @@ export default function VdoNinjaCamera({ embedUrl, onStatus }: VdoNinjaCameraPro
 
   if (!safeUrl) {
     return (
-      <div className="flex min-h-64 w-full flex-col items-center justify-center gap-2 rounded-xl bg-slate-950 p-6 text-center text-slate-300">
+      <div className="flex min-h-64 w-full flex-col items-center justify-center gap-2 rounded-xl bg-media-background p-6 text-center text-media-muted">
         <CameraPlaceholderIcon />
-        <strong className="mt-2 text-white">Vista del teléfono no disponible</strong>
-        <span className="max-w-sm text-sm text-slate-400">La sesión VDO.Ninja no proporcionó una URL compatible.</span>
+        <strong className="mt-2 text-media-foreground">Vista del teléfono no disponible</strong>
+        <span className="max-w-sm text-sm text-media-muted">La sesión VDO.Ninja no proporcionó una URL compatible.</span>
       </div>
     );
   }
 
   return (
-    <div className="vdo-frame relative flex min-h-64 h-full w-full items-center justify-center overflow-hidden bg-slate-950">
+    <div className="vdo-frame relative flex min-h-64 h-full w-full items-center justify-center overflow-hidden bg-media-background">
       <div className="hud-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="hud-corner hud-corner--tl" />
         <div className="hud-corner hud-corner--tr" />
@@ -86,8 +87,9 @@ export default function VdoNinjaCamera({ embedUrl, onStatus }: VdoNinjaCameraPro
         title="Vista de cámara VDO.Ninja"
         allow="camera; microphone; autoplay; fullscreen; display-capture"
         referrerPolicy="no-referrer"
+        onLoad={onLoad}
       />
-      <span className="media-mode absolute bottom-3 right-3 rounded-lg bg-black/60 px-2.5 py-1.5 text-[11px] font-medium text-white/80 backdrop-blur">VDO.Ninja · {lastEvent ?? "Esperando evento"}</span>
+      <span className="media-mode absolute bottom-3 right-3 rounded-lg bg-overlay px-2.5 py-1.5 text-[11px] font-medium text-media-foreground/80 backdrop-blur">VDO.Ninja · {lastEvent ?? "Esperando evento"}</span>
     </div>
   );
 }

@@ -83,6 +83,10 @@ services:
       # Keep RTMP local by default. Change the bind deliberately only when a
       # remote OBS publisher and firewall/auth controls have been validated.
       - "${MEDIAMTX_RTMP_PORT_BIND:-127.0.0.1:1935}:1935"
+      # Loopback listeners support the documented local frontend/API workflow.
+      # Public production playback continues through nginx at /media.
+      - "${MEDIAMTX_HLS_PORT_BIND:-127.0.0.1:8888}:8888"
+      - "${MEDIAMTX_WEBRTC_TCP_PORT_BIND:-127.0.0.1:8889}:8889"
       - "${MEDIAMTX_WEBRTC_UDP_PORT_BIND:-0.0.0.0:8189}:8189/udp"
     read_only: true
     tmpfs:
@@ -90,7 +94,9 @@ services:
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
-    networks: [backend]
+    # edge is required for Docker to materialize the explicitly declared host
+    # port bindings; backend remains the isolated path to the API.
+    networks: [edge, backend]
     depends_on:
       api:
         condition: service_healthy

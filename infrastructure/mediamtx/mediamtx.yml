@@ -39,6 +39,8 @@ hlsVariant: lowLatency
 hlsAlwaysRemux: false
 hlsAllowOrigins:
   - https://*
+  - http://127.0.0.1:*
+  - http://localhost:*
 
 webrtc: true
 webrtcAddress: :8889
@@ -51,6 +53,8 @@ webrtcIPsFromInterfaces: true
 webrtcAdditionalHosts: []
 webrtcAllowOrigins:
   - https://*
+  - http://127.0.0.1:*
+  - http://localhost:*
 
 pathDefaults:
   source: publisher

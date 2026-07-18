@@ -8,12 +8,15 @@ from .database import Database
 from .telemetry import telemetry_snapshot
 
 
-def prediction_view(record: dict[str, Any] | None) -> dict[str, Any] | None:
+def prediction_view(
+    record: dict[str, Any] | None, registry: Any | None = None
+) -> dict[str, Any] | None:
     if not record:
         return None
     result = record.get("result") or {}
-    return {
-        "status": record.get("status"),
+    stored_status = record.get("status")
+    view = {
+        "status": stored_status,
         "model_role": record.get("model_role"),
         "model_version": record.get("model_version"),
         "probability_downgrade_needed": result.get("probability_downgrade_needed"),
@@ -21,6 +24,24 @@ def prediction_view(record: dict[str, Any] | None) -> dict[str, Any] | None:
         "reason": record.get("blocked_reason"),
         "created_at": record.get("created_at"),
     }
+    role = record.get("model_role")
+    if registry is not None and role in registry.contracts:
+        contract = registry.contracts[role]
+        available = stored_status in {"available", "executed"}
+        view["features"] = [
+            {
+                "name": name,
+                "state": "available" if available else "missing",
+                "unit": contract.get("feature_metadata", {}).get(name, {}).get("unit"),
+                "reason": (
+                    "Variable validada y utilizada por la inferencia oficial."
+                    if available
+                    else record.get("blocked_reason") or "La variable todavía no cumple el contrato del modelo."
+                ),
+            }
+            for name in contract["features"]
+        ]
+    return view
 
 
 class SessionStore:
@@ -38,7 +59,11 @@ class SessionStore:
         if raw_telemetry and raw_telemetry.get("network") and agent_state:
             raw_telemetry["network"]["current_profile"] = agent_state.get("current_profile")
         session["telemetry"] = telemetry_snapshot(raw_telemetry, self.registry)
-        session["latest_prediction"] = prediction_view(predictions[0] if predictions else None)
-        session["recent_predictions"] = [prediction_view(item) for item in predictions]
+        session["latest_prediction"] = prediction_view(
+            predictions[0] if predictions else None, self.registry
+        )
+        session["recent_predictions"] = [
+            prediction_view(item, self.registry) for item in predictions
+        ]
         session["agent_decision"] = self.database.latest_agent_decision(user_id, session_id)
         return session

@@ -24,7 +24,7 @@ async def _blocked(
         blocked_reason=INSUFFICIENT_DATA, input_fingerprint=fingerprint,
     )
     await request.app.state.websocket_hub.publish(
-        session_id, {"type": "prediction", "session_id": session_id, "prediction": prediction_view(record)}
+        session_id, {"type": "prediction", "session_id": session_id, "prediction": prediction_view(record, request.app.state.registry)}
     )
     return JSONResponse(status_code=422, content={"message": INSUFFICIENT_DATA, "details": details})
 
@@ -38,7 +38,7 @@ async def _executed(
         blocked_reason=None, input_fingerprint=fingerprint,
     )
     await request.app.state.websocket_hub.publish(
-        session_id, {"type": "prediction", "session_id": session_id, "prediction": prediction_view(record)}
+        session_id, {"type": "prediction", "session_id": session_id, "prediction": prediction_view(record, request.app.state.registry)}
     )
     return record
 

@@ -49,6 +49,12 @@ export default function App() {
     const response = await api.login(email, password);
     setAuthenticated(true);
     setUser(response.user ?? { email });
+    try {
+      const settings = await api.getSettings();
+      document.documentElement.classList.toggle("dark", settings.preferences.dark_mode);
+    } catch {
+      // El inicio de sesión no debe fallar si las preferencias aún no están disponibles.
+    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -80,10 +86,16 @@ export default function App() {
   useEffect(() => {
     let active = true;
     void api.me()
-      .then((response) => {
+      .then(async (response) => {
         if (!active) return;
         setAuthenticated(true);
         setUser(response.user ?? null);
+        try {
+          const settings = await api.getSettings();
+          if (active) document.documentElement.classList.toggle("dark", settings.preferences.dark_mode);
+        } catch {
+          // Se conserva el tema seguro predeterminado si no se pueden leer las preferencias.
+        }
       })
       .catch(() => {
         if (!active) return;

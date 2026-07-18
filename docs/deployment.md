@@ -80,9 +80,16 @@ source. The deployment does not train, overwrite or regenerate model artifacts.
 
 The public entry point is nginx on HTTPS/WSS. The API database uses a persistent
 Docker volume, while the MediaMTX control API and metrics listeners have no host
-port. RTMP is bound to host loopback by default. The API returns a shared
+port. RTMP, direct HLS and direct WHEP listeners are bound to host loopback by
+default (`1935`, `8888` and `8889`) for local diagnostics; do not change them to
+public interfaces. MediaMTX also joins the edge network so Docker materializes
+those explicit bindings, while the API remains isolated on the backend network. The API returns a shared
 `https://<host>/media/` base: WHEP/WHIP resources route to WebRTC and playlists
 or segments route to HLS.
+
+The deployment assistant validates the TLS certificate and private key as a
+matching PEM pair before Compose is allowed to start, preventing nginx restart
+loops caused by placeholder or mismatched files.
 
 Media paths are opaque identifiers returned by the authenticated session API:
 

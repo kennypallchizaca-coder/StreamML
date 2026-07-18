@@ -20,3 +20,6 @@ streamml-setup = "streamml_connector.setup_ui:cli"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["streamml_connector*"]
+
+[tool.setuptools.package-data]
+streamml_connector = ["setup.css"]

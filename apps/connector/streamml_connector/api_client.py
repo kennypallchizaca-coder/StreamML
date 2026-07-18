@@ -15,6 +15,14 @@ from .secrets import ConnectorCredentials
 class ApiClientError(RuntimeError):
     """Sanitized API failure that never includes response bodies or secrets."""
 
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+    @property
+    def authentication_failed(self) -> bool:
+        return self.status_code in {401, 403}
+
 
 @dataclass(frozen=True, slots=True)
 class TelemetryReceipt:
@@ -168,7 +176,10 @@ class StreamMLApiClient:
         if response.is_redirect:
             raise ApiClientError("The StreamML API unexpectedly returned a redirect.")
         if response.status_code >= 400:
-            raise ApiClientError(f"The StreamML API returned HTTP {response.status_code}.")
+            raise ApiClientError(
+                f"The StreamML API returned HTTP {response.status_code}.",
+                status_code=response.status_code,
+            )
         return response
 
     @staticmethod

@@ -73,6 +73,8 @@ def telemetry_snapshot(record: dict[str, Any] | None, registry: Any) -> dict[str
         "phone_status": None,
         "obs_status": obs_status,
         "mediamtx_status": None,
+        "stream_active": metrics.get("stream_active"),
+        "stream_reconnecting": metrics.get("stream_reconnecting"),
         "bitrate_kbps": metrics.get("output_bitrate_kbps"),
         "fps": metrics.get("active_fps"),
         "dropped_frames": metrics.get("output_skipped_frames"),

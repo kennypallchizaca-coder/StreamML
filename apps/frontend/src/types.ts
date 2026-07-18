@@ -24,6 +24,8 @@ export interface TelemetrySnapshot {
   phone_status?: string | null;
   obs_status?: string | null;
   mediamtx_status?: string | null;
+  stream_active?: boolean | null;
+  stream_reconnecting?: boolean | null;
   bitrate_kbps?: number | null;
   fps?: number | null;
   dropped_frames?: number | null;
@@ -49,7 +51,7 @@ export interface AgentDecision {
 }
 
 export interface PredictionSnapshot {
-  status?: "available" | "blocked" | "pending" | string;
+  status?: "available" | "executed" | "blocked" | "pending" | string;
   model_role?: "reactive" | "predictive" | string;
   model_version?: string | null;
   degradation_probability?: number | null;
@@ -92,6 +94,7 @@ export interface StreamSession {
   updated_at?: string | null;
   telemetry?: TelemetrySnapshot | null;
   latest_prediction?: PredictionSnapshot | null;
+  recent_predictions?: PredictionSnapshot[];
   agent_decision?: AgentDecision | null;
   stream?: VideoEndpoints | null;
   vdo_ninja?: VdoNinjaSession | null;
@@ -178,6 +181,7 @@ export interface SessionSocketMessage {
   session_id?: string;
   telemetry?: TelemetrySnapshot;
   prediction?: PredictionSnapshot;
+  predictions?: PredictionSnapshot[];
   agent_decision?: AgentDecision;
   stream?: VideoEndpoints;
   session?: StreamSession;

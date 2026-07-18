@@ -1,13 +1,79 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  Activity,
+  ArrowUpRight,
+  Bell,
+  BrainCircuit,
+  CheckCircle2,
+  ChevronRight,
+  CircleDot,
+  Clock3,
+  ExternalLink,
+  History,
+  LoaderCircle,
+  Radio,
+  Settings2,
+  ShieldCheck,
+  Video,
+} from "@/components/icons";
 import { api, normalizeSessions } from "../api";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
-import { Radio, Clock, Activity, ChevronRight, ExternalLink, Settings2, Video } from "lucide-react";
-import type { StreamSession } from "../types";
 import { useAuth } from "../App";
 import PageHeader from "../components/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import type { StreamSession } from "../types";
+import { isSessionLive, sessionStateLabel } from "../lib/sessionPresentation";
+
+function formatDate(value?: string | null, compact = false) {
+  if (!value) return "No disponible";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No disponible";
+  return date.toLocaleString("es-EC", compact
+    ? { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }
+    : { dateStyle: "medium", timeStyle: "short" });
+}
+
+function localSetupUrl() {
+  const theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+  return `http://127.0.0.1:8765/?theme=${theme}`;
+}
+
+function StatCard({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  helper: string;
+  icon: typeof Video;
+  tone?: "default" | "success";
+}) {
+  return (
+    <Card className="relative gap-4 overflow-hidden py-5">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1">
+          <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
+          <p className="text-2xl font-semibold tracking-[-0.035em] tabular-nums sm:text-3xl">{value}</p>
+        </div>
+        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${tone === "success" ? "border-success/20 bg-success/10 text-success" : "bg-muted/40 text-muted-foreground"}`}>
+          <Icon className="size-4" />
+        </span>
+      </CardHeader>
+      <CardContent>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {tone === "success" ? <span className="size-1.5 rounded-full bg-success" /> : null}
+          {helper}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -22,188 +88,182 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, []);
 
-  const userName = user?.display_name || user?.email?.split('@')[0] || "Usuario";
-  const recent = sessions?.slice(0, 3) ?? [];
-  const activeSessions = sessions?.filter((session) => ["active", "live", "streaming"].includes(session.status?.toLowerCase() ?? ""));
-
+  const userName = user?.display_name || user?.email?.split("@")[0] || "Usuario";
+  const activeSessions = useMemo(() => sessions?.filter((session) => isSessionLive(session.status)) ?? [], [sessions]);
+  const recent = useMemo(() => sessions?.slice(0, 5) ?? [], [sessions]);
+  const predictionSessions = sessions?.filter((session) => Boolean(session.latest_prediction)) ?? [];
   const lastActivity = sessions?.reduce<string | null>((latest, session) => {
     const candidate = session.updated_at || session.created_at;
     if (!candidate) return latest;
     return !latest || new Date(candidate).getTime() > new Date(latest).getTime() ? candidate : latest;
   }, null);
 
-  const recommendations = recent.map(s => s.latest_prediction?.recommendation).filter(Boolean);
-  const recommendationCounts = recommendations.reduce((acc, recommendation) => {
-    acc[recommendation as string] = (acc[recommendation as string] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const recommendationCounts = predictionSessions.reduce<Record<string, number>>((counts, session) => {
+    const recommendation = session.latest_prediction?.recommendation;
+    if (recommendation) counts[recommendation] = (counts[recommendation] || 0) + 1;
+    return counts;
+  }, {});
   const topRecommendation = Object.keys(recommendationCounts).sort((a, b) => recommendationCounts[b] - recommendationCounts[a])[0];
   const recommendationLabel: Record<string, string> = {
-    maintain: "Mantener perfil",
-    downgrade: "Reducir perfil",
-    downgrade_needed: "Reducir perfil",
-    upgrade: "Aumentar perfil",
+    maintain: "Mantener calidad",
+    downgrade: "Reducir calidad",
+    downgrade_needed: "Reducción anticipada",
+    upgrade: "Aumentar calidad",
   };
 
   return (
     <div className="app-page">
       <PageHeader
-        eyebrow="Panel principal"
-        title={`¡Hola, ${userName}!`}
-        description="Aquí tienes un resumen del estado de tus transmisiones."
-        action={<>
-          <Button variant="outline" size="lg" className="w-full gap-2 sm:w-auto" asChild>
-            <a href="http://127.0.0.1:8765/" target="_blank" rel="noopener noreferrer">
-              <Settings2 className="size-5" />
-              Configurar equipo <ExternalLink className="size-4" />
+        eyebrow="Centro de control"
+        title="Resumen operativo"
+        description={`Hola, ${userName}. Supervisa la actividad, las predicciones y el estado de tu sistema desde un solo lugar.`}
+        action={(
+          <Button variant="outline" className="w-full gap-2 sm:w-auto" asChild>
+            <a href={localSetupUrl()} onClick={(event) => { event.currentTarget.href = localSetupUrl(); }} target="_blank" rel="noopener noreferrer">
+              <Settings2 />Abrir conector<ExternalLink className="size-3.5" />
             </a>
           </Button>
-          <Button size="lg" className="w-full gap-2 sm:w-auto" asChild>
-            <Link to="/sessions/new">
-              <Radio className="size-5" />
-              Iniciar nueva transmisión
-            </Link>
-          </Button>
-        </>}
+        )}
       />
 
-      {error ? <div className="text-sm font-medium text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-lg" role="alert">{error}</div> : null}
+      {error ? (
+        <Alert variant="destructive" role="alert">
+          <AlertTitle>No pudimos actualizar el panel</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transmisiones realizadas</CardTitle>
-            <Video className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sessions ? sessions.length : "--"}</div>
-            <p className="text-xs text-muted-foreground mt-1">En el historial</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Última actividad</CardTitle>
-            <Clock className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{sessions ? (lastActivity ? new Date(lastActivity).toLocaleDateString() : "No disponible") : "--"}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Según la sesión más reciente</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recomendación predominante</CardTitle>
-            <Activity className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-xl font-bold ${topRecommendation ? "text-foreground" : "text-muted-foreground"}`}>
-              {topRecommendation ? (recommendationLabel[topRecommendation] ?? topRecommendation) : "No disponible"}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Entre las últimas sesiones con predicción</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transmisiones activas</CardTitle>
-            <Radio className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeSessions ? activeSessions.length : "--"}</div>
-            <p className="text-xs text-muted-foreground mt-1">En curso ahora mismo</p>
-          </CardContent>
-        </Card>
-      </div>
+      <section aria-label="Indicadores principales" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Transmisiones"
+          value={sessions ? sessions.length : "—"}
+          helper="Sesiones registradas en el historial"
+          icon={Video}
+        />
+        <StatCard
+          label="En vivo ahora"
+          value={sessions ? activeSessions.length : "—"}
+          helper={activeSessions.length ? "Monitorización activa" : "Sin sesiones activas"}
+          icon={Radio}
+          tone={activeSessions.length ? "success" : "default"}
+        />
+        <StatCard
+          label="Sesiones con predicción"
+          value={sessions ? predictionSessions.length : "—"}
+          helper={topRecommendation
+            ? (recommendationLabel[topRecommendation] ?? topRecommendation)
+            : predictionSessions.length ? "Predicción disponible" : "Aún no hay predicciones registradas"}
+          icon={BrainCircuit}
+        />
+        <StatCard
+          label="Última actividad"
+          value={sessions ? (lastActivity ? formatDate(lastActivity, true).split(",")[0] : "Sin datos") : "—"}
+          helper={lastActivity ? formatDate(lastActivity) : "Crea una sesión para comenzar"}
+          icon={Clock3}
+        />
+      </section>
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,0.85fr)]">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/20 pb-4">
-            <div className="space-y-1">
-              <CardTitle>Últimas transmisiones</CardTitle>
-              <CardDescription>Revisa el estado de tus eventos más recientes.</CardDescription>
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(18rem,0.75fr)]">
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 border-b pb-5">
+            <div className="space-y-1.5">
+              <CardTitle>Actividad reciente</CardTitle>
+              <CardDescription>Estado y acceso rápido a las últimas transmisiones.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1" asChild>
-              <Link to="/history">
-                Ver todo <ChevronRight className="size-4" />
-              </Link>
+            <Button variant="ghost" size="sm" className="-mr-2 gap-1 text-muted-foreground" asChild>
+              <Link to="/history">Ver historial<ChevronRight /></Link>
             </Button>
           </CardHeader>
           <CardContent className="p-0">
-            {sessions === null && !error ? <div className="text-sm text-muted-foreground text-center py-8">Cargando...</div> : null}
-            {sessions?.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                <Video className="size-10 text-muted-foreground opacity-50 mb-4" />
-                <h3 className="font-semibold text-lg">Aún no hay transmisiones</h3>
-                <p className="text-sm text-muted-foreground mt-1">Crea tu primera transmisión para comenzar a monitorear la calidad en tiempo real.</p>
-                <Button variant="outline" className="mt-6" asChild><Link to="/sessions/new">Crear transmisión</Link></Button>
+            {sessions === null && !error ? (
+              <div className="flex min-h-64 items-center justify-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+                <LoaderCircle className="size-4 animate-spin" />Cargando actividad…
               </div>
             ) : null}
-            {recent.length > 0 && (
-              <div className="divide-y">
-                {recent.map((session) => (
-                  <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 hover:bg-muted/5 transition-colors">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-base">{session.name || `Transmisión del ${new Date(session.created_at || "").toLocaleDateString()}`}</span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="size-3" />
-                        {session.created_at ? new Date(session.created_at).toLocaleString() : "Fecha no disponible"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 self-end sm:self-auto">
-                      <Badge variant={
-                        ["connected", "online", "active", "streaming", "available", "ready", "vinculado"].includes(session.status?.trim().toLowerCase() ?? "") ? "default" :
-                        ["connecting", "reconnecting", "pending", "stale"].includes(session.status?.trim().toLowerCase() ?? "") ? "secondary" : "outline"
-                      } className={session.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}>
-                        {session.status === "active" ? "En vivo" : "Finalizada"}
-                      </Badge>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={session.status === "active" ? `/sessions/${encodeURIComponent(session.id)}/live` : `/history`}>
-                          {session.status === "active" ? "Monitorear" : "Detalles"}
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+            {sessions?.length === 0 ? (
+              <div className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
+                <span className="mb-4 flex size-12 items-center justify-center rounded-xl border bg-muted/30 text-muted-foreground"><Video className="size-5" /></span>
+                <h3 className="font-medium">Todavía no hay transmisiones</h3>
+                <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Crea la primera sesión para vincular OBS, recibir telemetría y activar las recomendaciones ML.</p>
+                <Button className="mt-5" asChild><Link to="/sessions/new"><Radio />Crear transmisión</Link></Button>
               </div>
-            )}
+            ) : null}
+            {recent.length ? (
+              <div className="divide-y divide-border/70">
+                {recent.map((session) => {
+                  const active = isSessionLive(session.status);
+                  return (
+                    <div key={session.id} className="group flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:px-6">
+                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${active ? "border-success/20 bg-success/10 text-success" : "bg-muted/30 text-muted-foreground"}`}>
+                        {active ? <CircleDot className="size-4" /> : <History className="size-4" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{session.name || "Transmisión sin nombre"}</p>
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Clock3 className="size-3" />{formatDate(session.created_at, true)}
+                          {session.configuration?.platform ? <><span aria-hidden="true">·</span><span className="capitalize">{session.configuration.platform}</span></> : null}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 sm:justify-end">
+                        <Badge variant={active ? "default" : "outline"} className={active ? "border-success/20 bg-success/10 text-success hover:bg-success/15" : "font-normal text-muted-foreground"}>
+                          {sessionStateLabel(session.status)}
+                        </Badge>
+                        <Button variant="ghost" size="icon-sm" asChild aria-label={active ? `Monitorear ${session.name || "transmisión"}` : "Abrir historial"}>
+                          <Link to={active ? `/sessions/${encodeURIComponent(session.id)}/live` : "/history"}><ArrowUpRight /></Link>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Estado de la cuenta</CardTitle>
-            <CardDescription>Resumen de tus servicios.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col gap-4">
-            <div className="p-4 rounded-xl border bg-card flex items-center gap-3">
-              <div className="size-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-                <Activity className="size-5" />
+        <div className="grid content-start gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado del sistema</CardTitle>
+              <CardDescription>Comprobaciones del espacio de trabajo actual.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-1">
+              <div className="flex items-center gap-3 rounded-lg px-2 py-3">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-success/10 text-success"><ShieldCheck className="size-4" /></span>
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium">Acceso seguro</p><p className="text-xs text-muted-foreground">Sesión autenticada</p></div>
+                <CheckCircle2 className="size-4 text-success" />
               </div>
-              <div>
-                <div className="font-medium">Sesión autenticada</div>
-                <div className="text-xs text-muted-foreground">Panel y servicios de cuenta disponibles</div>
+              <div className="flex items-center gap-3 rounded-lg px-2 py-3">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><Activity className="size-4" /></span>
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium">Datos operativos</p><p className="text-xs text-muted-foreground">{sessions?.length ? `${sessions.length} sesiones disponibles` : "Esperando la primera sesión"}</p></div>
+                <span className={`size-2 rounded-full ${sessions?.length ? "bg-success" : "bg-muted-foreground/40"}`} />
               </div>
-            </div>
-            
-            {activeSessions && activeSessions.length > 0 ? (
-              <div className="p-4 rounded-xl border bg-primary/5 border-primary/20 flex flex-col gap-2">
-                <div className="font-medium text-primary">Tienes un evento en vivo</div>
-                <Button size="sm" className="w-full" asChild>
-                  <Link to={`/sessions/${encodeURIComponent(activeSessions[0].id)}/live`}>
-                    Ir a transmisión
-                  </Link>
-                </Button>
+              <div className="flex items-center gap-3 rounded-lg px-2 py-3">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-prediction/10 text-prediction"><BrainCircuit className="size-4" /></span>
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium">Predicción ML</p><p className="text-xs text-muted-foreground">{predictionSessions.length ? "Decisiones registradas" : "Sin predicciones recientes"}</p></div>
+                <span className={`size-2 rounded-full ${predictionSessions.length ? "bg-success" : "bg-muted-foreground/40"}`} />
               </div>
-            ) : (
-              <div className="p-4 rounded-xl border bg-muted/20 text-center flex-1 flex flex-col justify-center items-center">
-                <span className="text-sm text-muted-foreground">No tienes transmisiones activas en este momento.</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Acciones rápidas</CardTitle>
+              <CardDescription>Continúa con las tareas más frecuentes.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
+                <Link to="/sessions/new"><Radio className="text-primary" /><span className="flex-1 text-left"><span className="block text-sm">Nueva transmisión</span><span className="block text-xs font-normal text-muted-foreground">Prepara un evento</span></span><ChevronRight /></Link>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
+                <Link to="/models"><BrainCircuit className="text-prediction" /><span className="flex-1 text-left"><span className="block text-sm">Revisar modelos</span><span className="block text-xs font-normal text-muted-foreground">Métricas y versiones</span></span><ChevronRight /></Link>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
+                <Link to="/alerts"><Bell className="text-warning" /><span className="flex-1 text-left"><span className="block text-sm">Ver alertas</span><span className="block text-xs font-normal text-muted-foreground">Eventos de calidad</span></span><ChevronRight /></Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

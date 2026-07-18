@@ -153,52 +153,76 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
         last_network: NetworkMeasurement | None = None
         next_network_probe_at = 0.0
         next_settings_refresh_at = 0.0
+        api_delay = config.reconnect_initial_seconds
 
         while True:
             try:
                 obs_client.connect(obs_password)
                 LOGGER.info("Connected to local authenticated OBS WebSocket.")
                 delay = config.reconnect_initial_seconds
+                next_sample_at = time.monotonic()
                 while True:
                     snapshot = obs_client.collect()
                     now = time.monotonic()
-                    if now >= next_settings_refresh_at:
-                        remote_settings = api.connector_settings(credentials)
-                        _apply_runtime_settings(obs_client, remote_settings)
-                        if remote_settings.network_probe_bytes != network_probe.payload_bytes:
-                            network_probe = NetworkProbe(api, credentials, remote_settings.network_probe_bytes)
-                        network_probe_interval = remote_settings.network_probe_interval_seconds
-                        next_settings_refresh_at = now + 30.0
-                    if now >= next_network_probe_at:
-                        measured = network_probe.measure()
-                        if measured is not None:
-                            last_network = measured
-                        next_network_probe_at = now + network_probe_interval
-                    payload = _telemetry_payload(
-                        config, credentials, snapshot, sequence, last_network
-                    )
-                    api.send_telemetry(credentials, payload)
-                    command = api.next_command(credentials)
-                    if command is not None:
-                        try:
-                            obs_client.apply_command(command)
-                        except Exception as exc:
-                            api.acknowledge_command(
-                                credentials,
-                                str(command["id"]),
-                                success=False,
-                                error_message=type(exc).__name__,
+                    try:
+                        if now >= next_settings_refresh_at:
+                            remote_settings = api.connector_settings(credentials)
+                            _apply_runtime_settings(obs_client, remote_settings)
+                            if remote_settings.network_probe_bytes != network_probe.payload_bytes:
+                                network_probe = NetworkProbe(api, credentials, remote_settings.network_probe_bytes)
+                            network_probe_interval = remote_settings.network_probe_interval_seconds
+                            next_settings_refresh_at = now + 30.0
+                        if now >= next_network_probe_at:
+                            measured = network_probe.measure()
+                            if measured is not None:
+                                last_network = measured
+                            next_network_probe_at = now + network_probe_interval
+                        payload = _telemetry_payload(
+                            config, credentials, snapshot, sequence, last_network
+                        )
+                        api.send_telemetry(credentials, payload)
+                        command = api.next_command(credentials)
+                        if command is not None:
+                            try:
+                                obs_client.apply_command(command)
+                            except Exception as exc:
+                                api.acknowledge_command(
+                                    credentials,
+                                    str(command["id"]),
+                                    success=False,
+                                    error_message=type(exc).__name__,
+                                )
+                                LOGGER.error("OBS rejected a StreamML control command (%s).", type(exc).__name__)
+                            else:
+                                api.acknowledge_command(
+                                    credentials, str(command["id"]), success=True
+                                )
+                                LOGGER.info("Applied StreamML control command %s.", command.get("command_type"))
+                    except ApiClientError as exc:
+                        if exc.authentication_failed:
+                            LOGGER.error(
+                                "The connector token is no longer authorized. Generate a new pairing code "
+                                "and save it in the StreamML local assistant."
                             )
-                            LOGGER.error("OBS rejected a StreamML control command (%s).", type(exc).__name__)
-                        else:
-                            api.acknowledge_command(
-                                credentials, str(command["id"]), success=True
-                            )
-                            LOGGER.info("Applied StreamML control command %s.", command.get("command_type"))
+                            return 3
+                        LOGGER.warning(
+                            "StreamML API unavailable; OBS remains connected and telemetry will retry."
+                        )
+                        if once:
+                            return 2
+                        time.sleep(min(config.reconnect_max_seconds, api_delay))
+                        api_delay = min(config.reconnect_max_seconds, api_delay * 2.0)
+                        continue
+                    api_delay = config.reconnect_initial_seconds
                     sequence += 1
                     if once:
                         return 0
-                    time.sleep(config.poll_interval_seconds)
+                    next_sample_at += config.poll_interval_seconds
+                    remaining = next_sample_at - time.monotonic()
+                    if remaining > 0:
+                        time.sleep(remaining)
+                    elif remaining < -config.poll_interval_seconds:
+                        next_sample_at = time.monotonic()
             except KeyboardInterrupt:
                 LOGGER.info("Connector stopped by the operator.")
                 return 0
