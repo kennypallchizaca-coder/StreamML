@@ -42,10 +42,10 @@ controles activos importan ahora el paquete `radix-ui` ya utilizado por el
 sistema de componentes. No se eliminaron modelos, datasets, migraciones,
 scripts operativos ni funcionalidades activas.
 
-En la limpieza final se retiraron además `sidebar.tsx`, `sheet.tsx` y
-`skeleton.tsx`: el sidebar de la plantilla no tenía consumidores, el sheet solo
-era importado por ese sidebar y el skeleton tampoco tenía referencias. El menú
-desplegable se conserva porque forma parte activa de `AppShell`.
+En la limpieza final se retiró además `skeleton.tsx`, que no tenía referencias.
+`sidebar.tsx` y `sheet.tsx` se conservan porque forman parte activa de la
+navegación adaptable utilizada por `AppShell`; el menú desplegable también se
+mantiene por ser funcionalidad en uso.
 
 ## Evidencia funcional
 
