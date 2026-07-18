@@ -33,11 +33,26 @@ class InferenceEngine:
         with self._lock:
             prediction = str(model.predict(frame)[0])
             probabilities = model.predict_proba(frame)[0]
+        probability_by_label = {
+            str(label): float(probability)
+            for label, probability in zip(model.classes_, probabilities, strict=True)
+        }
+        confidence = probability_by_label[prediction]
         return {
             "prediction": prediction,
-            "probabilities": {
-                str(label): float(probability)
-                for label, probability in zip(model.classes_, probabilities, strict=True)
+            "probabilities": probability_by_label,
+            "explanation": (
+                f"El modelo recomienda {prediction} con {confidence:.0%} de confianza. "
+                f"Observó {values['upload_mbps']:.2f} Mbps de subida, "
+                f"{values['download_mbps']:.2f} Mbps de descarga y "
+                f"{values['latency_ms']:.1f} ms de latencia."
+            ),
+            "evidence": {
+                "confidence": confidence,
+                "upload_mbps": values["upload_mbps"],
+                "download_mbps": values["download_mbps"],
+                "latency_ms": values["latency_ms"],
+                "interpretation": "observed_inputs_not_causal_attribution",
             },
         }
 
@@ -54,9 +69,33 @@ class InferenceEngine:
             probabilities = model.predict_proba(frame)[0]
         probability = float(probabilities[classes.index(positive_code)])
         decision = "downgrade_needed" if probability >= self.registry.threshold else "maintain"
+        profile_name = {1: "low", 2: "medium", 3: "high"}[current_profile]
+        below_key = {
+            1: "proportion_below_low",
+            2: "proportion_below_medium",
+            3: "proportion_below_high",
+        }[current_profile]
+        below_required = float(row[below_key])
+        relation = "alcanza o supera" if probability >= self.registry.threshold else "no alcanza"
         return {
             "decision": decision,
             "probability_downgrade_needed": probability,
             "probability_maintain": 1.0 - probability,
             "threshold": self.registry.threshold,
+            "explanation": (
+                f"El riesgo estimado es {probability:.0%} y {relation} el umbral de "
+                f"{self.registry.threshold:.0%} para el perfil {profile_name}. "
+                f"El percentil 10 fue {float(row['throughput_p10']):.2f} Mbps, "
+                f"la capacidad requerida {float(row['required_capacity_mbps']):.2f} Mbps "
+                f"y {below_required:.0%} de la ventana estuvo por debajo de esa capacidad."
+            ),
+            "evidence": {
+                "current_profile": profile_name,
+                "threshold": self.registry.threshold,
+                "throughput_p10_mbps": float(row["throughput_p10"]),
+                "throughput_slope_mbps_per_second": float(row["throughput_slope"]),
+                "required_capacity_mbps": float(row["required_capacity_mbps"]),
+                "proportion_below_required": below_required,
+                "interpretation": "observed_window_summary_not_causal_attribution",
+            },
         }

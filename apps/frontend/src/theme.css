@@ -27,6 +27,8 @@
   --info: var(--primary);
   --info-foreground: var(--primary-foreground);
   --prediction: oklch(0.58 0.18 303);
+  --agent: oklch(0.62 0.16 224);
+  --agent-surface: oklch(0.96 0.025 230);
   --media-background: oklch(0.1 0.02 264);
   --media-foreground: oklch(0.97 0.005 258);
   --media-muted: oklch(0.72 0.025 258);
@@ -81,6 +83,8 @@
   --info: var(--primary);
   --info-foreground: var(--primary-foreground);
   --prediction: oklch(0.75 0.14 303);
+  --agent: oklch(0.79 0.13 213);
+  --agent-surface: oklch(0.19 0.04 235);
   --media-background: oklch(0.075 0.018 264);
   --media-foreground: oklch(0.97 0.005 258);
   --media-muted: oklch(0.7 0.025 258);

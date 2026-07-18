@@ -29,6 +29,8 @@ El registro oficial comprueba hashes, versiones de librerías, contratos y clase
 
 Las acciones de ML no llegan directamente a OBS. El agente determinista aplica margen de seguridad, histéresis, cambios de un solo nivel, tiempo mínimo entre cambios y recuperación estable. El conector solo acepta comandos autenticados y de tipos permitidos: perfil, escena de respaldo y restauración del vivo.
 
+Cada decisión conserva un `reason_code` estable y un estado operacional (`stable`, `observing`, `protecting`, `degraded`, `backup` o `recovering`). Esto permite distinguir la recomendación de cada modelo de la política final aplicada y auditar por qué se mantuvo, redujo, aumentó o cambió de escena. Las inferencias exponen únicamente resúmenes de sus entradas validadas como evidencia observada; no se presentan como explicaciones causales.
+
 El modelo predictivo exige 600 puntos a 1 Hz. La cadencia real incluye el tiempo de las solicitudes y puede quedar ligeramente por encima de un segundo; la orquestación toma una ventana continua de mediciones reales, rechaza huecos mayores de dos segundos y aplica interpolación lineal únicamente dentro del intervalo observado para normalizarla a la cuadrícula del contrato. No extrapola valores fuera de datos medidos.
 
 Un error de autorización de la API se trata de forma distinta a una caída de OBS: el conector se detiene con un mensaje de revinculación y no abre conexiones WebSocket repetidas. Los fallos transitorios de API conservan la conexión local con OBS y aplican reintento con backoff.
@@ -36,3 +38,11 @@ Un error de autorización de la API se trata de forma distinta a una caída de O
 ## Observabilidad y cierre
 
 La API emite JSON estructurado con identificador de solicitud, latencia y valores sensibles redactados. nginx excluye parámetros de consulta de sus registros. Uvicorn, los workers y los contenedores tienen periodos de cierre; el hub WebSocket libera sus suscriptores al finalizar.
+
+## Evidencia ML y criterio de aceptación
+
+`scripts/audit_ml_data.py` detecta valores faltantes, variables constantes, desbalance, duplicados, solapamiento de ventanas y repetición de vectores entre splits. `scripts/evaluate_control_replay.py` compara un perfil fijo, control solo reactivo y el agente completo mediante un proxy QoE orientado primero a continuidad. Ambos informes se versionan en `reports/` y CI falla si están desactualizados.
+
+El replay determinista incluido prueba regresiones de la política, pero no demuestra QoE real. La aceptación física exige sesiones nuevas e independientes, con teléfono, VDO.Ninja, OBS, red degradada y destino real; esas capturas deben evaluarse después con el mismo formato de replay.
+
+Los cuatro notebooks reflejan la misma separación de responsabilidades. `01` audita y prepara datos, `02` reproduce la publicación oficial, `03` demuestra inferencia y control, y `04` entrena candidatos en un espacio temporal antes de integrarlos con el agente. El último notebook no presenta al agente como un modelo entrenado: documenta que los clasificadores aprenden de datos y que la política operacional es código determinista, versionado y probado.

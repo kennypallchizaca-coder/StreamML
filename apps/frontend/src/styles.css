@@ -41,6 +41,7 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-prediction: var(--prediction);
+  --color-agent: var(--agent);
   --color-media-background: var(--media-background);
   --color-media-foreground: var(--media-foreground);
   --color-media-muted: var(--media-muted);
@@ -112,6 +113,7 @@
     gap: 1rem;
   }
 
+  .section-heading h2,
   .section-heading h3 {
     font-size: 1rem;
     line-height: 1.5rem;
@@ -127,6 +129,61 @@
     padding: 1rem;
   }
 
+  .disclosure-card {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+
+  .disclosure-card > summary {
+    display: flex;
+    min-height: 4rem;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    transition: background-color 150ms ease;
+  }
+
+  .disclosure-card > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .disclosure-card > summary:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+
+  .disclosure-card > summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .disclosure-card > summary::after {
+    content: "+";
+    color: var(--muted-foreground);
+    font-size: 1.25rem;
+    font-weight: 400;
+  }
+
+  .disclosure-card[open] > summary::after {
+    content: "−";
+  }
+
+  .disclosure-card > summary small {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .model-evidence {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 52rem;
+  }
+
   .empty-state-panel {
     display: flex;
     min-height: 11rem;
@@ -139,6 +196,103 @@
     padding: 1.5rem;
     text-align: center;
     color: var(--muted-foreground);
+  }
+
+  .agent-card {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .agent-card::after {
+    position: absolute;
+    inset: 0 0 auto auto;
+    z-index: -1;
+    width: 12rem;
+    height: 12rem;
+    content: "";
+    background: radial-gradient(circle at top right, color-mix(in oklab, var(--agent) 12%, transparent), transparent 70%);
+    pointer-events: none;
+  }
+
+  .nexa-mascot {
+    --nexa-mood: var(--agent);
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    overflow: visible;
+    isolation: isolate;
+  }
+
+  .nexa-mascot::before {
+    position: absolute;
+    inset: 12%;
+    z-index: -2;
+    content: "";
+    border-radius: 50%;
+    background: transparent;
+  }
+
+  .nexa-mascot img {
+    z-index: 1;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    user-select: none;
+    animation: nexa-float 4.8s ease-in-out infinite;
+  }
+
+  .nexa-signal {
+    position: absolute;
+    inset: 10%;
+    z-index: -1;
+    display: none;
+  }
+
+  .nexa-mascot-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .nexa-mascot-mark::before {
+    inset: 8%;
+  }
+
+  .nexa-mascot-mark img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .nexa-mascot-compact {
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  .nexa-mascot-hero {
+    width: 7rem;
+    height: 7rem;
+  }
+
+  .nexa-mood-stable { --nexa-mood: var(--success); }
+  .nexa-mood-protecting,
+  .nexa-mood-attention { --nexa-mood: var(--warning); }
+  .nexa-mood-backup { --nexa-mood: var(--prediction); }
+  .nexa-mood-recovering { --nexa-mood: var(--primary); }
+  .nexa-mood-waiting { --nexa-mood: var(--muted-foreground); }
+
+  .nexa-visual-thinking img { animation: nexa-think 3.2s ease-in-out infinite; }
+  .nexa-visual-working img { animation: nexa-work 2.4s ease-in-out infinite; }
+  .nexa-visual-success img { animation: nexa-success 600ms ease-out both, nexa-float 4.8s 600ms ease-in-out infinite; }
+  .nexa-visual-error img { animation: nexa-alert 1.4s ease-in-out 3; }
+
+  .nexa-mood-protecting .nexa-signal,
+  .nexa-mood-backup .nexa-signal,
+  .nexa-mood-recovering .nexa-signal {
+    animation: nexa-scan 1.8s ease-out infinite;
   }
 }
 
@@ -190,6 +344,44 @@
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@keyframes nexa-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes nexa-scan {
+  0% { opacity: 0.8; transform: scale(0.9); }
+  75%, 100% { opacity: 0; transform: scale(1.08); }
+}
+
+@keyframes nexa-think {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes nexa-work {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes nexa-success {
+  0% { opacity: 0; transform: translateY(3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nexa-alert {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(-1px); }
+  65% { transform: translateX(1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexa-mascot img,
+  .nexa-mascot .nexa-signal {
+    animation: none;
   }
 }
 

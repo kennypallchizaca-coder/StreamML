@@ -45,6 +45,8 @@ export interface AgentDecision {
   target_profile?: string | null;
   backup_active?: boolean;
   reason?: string | null;
+  reason_code?: string | null;
+  operational_state?: "stable" | "observing" | "protecting" | "degraded" | "backup" | "recovering" | string;
   apply_profile?: boolean;
   apply_backup?: boolean;
   updated_at?: string | null;
@@ -58,6 +60,7 @@ export interface PredictionSnapshot {
   probability_downgrade_needed?: number | null;
   recommendation?: string | null;
   reason?: string | null;
+  evidence?: Record<string, string | number | boolean | null> | null;
   created_at?: string | null;
   features?: FeatureAvailability[];
 }
@@ -126,6 +129,40 @@ export interface ModelSummary {
   classes?: string[];
   metrics?: Record<string, unknown>;
   status?: string;
+  official_release?: boolean;
+  trained_at?: string | null;
+  split_method?: string | null;
+  split_counts?: Record<string, number> | null;
+  dataset?: Record<string, unknown> | null;
+  validation?: ModelMetricSummary | null;
+  test?: ModelMetricSummary | null;
+  baseline?: { model?: string; test?: ModelMetricSummary | null } | null;
+  generalization_gap?: number | null;
+  improvement_over_baseline_macro_f1?: number | null;
+  model_comparison?: Record<string, ModelComparisonSummary> | null;
+  feature_importance?: Array<{ feature: string; importance: number }> | null;
+  limitations?: string[];
+  lookback_seconds?: number | null;
+  future_horizon_seconds?: number | null;
+}
+
+export interface ModelMetricSummary {
+  accuracy?: number | null;
+  balanced_accuracy?: number | null;
+  macro_f1?: number | null;
+  precision_by_class?: Record<string, number>;
+  recall_by_class?: Record<string, number>;
+  f1_by_class?: Record<string, number>;
+  support_by_class?: Record<string, number>;
+  confusion_matrix?: number[][];
+  pr_auc?: number | null;
+  roc_auc?: number | null;
+}
+
+export interface ModelComparisonSummary {
+  best_parameters?: Record<string, unknown> | null;
+  train_groupkfold_macro_f1?: number | null;
+  validation?: Pick<ModelMetricSummary, "accuracy" | "balanced_accuracy" | "macro_f1">;
 }
 
 export interface ModelsResponse {

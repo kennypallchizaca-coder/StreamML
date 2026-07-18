@@ -52,6 +52,12 @@ jobs:
       - name: Run model inference demo
         run: python scripts/demo_models.py
 
+      - name: Rebuild ML evidence reports
+        run: python scripts/audit_ml_data.py && python scripts/evaluate_control_replay.py
+
+      - name: Verify committed ML evidence is current
+        run: git diff --exit-code -- reports/ml_data_quality.json reports/ml_data_quality.md reports/control_replay.json reports/control_replay.md
+
       - name: Build connector wheel
         run: python -m pip wheel --no-deps --wheel-dir dist/connector apps/connector
 

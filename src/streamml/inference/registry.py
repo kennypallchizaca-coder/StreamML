@@ -128,6 +128,8 @@ class OfficialModelRegistry:
         for role in ("reactive", "predictive"):
             release_model = self.release[f"{role}_model"]
             contract = self.contracts[role]
+            metrics = self.metrics[role]
+            training = self.training_manifests[role]
             public_feature_metadata = None
             if contract.get("feature_metadata"):
                 public_fields = {"definition", "unit", "training_source", "formula", "availability"}
@@ -152,6 +154,32 @@ class OfficialModelRegistry:
                 "validation": release_model.get("validation"),
                 "test": release_model.get("test"),
                 "baseline": release_model.get("baseline"),
+                "dataset": metrics.get("dataset"),
+                "trained_at": training.get("created_at_utc"),
+                "split_method": training.get("split_method"),
+                "split_counts": (
+                    training.get("split_window_counts")
+                    or training.get("split_rows")
+                ),
+                "generalization_gap": metrics.get("generalization_gap"),
+                "improvement_over_baseline_macro_f1": (
+                    metrics.get("improvement_over_dummy_test_macro_f1")
+                    if role == "predictive"
+                    else metrics.get("improvement_over_baseline_test_macro_f1")
+                ),
+                "model_comparison": {
+                    name: {
+                        "best_parameters": values.get("best_parameters"),
+                        "train_groupkfold_macro_f1": values.get("train_groupkfold_macro_f1"),
+                        "validation": {
+                            key: (values.get("validation") or {}).get(key)
+                            for key in ("macro_f1", "balanced_accuracy", "accuracy")
+                        },
+                    }
+                    for name, values in (metrics.get("model_comparison") or {}).items()
+                },
+                "feature_importance": (metrics.get("feature_importance") or [])[:8],
+                "limitations": self._public_limitations(role),
                 "metrics": {
                     "validation": release_model.get("validation"),
                     "test": release_model.get("test"),
@@ -164,3 +192,18 @@ class OfficialModelRegistry:
                 item["future_horizon_seconds"] = contract["future_horizon_seconds"]
             result.append(item)
         return result
+
+    def _public_limitations(self, role: str) -> list[str]:
+        metrics = self.metrics[role]
+        if role == "reactive":
+            return [
+                "El target es una pseudoetiqueta derivada de reglas de capacidad y latencia.",
+                "Las métricas validan la reproducción de esa regla; la mejora de QoE debe comprobarse con transmisiones físicas.",
+            ]
+        dataset = metrics.get("dataset") or {}
+        sessions = dataset.get("sessions", "un número limitado de")
+        return [
+            f"El dataset público predictivo contiene {sessions} sesiones y requiere más diversidad móvil para generalizar.",
+            "Las ventanas temporales se solapan y no deben interpretarse como observaciones independientes.",
+            "La capacidad de entrenamiento es un proxy del dataset fuente; la validación final debe usar la ruta real del teléfono.",
+        ]

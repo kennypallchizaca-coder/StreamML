@@ -8,7 +8,7 @@ management and GitHub's own secret scanning.
 from __future__ import annotations
 
 import argparse
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
@@ -56,6 +56,11 @@ def scan_worktree(paths: Iterable[str]) -> set[str]:
     findings: set[str] = set()
     for path in paths:
         if _is_binary_path(path):
+            continue
+        # ``git ls-files --cached`` still lists a tracked path that is deleted
+        # in the current worktree. There is no local content to scan, and the
+        # committed version is covered separately by ``scan_history``.
+        if not Path(path).is_file():
             continue
         try:
             with open(path, encoding="utf-8", errors="replace") as source:

@@ -12,9 +12,9 @@ import type {
 } from "./types";
 
 const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim() || "/api/v1";
-export const API_BASE_URL = configuredBase.replace(/\/$/, "");
+const API_BASE_URL = configuredBase.replace(/\/$/, "");
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,

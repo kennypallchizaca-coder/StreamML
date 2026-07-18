@@ -1,6 +1,6 @@
 # Revisión final funcional y técnica
 
-Fecha: 2026-07-17
+Fecha: 2026-07-18
 
 ## Conclusión
 
@@ -42,6 +42,11 @@ controles activos importan ahora el paquete `radix-ui` ya utilizado por el
 sistema de componentes. No se eliminaron modelos, datasets, migraciones,
 scripts operativos ni funcionalidades activas.
 
+En la limpieza final se retiraron además `sidebar.tsx`, `sheet.tsx` y
+`skeleton.tsx`: el sidebar de la plantilla no tenía consumidores, el sheet solo
+era importado por ese sidebar y el skeleton tampoco tenía referencias. El menú
+desplegable se conserva porque forma parte activa de `AppShell`.
+
 ## Evidencia funcional
 
 - La sesión real `KICK2` mostró OBS conectado, salida activa, 30 FPS, bitrate,
@@ -58,17 +63,30 @@ scripts operativos ni funcionalidades activas.
 - El monitor presenta por separado la decisión final del agente, la recomendación
   `low/medium/high` del modelo reactivo y la salida `maintain/downgrade_needed`
   con probabilidad del modelo predictivo, incluidos sus estados y variables.
+- La pantalla Modelos ML presenta conjunto de prueba, baseline, matriz de
+  confusión, algoritmos comparados, importancia de variables y limitaciones.
+- Cada inferencia incluye evidencia observada y cada acción del agente conserva
+  un código de razón y un estado operacional auditables.
+- La navegación eliminó indicadores duplicados, el monitor consolidó la
+  telemetría y los detalles extensos de modelos y variables usan divulgación
+  progresiva. Nexa dispone de cinco poses pixel-art WebP optimizadas y accesibles.
+- La auditoría reproducible detectó 17 sesiones predictivas, 93,87% de filas con
+  vectores repetidos y 100% de solapamiento entre ventanas adyacentes; estas
+  limitaciones quedan visibles en vez de ocultarse detrás de la métrica agregada.
+- En el replay determinista, el agente completo obtuvo 92,53/100 frente a 58,83
+  del perfil fijo y redujo la interrupción proxy de 65 a 3 segundos. Es una
+  prueba de regresión sintética, no evidencia física de QoE.
 
 ## Pruebas ejecutadas
 
 | Verificación | Resultado |
 |---|---|
-| `python -m pytest -q` | 71 aprobadas |
+| `python -m pytest -q` | 76 aprobadas |
 | Ruff | limpio |
 | `compileall` | correcto |
 | release de modelos | `STREAMML RELEASE VERIFIED` |
 | demo de inferencia | reactivo `high`; predictivo `maintain` |
-| frontend Vitest | 12 aprobadas |
+| frontend Vitest | 17 aprobadas |
 | ESLint | limpio, cero advertencias |
 | TypeScript y Vite | compilación correcta |
 | `npm audit --omit=dev` | 0 vulnerabilidades |

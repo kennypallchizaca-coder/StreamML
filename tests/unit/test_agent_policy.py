@@ -23,6 +23,8 @@ def test_predictive_risk_reduces_before_reactive_failure() -> None:
     assert decision.action == "reduce"
     assert decision.target_profile == "medium"
     assert decision.apply_profile is True
+    assert decision.reason_code == "predictive_risk"
+    assert decision.operational_state == "protecting"
     assert state.current_profile == "medium"
 
 
@@ -96,11 +98,15 @@ def test_signal_loss_backup_and_stable_recovery() -> None:
     switched = agent.decide(state, AgentInput(3, False))
     assert switched.action == "switch_to_backup"
     assert switched.apply_backup is True
+    assert switched.reason_code == "signal_loss_confirmed"
+    assert switched.operational_state == "backup"
     assert state.backup_active is True
     assert agent.decide(state, AgentInput(20, True)).action == "maintain_backup"
     restored = agent.decide(state, AgentInput(30, True))
     assert restored.action == "restore_live"
     assert restored.apply_backup is True
+    assert restored.reason_code == "live_signal_stable"
+    assert restored.operational_state == "recovering"
     assert state.backup_active is False
 
 

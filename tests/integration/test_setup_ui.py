@@ -297,13 +297,19 @@ def test_setup_page_accepts_theme_query_and_renders_light_mode(tmp_path: Path):
         assert 'id="theme-toggle"' in response.text
         assert 'href="/theme.css"' in response.text
         assert 'href="/setup.css"' in response.text
+        assert 'href="/favicon.webp?v=2"' in response.text
+        assert '<img src="/favicon.webp?v=2" alt="Nexa">' in response.text
 
         shared_theme = httpx.get(f"http://127.0.0.1:{port}/theme.css", timeout=5)
         local_styles = httpx.get(f"http://127.0.0.1:{port}/setup.css", timeout=5)
+        favicon = httpx.get(f"http://127.0.0.1:{port}/favicon.webp", timeout=5)
         assert shared_theme.status_code == 200
         assert local_styles.status_code == 200
+        assert favicon.status_code == 200
+        assert favicon.headers["content-type"] == "image/webp"
+        assert favicon.content == setup_ui.NEXA_FAVICON_FILE.read_bytes()
         assert "--sidebar-primary:" in shared_theme.text
-        assert "var(--sidebar-primary)" in local_styles.text
+        assert "var(--sidebar-accent)" in local_styles.text
         assert "oklch(" not in local_styles.text
     finally:
         server.shutdown()

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   Activity,
   ArrowUpRight,
-  Bell,
   BrainCircuit,
   CheckCircle2,
   ChevronRight,
@@ -23,9 +22,10 @@ import PageHeader from "../components/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import type { StreamSession } from "../types";
 import { isSessionLive, sessionStateLabel } from "../lib/sessionPresentation";
+import NexaMascot from "../components/NexaMascot";
 
 function formatDate(value?: string | null, compact = false) {
   if (!value) return "No disponible";
@@ -44,18 +44,16 @@ function localSetupUrl() {
 function StatCard({
   label,
   value,
-  helper,
   icon: Icon,
   tone = "default",
 }: {
   label: string;
   value: string | number;
-  helper: string;
   icon: typeof Video;
   tone?: "default" | "success";
 }) {
   return (
-    <Card className="relative gap-4 overflow-hidden py-5">
+    <Card className="relative overflow-hidden py-5">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1">
           <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
@@ -65,12 +63,6 @@ function StatCard({
           <Icon className="size-4" />
         </span>
       </CardHeader>
-      <CardContent>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {tone === "success" ? <span className="size-1.5 rounded-full bg-success" /> : null}
-          {helper}
-        </p>
-      </CardContent>
     </Card>
   );
 }
@@ -98,25 +90,12 @@ export default function DashboardPage() {
     return !latest || new Date(candidate).getTime() > new Date(latest).getTime() ? candidate : latest;
   }, null);
 
-  const recommendationCounts = predictionSessions.reduce<Record<string, number>>((counts, session) => {
-    const recommendation = session.latest_prediction?.recommendation;
-    if (recommendation) counts[recommendation] = (counts[recommendation] || 0) + 1;
-    return counts;
-  }, {});
-  const topRecommendation = Object.keys(recommendationCounts).sort((a, b) => recommendationCounts[b] - recommendationCounts[a])[0];
-  const recommendationLabel: Record<string, string> = {
-    maintain: "Mantener calidad",
-    downgrade: "Reducir calidad",
-    downgrade_needed: "Reducción anticipada",
-    upgrade: "Aumentar calidad",
-  };
-
   return (
     <div className="app-page">
       <PageHeader
         eyebrow="Centro de control"
         title="Resumen operativo"
-        description={`Hola, ${userName}. Supervisa la actividad, las predicciones y el estado de tu sistema desde un solo lugar.`}
+        description={`Hola, ${userName}. Estado actual de StreamML.`}
         action={(
           <Button variant="outline" className="w-full gap-2 sm:w-auto" asChild>
             <a href={localSetupUrl()} onClick={(event) => { event.currentTarget.href = localSetupUrl(); }} target="_blank" rel="noopener noreferrer">
@@ -137,28 +116,22 @@ export default function DashboardPage() {
         <StatCard
           label="Transmisiones"
           value={sessions ? sessions.length : "—"}
-          helper="Sesiones registradas en el historial"
           icon={Video}
         />
         <StatCard
           label="En vivo ahora"
           value={sessions ? activeSessions.length : "—"}
-          helper={activeSessions.length ? "Monitorización activa" : "Sin sesiones activas"}
           icon={Radio}
           tone={activeSessions.length ? "success" : "default"}
         />
         <StatCard
           label="Sesiones con predicción"
           value={sessions ? predictionSessions.length : "—"}
-          helper={topRecommendation
-            ? (recommendationLabel[topRecommendation] ?? topRecommendation)
-            : predictionSessions.length ? "Predicción disponible" : "Aún no hay predicciones registradas"}
           icon={BrainCircuit}
         />
         <StatCard
           label="Última actividad"
           value={sessions ? (lastActivity ? formatDate(lastActivity, true).split(",")[0] : "Sin datos") : "—"}
-          helper={lastActivity ? formatDate(lastActivity) : "Crea una sesión para comenzar"}
           icon={Clock3}
         />
       </section>
@@ -166,10 +139,7 @@ export default function DashboardPage() {
       <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(18rem,0.75fr)]">
         <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-start justify-between gap-4 border-b pb-5">
-            <div className="space-y-1.5">
-              <CardTitle>Actividad reciente</CardTitle>
-              <CardDescription>Estado y acceso rápido a las últimas transmisiones.</CardDescription>
-            </div>
+            <CardTitle>Actividad reciente</CardTitle>
             <Button variant="ghost" size="sm" className="-mr-2 gap-1 text-muted-foreground" asChild>
               <Link to="/history">Ver historial<ChevronRight /></Link>
             </Button>
@@ -221,10 +191,24 @@ export default function DashboardPage() {
         </Card>
 
         <div className="grid content-start gap-4">
+          <Card className="agent-card overflow-hidden border-agent/30">
+            <CardContent className="flex items-center gap-4 py-5">
+              <NexaMascot mood={activeSessions.length ? "observing" : "waiting"} size="compact" />
+              <div className="min-w-0">
+                <Badge variant="outline" className="border-agent/35 text-agent">Agente IA</Badge>
+                <h2 className="mt-2 text-lg font-semibold tracking-tight">Hola, soy Nexa</h2>
+                <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                  {activeSessions.length
+                    ? `Estoy supervisando ${activeSessions.length === 1 ? "una transmisión activa" : `${activeSessions.length} transmisiones activas`} y sus decisiones de calidad.`
+                    : "Estoy lista para acompañar tu próxima transmisión y explicar cada decisión de calidad."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Estado del sistema</CardTitle>
-              <CardDescription>Comprobaciones del espacio de trabajo actual.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-1">
               <div className="flex items-center gap-3 rounded-lg px-2 py-3">
@@ -245,23 +229,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Acciones rápidas</CardTitle>
-              <CardDescription>Continúa con las tareas más frecuentes.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
-                <Link to="/sessions/new"><Radio className="text-primary" /><span className="flex-1 text-left"><span className="block text-sm">Nueva transmisión</span><span className="block text-xs font-normal text-muted-foreground">Prepara un evento</span></span><ChevronRight /></Link>
-              </Button>
-              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
-                <Link to="/models"><BrainCircuit className="text-prediction" /><span className="flex-1 text-left"><span className="block text-sm">Revisar modelos</span><span className="block text-xs font-normal text-muted-foreground">Métricas y versiones</span></span><ChevronRight /></Link>
-              </Button>
-              <Button variant="outline" className="h-auto justify-start gap-3 px-3 py-3" asChild>
-                <Link to="/alerts"><Bell className="text-warning" /><span className="flex-1 text-left"><span className="block text-sm">Ver alertas</span><span className="block text-xs font-normal text-muted-foreground">Eventos de calidad</span></span><ChevronRight /></Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </section>
     </div>

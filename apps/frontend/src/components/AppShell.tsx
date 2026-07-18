@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Activity,
   Bell,
   BrainCircuit,
-  CheckCircle2,
   ChevronRight,
   CircleHelp,
   History,
@@ -56,6 +54,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "./ui/sidebar";
+import NexaMascot from "./NexaMascot";
 
 interface NavigationItem {
   to: string;
@@ -265,13 +264,13 @@ export default function AppShell() {
       <Sidebar collapsible="icon" className="border-r-sidebar-border/80">
         <SidebarHeader className="border-b border-sidebar-border/70 p-3">
           <Link to="/dashboard" className="flex min-h-11 items-center gap-3 rounded-lg px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
-            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-              <Activity className="size-4.5" />
+            <div className="relative flex size-9 shrink-0 items-center justify-center">
+              <NexaMascot mood="stable" size="mark" />
               <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-sidebar bg-success" />
             </div>
             <div className="min-w-0 leading-none group-data-[collapsible=icon]:hidden">
               <span className="block truncate text-sm font-semibold tracking-tight">StreamML</span>
-              <span className="mt-1 block truncate text-[10px] font-medium uppercase tracking-[0.15em] text-sidebar-foreground/45">Adaptive Control</span>
+              <span className="mt-1 block truncate text-[10px] font-medium uppercase tracking-[0.15em] text-sidebar-foreground/45">Nexa · Adaptive Control</span>
             </div>
           </Link>
         </SidebarHeader>
@@ -281,13 +280,6 @@ export default function AppShell() {
         </SidebarContent>
 
         <SidebarFooter className="border-t border-sidebar-border/70 p-2">
-          <div className="mb-2 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/45 p-3 group-data-[collapsible=icon]:hidden">
-            <div className="flex items-center gap-2 text-xs font-medium">
-              <CheckCircle2 className="size-3.5 text-success" />
-              Sesión protegida
-            </div>
-            <p className="mt-1 text-[11px] leading-4 text-sidebar-foreground/50">API autenticada y panel disponible.</p>
-          </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -326,8 +318,7 @@ export default function AppShell() {
           <SidebarTrigger className="-ml-1 rounded-lg" aria-label="Abrir o cerrar navegación" />
           <Separator orientation="vertical" className="hidden h-5 sm:block" />
           <div className="min-w-0">
-            <p className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:block">StreamML Workspace</p>
-            <p className="truncate text-sm font-medium">{currentRoute}</p>
+            <p className="truncate text-sm font-semibold">{currentRoute}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -342,10 +333,6 @@ export default function AppShell() {
             <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSearchOpen(true)} aria-label="Buscar en StreamML">
               <Search />
             </Button>
-            <div className="hidden items-center gap-2 rounded-full border bg-muted/25 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground xl:flex">
-              <span className="size-1.5 rounded-full bg-success shadow-[0_0_0_3px_color-mix(in_oklab,var(--success)_15%,transparent)]" />
-              Panel conectado
-            </div>
             <Button
               variant="ghost"
               size="icon-sm"

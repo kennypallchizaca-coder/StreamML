@@ -8,6 +8,12 @@ StreamML es un prototipo reproducible de streaming adaptativo. Mide la ruta de r
 
 La aplicacion integra React, FastAPI, WebSocket, un conector local de OBS, MediaMTX, FFmpeg y nginx. El codigo, los modelos y las pruebas automatizadas estan completos; antes de afirmar preparacion para produccion siguen siendo obligatorias pruebas fisicas con el telefono, OBS, credenciales reales de una plataforma y la red de despliegue.
 
+## Identidad del agente: Nexa
+
+**Nexa** es la mascota pixel-art tecnologica y la voz del agente adaptativo de StreamML. Su diseno original, compacto y oscuro integra barras de senal para comunicar el proposito del proyecto sin copiar la identidad de otros asistentes.
+
+Nexa no sustituye la logica de control ni genera estados simulados. La interfaz conserva los estados operativos detallados y los traduce a cinco poses visuales faciles de reconocer: neutral, pensando, trabajando, exito y error. Los recursos WebP transparentes pesan menos que la imagen anterior, se cargan bajo demanda y usan animaciones CSS de transformacion que respetan `prefers-reduced-motion`. En el monitor en vivo siguen apareciendo por separado el modelo reactivo, el modelo predictivo y la accion determinista aplicada por el agente.
+
 ## Objetivos de Machine Learning
 
 ### Modelo reactivo
@@ -103,7 +109,7 @@ Los JSON no son modelos duplicados. Cada uno conserva una responsabilidad: orden
 
 ## Notebooks oficiales
 
-El proyecto mantiene exactamente tres notebooks, todos ejecutados desde kernels nuevos y sin errores:
+El proyecto mantiene cuatro notebooks oficiales, ejecutables en orden desde kernels nuevos y sin estado oculto:
 
 ### `01_data_preparation.ipynb`
 
@@ -135,6 +141,18 @@ El proyecto mantiene exactamente tres notebooks, todos ejecutados desde kernels 
 - Ejecuta ejemplos predictivos reales para ambas clases disponibles.
 - Muestra probabilidades, threshold, target, prediccion y acierto.
 - Explica como interpretar cada salida y sus limitaciones.
+- Integra ambas salidas con el agente y prueba respaldo, recuperación y entradas inválidas.
+
+### `04_entrenamiento_y_creacion_del_agente.ipynb`
+
+- Recorre validación, características y splits agrupados de principio a fin.
+- Entrena candidatos reactivo y predictivo sin sobrescribir el registro oficial.
+- Ajusta hiperparámetros y threshold utilizando solo train y validación.
+- Compara Macro F1 y balanced accuracy contra modelos base.
+- Guarda, carga y comprueba los modelos en un directorio temporal.
+- Integra predicciones de ejemplos reales de test con el agente propio.
+- Prueba pérdida de señal, respaldo, recuperación y validaciones de entrada.
+- Distingue claramente el entrenamiento de modelos de la política determinista del agente.
 
 Para ejecutarlos desde cero y en orden:
 
@@ -142,6 +160,7 @@ Para ejecutarlos desde cero y en orden:
 jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/01_data_preparation.ipynb
 jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/02_model_training.ipynb
 jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/03_model_inference.ipynb
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 notebooks/04_entrenamiento_y_creacion_del_agente.ipynb
 ```
 
 ## Aplicacion web online
@@ -171,8 +190,8 @@ data/raw/           manifiesto, licencia y fuentes locales ignoradas por Git
 data/interim/       transformaciones y metadatos regenerables
 data/processed/     datasets finales de entrenamiento
 models/registry/    modelos oficiales y artefactos verificables
-notebooks/          preparacion, entrenamiento e inferencia documentados
-reports/            fichas de los datasets
+notebooks/          preparacion, entrenamiento, inferencia y creacion del agente
+reports/            fichas, auditoria de datos y replay reproducible del controlador
 scripts/            preparacion, entrenamiento, evaluacion, demos y verificadores
 src/streamml/       dominio, datos, entrenamiento, inferencia y servicios compartidos
 infrastructure/      MediaMTX, nginx y Docker Compose
@@ -426,7 +445,7 @@ Set-Location ../..
 docker compose --env-file deployment/.env.example -f infrastructure/docker/docker-compose.yml config --quiet
 ```
 
-Resultado de referencia: `71 passed` en Python, 12 pruebas frontend aprobadas, lint Python/TypeScript limpio, `STREAMML RELEASE VERIFIED`, cero vulnerabilidades npm de producción y Compose válido.
+Resultado de referencia: `76 passed` en Python, 17 pruebas frontend aprobadas, lint Python/TypeScript limpio, `STREAMML RELEASE VERIFIED`, cero vulnerabilidades npm de producción y Compose válido.
 
 ### 10. Detener la prueba
 
@@ -487,6 +506,12 @@ python scripts\evaluate_models.py
 # Ejecuta un ejemplo reproducible de cada modelo.
 python scripts\demo_models.py
 
+# Audita duplicados, balance, solapamiento y separación por sesiones.
+python scripts\audit_ml_data.py
+
+# Compara perfil fijo, control reactivo y agente completo con un proxy QoE.
+python scripts\evaluate_control_replay.py
+
 # Verifica archivos, hashes, contratos, modelos y metricas.
 python scripts\verify_release.py
 
@@ -496,6 +521,20 @@ pytest -v
 
 El entrenamiento utiliza `random_state = 42`. Los scripts fallan de forma explicita si falta una fuente, contrato, columna o artefacto obligatorio.
 
+## Evidencia reproducible y explicabilidad
+
+La pantalla **Modelos ML** presenta las métricas del conjunto de prueba, el baseline, la matriz de confusión, la comparación de algoritmos, la importancia de variables y las limitaciones documentadas. El monitor en vivo muestra por separado la recomendación reactiva, el riesgo predictivo y la decisión final de Nexa. Cada inferencia incluye las observaciones que sustentan su resultado y cada decisión del agente registra un código y un estado operacional.
+
+Los informes versionados se regeneran con:
+
+```powershell
+python scripts\audit_ml_data.py
+python scripts\evaluate_control_replay.py
+python scripts\evaluate_control_replay.py --input ruta\a\telemetria_replay.json
+```
+
+El replay incluido es un escenario sintético y determinista para comprobar la lógica de control. Su puntuación QoE es un **proxy de ingeniería**, no evidencia de desempeño físico. Para sustentar resultados reales se debe capturar telemetría de sesiones independientes con teléfono, VDO.Ninja, OBS y degradaciones de red controladas; después puede pasarse ese JSON al mismo evaluador.
+
 ## Verificacion actual
 
 La ultima ejecucion completa produjo:
@@ -503,8 +542,8 @@ La ultima ejecucion completa produjo:
 - Notebook de preparacion: 9/9 celdas de codigo, sin errores.
 - Notebook de entrenamiento: 9/9 celdas de codigo, sin errores.
 - Notebook de inferencia: 8/8 celdas de codigo, sin errores.
-- Pruebas automatizadas: `71 passed` y lint Python limpio.
-- Frontend React: 12 pruebas unitarias, lint TypeScript/React limpio, auditoria sin vulnerabilidades de produccion y compilacion correcta.
+- Pruebas automatizadas: `76 passed` y lint Python limpio.
+- Frontend React: 17 pruebas unitarias, lint TypeScript/React limpio, auditoria sin vulnerabilidades de produccion y compilacion correcta.
 - Docker Compose: configuracion valida; imagenes construidas y API, frontend, MediaMTX, worker y nginx saludables en la prueba equivalente a produccion.
 - Verificador: `STREAMML RELEASE VERIFIED`.
 - `git diff --check`: sin errores de whitespace.

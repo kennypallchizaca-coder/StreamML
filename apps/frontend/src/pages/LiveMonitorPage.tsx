@@ -5,7 +5,7 @@ import MediaMtxPlayer from "../components/MediaMtxPlayer";
 import VideoPreview from "../components/VideoPreview";
 import ReplaceVideoLinkDialog from "../components/ReplaceVideoLinkDialog";
 import useSessionSocket from "../hooks/useSessionSocket";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Pause, Play, Square, Info, Smartphone, Monitor, Server } from "@/components/icons";
 import type { AgentDecision, PredictionSnapshot, StreamSession, TelemetrySnapshot, VideoEndpoints } from "../types";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
@@ -13,15 +13,17 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import PageHeader from "../components/PageHeader";
 import FeatureState from "../components/FeatureState";
+import NexaMascot from "../components/NexaMascot";
+import { getNexaState } from "../lib/nexa";
 
 function translateRecommendation(rec?: string | null) {
   switch (rec) {
-    case "high": return { title: "Usar perfil alto", priority: "Recomendación", action: "Resultado informado por el modelo. La decisión corresponde al usuario.", color: "text-info", border: "border-info/20" };
-    case "medium": return { title: "Usar perfil medio", priority: "Recomendación", action: "Resultado informado por el modelo. La decisión corresponde al usuario.", color: "text-info", border: "border-info/20" };
-    case "low": return { title: "Usar perfil básico", priority: "Recomendación", action: "Resultado informado por el modelo. La decisión corresponde al usuario.", color: "text-warning", border: "border-warning/20" };
-    case "maintain": return { title: "Mantener perfil actual", priority: "Recomendación", action: "El modelo recomienda mantener; el agente decide la acción final.", color: "text-success", border: "border-success/20" };
-    case "downgrade_needed": return { title: "Reducir perfil", priority: "Recomendación", action: "El modelo anticipa una reducción; el agente aplica la política de seguridad.", color: "text-warning", border: "border-warning/20" };
-    default: return { title: "Esperando predicción", priority: "Pendiente", action: "Todavía no hay una recomendación compatible disponible.", color: "text-muted-foreground", border: "border-border" };
+    case "high": return { title: "Perfil alto", action: "Condiciones actuales compatibles.", color: "text-info" };
+    case "medium": return { title: "Perfil medio", action: "Capacidad intermedia recomendada.", color: "text-info" };
+    case "low": return { title: "Perfil básico", action: "Priorizar continuidad.", color: "text-warning" };
+    case "maintain": return { title: "Mantener perfil", action: "Sin reducción anticipada.", color: "text-success" };
+    case "downgrade_needed": return { title: "Reducir perfil", action: "Riesgo anticipado.", color: "text-warning" };
+    default: return { title: "Esperando predicción", action: "Sin resultado disponible.", color: "text-muted-foreground" };
   }
 }
 
@@ -39,26 +41,24 @@ function translateAgentDecision(decision?: AgentDecision | null) {
 }
 
 function translateRisk(prob?: number | null) {
-  if (prob == null) return { level: "No disponible", color: "text-muted-foreground", text: "La API no informó una probabilidad válida." };
-  const p = Math.round(prob * 100);
-  return { level: "Probabilidad informada", color: "text-foreground", text: `Probabilidad de degradación según el modelo: ${p} %.` };
+  return { color: prob == null ? "text-muted-foreground" : "text-foreground" };
 }
 
 export function getGeneralState(telemetry: TelemetrySnapshot | null) {
-  if (!telemetry) return { state: "Esperando telemetría", desc: "La API aún no ha recibido datos del conector.", color: "bg-muted text-muted-foreground", icon: Activity };
+  if (!telemetry) return { state: "Esperando telemetría", desc: "Sin datos del conector.", color: "bg-muted text-muted-foreground", icon: Activity };
   if (telemetry.stream_reconnecting) {
-    return { state: "Reconectando transmisión", desc: "OBS está intentando recuperar la salida de streaming.", color: "bg-warning/10 text-warning", icon: AlertTriangle };
+    return { state: "Reconectando", desc: "OBS intenta recuperar la salida.", color: "bg-warning/10 text-warning", icon: AlertTriangle };
   }
   if (telemetry.obs_status && !["connected", "online", "active", "streaming"].includes(telemetry.obs_status.toLowerCase())) {
-    return { state: "Sin señal de OBS", desc: "El conector no recibe estadísticas de OBS en este momento.", color: "bg-muted text-muted-foreground", icon: AlertTriangle };
+    return { state: "Sin señal de OBS", desc: "No llegan estadísticas de OBS.", color: "bg-muted text-muted-foreground", icon: AlertTriangle };
   }
   if (telemetry.stream_active === false) {
-    return { state: "OBS conectado, transmisión detenida", desc: "La telemetría funciona, pero OBS todavía no está transmitiendo.", color: "bg-muted text-muted-foreground", icon: Info };
+    return { state: "Transmisión detenida", desc: "OBS está conectado.", color: "bg-muted text-muted-foreground", icon: Info };
   }
   const hasNetworkMetrics = telemetry.packet_loss_percent != null || telemetry.latency_ms != null;
   return hasNetworkMetrics
-    ? { state: "Telemetría recibida", desc: "OBS y las métricas de red disponibles están reportando datos.", color: "bg-info text-info-foreground", icon: CheckCircle2 }
-    : { state: "Monitoreo parcial", desc: "OBS reporta datos, pero las métricas de red aún no están disponibles.", color: "bg-muted text-muted-foreground", icon: Info };
+    ? { state: "Telemetría activa", desc: "OBS y red reportando.", color: "bg-info text-info-foreground", icon: CheckCircle2 }
+    : { state: "Monitoreo parcial", desc: "OBS activo; red pendiente.", color: "bg-muted text-muted-foreground", icon: Info };
 }
 
 export function liveBadge(telemetry: TelemetrySnapshot | null) {
@@ -102,6 +102,18 @@ function modelStatusLabel(value?: string | null) {
     pending: "Pendiente",
   };
   return value ? labels[value.toLowerCase()] ?? value : "Sin resultado";
+}
+
+function agentOperationalLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    stable: "Estable",
+    observing: "Observando",
+    protecting: "Protegiendo",
+    degraded: "Degradado",
+    backup: "Respaldo",
+    recovering: "Recuperando",
+  };
+  return value ? labels[value] ?? value : "Sin estado informado";
 }
 
 export function latestPredictionByRole(
@@ -150,8 +162,8 @@ function ModelResultPanel({
 
       <div className="mt-5 flex-1">
         <div className={`text-xl font-bold ${recommendation.color}`}>{recommendation.title}</div>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          {prediction?.reason || recommendation.action}
+        <p className="mt-2 text-sm leading-5 text-muted-foreground" title={prediction?.reason ?? undefined}>
+          {blocked ? prediction?.reason || recommendation.action : recommendation.action}
         </p>
       </div>
 
@@ -163,14 +175,9 @@ function ModelResultPanel({
               {!blocked && probability != null ? `${Math.round(probability * 100)}%` : "--"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{risk.text}</p>
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
-        <span>{prediction?.model_version ? `Versión ${prediction.model_version}` : "Versión no disponible"}</span>
-        <span>{prediction?.created_at ? `Actualizado ${new Date(prediction.created_at).toLocaleTimeString("es-EC")}` : "Sin ejecución registrada"}</span>
-      </div>
     </section>
   );
 }
@@ -232,6 +239,11 @@ export default function LiveMonitorPage() {
   const predictiveBlocked = predictivePrediction?.status === "blocked";
   const state = getGeneralState(telemetry);
   const agentView = translateAgentDecision(agentDecision);
+  const nexaState = getNexaState({
+    telemetry,
+    decision: agentDecision,
+    predictivePrediction,
+  });
   const reactiveFeatures = reactivePrediction?.features ?? [];
   const predictiveFeatures = predictivePrediction?.features ?? [];
   const broadcastBadge = liveBadge(telemetry);
@@ -260,8 +272,8 @@ export default function LiveMonitorPage() {
       {predictiveBlocked ? (
         <Alert className="border-warning/40 bg-warning/5 text-foreground">
           <AlertTriangle className="text-warning" />
-          <AlertTitle>Modelo predictivo esperando historial suficiente</AlertTitle>
-          <AlertDescription>{predictivePrediction?.reason || "La predicción de los próximos 10 minutos se activará cuando exista una ventana continua de datos válida."}</AlertDescription>
+          <AlertTitle>Predicción preparando historial</AlertTitle>
+          <AlertDescription>Disponible al completar una ventana válida.</AlertDescription>
         </Alert>
       ) : null}
       
@@ -340,79 +352,56 @@ export default function LiveMonitorPage() {
 
         {/* Status & Recommendation */}
         <div className="grid min-w-0 gap-6 sm:grid-cols-2 xl:grid-cols-1">
-          <Card className={`${state.color} border-none shadow-md`}>
-            <CardContent className="pt-6 flex items-start gap-4">
-              <state.icon className="size-10 opacity-80 mt-1" />
-              <div>
-                <div className="text-sm opacity-90 uppercase tracking-wider font-semibold mb-1">Estado de transmisión</div>
-                <div className="text-3xl font-bold mb-2">{state.state}</div>
-                <div className="text-sm opacity-90 leading-relaxed">{state.desc}</div>
+          <Card className="border-border/80">
+            <CardContent className="flex items-start gap-3 py-5">
+              <span className={`flex size-10 shrink-0 items-center justify-center ${state.color}`}>
+                <state.icon className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Estado de transmisión</div>
+                <div className="mt-1 text-xl font-semibold tracking-tight">{state.state}</div>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{state.desc}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="flex-1 border-2 border-primary/20">
-            <CardHeader className="pb-3">
-              <CardDescription className="flex justify-between items-center">
-                <span>Decisión del agente</span>
-                <Badge variant="outline" className={agentView.tone}>Automático</Badge>
-              </CardDescription>
-              <CardTitle className={`text-xl ${agentView.tone}`}>{agentView.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{agentView.detail}</p>
-              <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
-                Esta es la acción final del agente. Los resultados independientes de cada modelo aparecen en la sección siguiente.
+          <Card className="agent-card flex-1 overflow-hidden border-agent/25">
+            <CardContent className="py-5">
+              <div className="flex items-center gap-4">
+                <NexaMascot mood={nexaState.mood} size="compact" announce className="-my-2" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-agent">Nexa</span>
+                    <Badge variant="outline">Automático</Badge>
+                  </div>
+                  <CardTitle className={`mt-2 text-xl ${agentView.tone}`}>{agentView.title}</CardTitle>
+                  <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{agentView.detail || nexaState.message}</p>
+                </div>
+              </div>
+              <div className="mt-4 border-t pt-3 text-xs text-muted-foreground" title={agentDecision?.reason_code ?? "pending_telemetry"}>
+                <strong className="text-foreground">{agentOperationalLabel(agentDecision?.operational_state)}</strong> · {nexaState.label}
               </div>
             </CardContent>
-            <CardFooter className="bg-muted/30 py-3 text-xs text-muted-foreground flex gap-2">
-              <Info className="size-4 shrink-0" />
-              Los cambios de perfil y de escena se envían al conector OBS autenticado.
-            </CardFooter>
           </Card>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Resultados de Machine Learning</CardTitle>
-          <CardDescription>Salidas independientes de los modelos; el agente las combina para decidir la acción final.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-2">
+      <section>
+        <div className="section-heading mb-4">
+          <div><h2>Modelos ML</h2></div>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
           <ModelResultPanel role="reactive" prediction={reactivePrediction} />
           <ModelResultPanel role="predictive" prediction={predictivePrediction} />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <Card>
+      <Card>
           <CardHeader>
-            <CardTitle>Disponibilidad de telemetría</CardTitle>
-            <CardDescription>Estado de los valores recibidos, sin estimaciones adicionales</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { label: "Bitrate de salida de OBS", available: telemetry?.bitrate_kbps != null },
-              { label: "FPS de OBS", available: telemetry?.fps != null },
-              { label: "Frames omitidos", available: telemetry?.dropped_frames != null },
-              { label: "Métricas de red compatibles", available: telemetry?.packet_loss_percent != null || telemetry?.latency_ms != null },
-              { label: "Capacidad de subida medida", available: telemetry?.connection_capacity_mbps != null },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-4 rounded-xl border p-3">
-                <span className="font-medium">{item.label}</span>
-                <Badge variant={item.available ? "secondary" : "outline"}>{item.available ? "Disponible" : "No disponible"}</Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Indicadores visibles</CardTitle>
-            <CardDescription>Valores enviados por OBS y las fuentes compatibles</CardDescription>
+            <CardTitle>Telemetría</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
               <div className="data-tile text-center">
                 <div className="text-2xl font-bold">{metricNumber(telemetry?.bitrate_kbps, 0)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Bitrate de salida</div>
@@ -458,15 +447,13 @@ export default function LiveMonitorPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
-      </div>
+      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Variables utilizadas por cada modelo</CardTitle>
-          <CardDescription>Validación separada de las entradas reactiva y predictiva informadas por la API.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 xl:grid-cols-2">
+      <details className="disclosure-card">
+        <summary>
+          <span><strong>Variables de los modelos</strong><small>Contrato y disponibilidad.</small></span>
+        </summary>
+        <div className="grid gap-6 border-t p-5 xl:grid-cols-2">
           {([
             { role: "reactive" as const, prediction: reactivePrediction, features: reactiveFeatures },
             { role: "predictive" as const, prediction: predictivePrediction, features: predictiveFeatures },
@@ -488,8 +475,8 @@ export default function LiveMonitorPage() {
               )}
             </section>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </details>
     </div>
   );
 }

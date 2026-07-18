@@ -17,6 +17,23 @@ def test_customer_model_catalog_contains_no_legacy_surface_metadata(client: Test
     assert legacy_surface_token not in json.dumps(response.json()).lower()
 
 
+def test_model_catalog_exposes_compact_evidence_and_honest_limitations(client: TestClient):
+    login(client)
+    response = client.get("/api/v1/models")
+    assert response.status_code == 200
+    models = response.json()["models"]
+    assert {model["role"] for model in models} == {"reactive", "predictive"}
+    for model in models:
+        assert model["dataset"]
+        assert model["test"]["macro_f1"] is not None
+        assert model["baseline"]["test"]["macro_f1"] is not None
+        assert model["model_comparison"]
+        assert model["limitations"]
+    # Threshold-search details are intentionally kept in the registry artifact,
+    # not transferred to every browser request.
+    assert "threshold_search" not in json.dumps(response.json())
+
+
 def test_official_registry_runs_both_unmodified_models():
     registry = OfficialModelRegistry(ROOT)
     reactive = pd.read_csv(ROOT / "data" / "processed" / "reactive_dataset.csv").iloc[[0]]
@@ -51,6 +68,11 @@ def test_reactive_prediction_executes_only_with_exact_contract(client: TestClien
     response = client.post("/api/v1/predict/reactive", json={"session_id": session_id, "features": features})
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "executed"
+    assert response.json()["result"]["explanation"].startswith("El modelo recomienda")
+    assert response.json()["result"]["evidence"]["interpretation"] == "observed_inputs_not_causal_attribution"
+    session = client.get(f"/api/v1/sessions/{session_id}").json()
+    assert session["latest_prediction"]["reason"].startswith("El modelo recomienda")
+    assert session["latest_prediction"]["evidence"]["upload_mbps"] == float(row.upload_mbps)
 
     features[0]["source"] = "obs_websocket_5"
     blocked = client.post("/api/v1/predict/reactive", json={"session_id": session_id, "features": features})
@@ -71,3 +93,26 @@ def test_predictive_rejects_obs_bitrate_without_imputation(client: TestClient):
     )
     assert response.status_code == 422
     assert response.json()["message"] == "Datos insuficientes para una predicción válida"
+
+
+def test_predictive_prediction_exposes_auditable_window_evidence(client: TestClient):
+    login(client)
+    session_id = create_session(client)["id"]
+    samples = [
+        {
+            "elapsed_seconds": index,
+            "throughput_mbps": 4.0 - index / 1000,
+            "unit": "Mbps",
+            "source": "connection_capacity_mbps",
+        }
+        for index in range(600)
+    ]
+    response = client.post(
+        "/api/v1/predict/predictive",
+        json={"session_id": session_id, "samples": samples, "current_profile": 2},
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()["result"]
+    assert result["explanation"].startswith("El riesgo estimado")
+    assert result["evidence"]["current_profile"] == "medium"
+    assert result["evidence"]["throughput_slope_mbps_per_second"] < 0

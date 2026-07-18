@@ -7,7 +7,7 @@ describe("estado real de la transmisión", () => {
   it("no muestra EN VIVO cuando OBS está conectado pero la salida está detenida", () => {
     const telemetry = { obs_status: "connected", stream_active: false };
     expect(liveBadge(telemetry).label).toBe("OBS LISTO");
-    expect(getGeneralState(telemetry).state).toContain("transmisión detenida");
+    expect(getGeneralState(telemetry).state.toLowerCase()).toContain("transmisión detenida");
   });
 
   it("muestra EN VIVO solo cuando OBS informa una salida activa", () => {

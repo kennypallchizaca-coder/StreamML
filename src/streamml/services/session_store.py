@@ -21,7 +21,8 @@ def prediction_view(
         "model_version": record.get("model_version"),
         "probability_downgrade_needed": result.get("probability_downgrade_needed"),
         "recommendation": result.get("decision") or result.get("prediction"),
-        "reason": record.get("blocked_reason"),
+        "reason": result.get("explanation") or record.get("blocked_reason"),
+        "evidence": result.get("evidence"),
         "created_at": record.get("created_at"),
     }
     role = record.get("model_role")

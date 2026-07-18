@@ -130,6 +130,10 @@ class AgentDecision:
     target_profile: ProfileName
     backup_active: bool
     reason: str
+    reason_code: str
+    operational_state: Literal[
+        "stable", "observing", "protecting", "degraded", "backup", "recovering"
+    ]
     apply_profile: bool = False
     apply_backup: bool = False
 
@@ -171,7 +175,12 @@ class AutonomousStreamingAgent:
             if requested_level < current_level:
                 target_level = max(1, min(target_level, requested_level))
             if target_level == current_level:
-                return self._maintain(state, "El perfil bajo ya es el mínimo seguro.")
+                return self._maintain(
+                    state,
+                    "El perfil bajo ya es el mínimo seguro.",
+                    reason_code="minimum_safe_profile",
+                    operational_state="protecting",
+                )
             target = LEVEL_TO_PROFILE[target_level]
             state.current_profile = target
             state.last_profile_change_at = now
@@ -182,21 +191,35 @@ class AutonomousStreamingAgent:
             )
             return AgentDecision(
                 "reduce", LEVEL_TO_PROFILE[current_level], target, False, reason,
+                "predictive_risk" if predictive_risk else "reactive_capacity_reduction",
+                "protecting",
                 apply_profile=True,
             )
 
         if requested_level > current_level:
             if not self._cooldown_complete(state, now):
                 state.upgrade_streak = 0
-                return self._maintain(state, "Cooldown activo antes de otro cambio de perfil.")
+                return self._maintain(
+                    state,
+                    "Cooldown activo antes de otro cambio de perfil.",
+                    reason_code="profile_change_cooldown",
+                    operational_state="observing",
+                )
             if input_data.predictive_decision not in {None, "maintain"}:
                 state.upgrade_streak = 0
-                return self._maintain(state, "El modelo predictivo aún no confirma estabilidad.")
+                return self._maintain(
+                    state,
+                    "El modelo predictivo aún no confirma estabilidad.",
+                    reason_code="predictive_stability_not_confirmed",
+                    operational_state="observing",
+                )
             state.upgrade_streak += 1
             if state.upgrade_streak < self.policy.upgrade_confirmations:
                 return self._maintain(
                     state,
                     f"Estabilidad para aumento {state.upgrade_streak}/{self.policy.upgrade_confirmations}.",
+                    reason_code="upgrade_hysteresis",
+                    operational_state="observing",
                 )
             target = LEVEL_TO_PROFILE[min(3, current_level + 1)]
             state.current_profile = target
@@ -204,11 +227,19 @@ class AutonomousStreamingAgent:
             state.upgrade_streak = 0
             return AgentDecision(
                 "increase", LEVEL_TO_PROFILE[current_level], target, False,
-                "Estabilidad confirmada; aumento de un nivel.", apply_profile=True,
+                "Estabilidad confirmada; aumento de un nivel.",
+                "upgrade_stability_confirmed",
+                "stable",
+                apply_profile=True,
             )
 
         state.upgrade_streak = 0
-        return self._maintain(state, "Los modelos permiten mantener el perfil actual.")
+        return self._maintain(
+            state,
+            "Los modelos permiten mantener el perfil actual.",
+            reason_code="models_support_current_profile",
+            operational_state="stable",
+        )
 
     def _safe_reactive_profile(
         self, recommendation: ProfileName | None, capacity_mbps: float | None
@@ -231,16 +262,25 @@ class AutonomousStreamingAgent:
             return AgentDecision(
                 "maintain_backup", state.current_profile, state.current_profile, True,
                 "La señal principal continúa ausente; se mantiene el respaldo.",
+                "backup_held_signal_absent",
+                "backup",
             )
         if state.signal_lost_at is None:
             state.signal_lost_at = now
         elapsed = now - state.signal_lost_at
         if elapsed < self.policy.signal_loss_grace_seconds:
-            return self._maintain(state, "Pérdida de señal dentro del margen de confirmación.")
+            return self._maintain(
+                state,
+                "Pérdida de señal dentro del margen de confirmación.",
+                reason_code="signal_loss_grace_period",
+                operational_state="degraded",
+            )
         state.backup_active = True
         return AgentDecision(
             "switch_to_backup", state.current_profile, state.current_profile, True,
             "Pérdida total confirmada; activación automática del video de respaldo.",
+            "signal_loss_confirmed",
+            "backup",
             apply_backup=True,
         )
 
@@ -256,12 +296,16 @@ class AutonomousStreamingAgent:
             return AgentDecision(
                 "maintain_backup", state.current_profile, state.current_profile, True,
                 "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+                "recovery_hysteresis",
+                "recovering",
             )
         state.backup_active = False
         state.signal_recovered_at = None
         return AgentDecision(
             "restore_live", state.current_profile, state.current_profile, False,
             "Señal principal estable; restauración automática del vivo.",
+            "live_signal_stable",
+            "recovering",
             apply_backup=True,
         )
 
@@ -271,10 +315,18 @@ class AutonomousStreamingAgent:
         )
 
     @staticmethod
-    def _maintain(state: AgentState, reason: str) -> AgentDecision:
+    def _maintain(
+        state: AgentState,
+        reason: str,
+        *,
+        reason_code: str = "maintain_policy",
+        operational_state: Literal[
+            "stable", "observing", "protecting", "degraded", "backup", "recovering"
+        ] = "stable",
+    ) -> AgentDecision:
         return AgentDecision(
             "maintain", state.current_profile, state.current_profile,
-            state.backup_active, reason,
+            state.backup_active, reason, reason_code, operational_state,
         )
 
 

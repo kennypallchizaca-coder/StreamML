@@ -1,0 +1,254 @@
+{
+  "metric": {
+    "name": "StreamML continuity-first QoE proxy",
+    "version": "1.0.0",
+    "formula": "100 * (0.90 continuity + 0.05 normalized quality + 0.05 stability)",
+    "warning": "This engineering proxy validates controller behavior; it is not a substitute for physical QoE measurements."
+  },
+  "strategies": {
+    "fixed_profile": {
+      "duration_seconds": 150.0,
+      "content_available_seconds": 85.0,
+      "interruption_seconds": 65.0,
+      "unsupported_profile_seconds": 65.0,
+      "backup_seconds": 0.0,
+      "profile_switches": 0,
+      "average_live_profile_level": 3.0,
+      "continuity_ratio": 0.5666666666666667,
+      "quality_ratio": 0.5666666666666667,
+      "stability_ratio": 1.0,
+      "qoe_proxy_score": 58.833333333333336,
+      "events": []
+    },
+    "reactive_only": {
+      "duration_seconds": 150.0,
+      "content_available_seconds": 145.0,
+      "interruption_seconds": 5.0,
+      "unsupported_profile_seconds": 5.0,
+      "backup_seconds": 0.0,
+      "profile_switches": 4,
+      "average_live_profile_level": 2.4482758620689653,
+      "continuity_ratio": 0.9666666666666667,
+      "quality_ratio": 0.7888888888888892,
+      "stability_ratio": 0.19999999999999996,
+      "qoe_proxy_score": 91.94444444444446,
+      "events": [
+        {
+          "observed_at": 40.0,
+          "action": "set_profile",
+          "from": "high",
+          "to": "medium",
+          "reason": "reactive_recommendation"
+        },
+        {
+          "observed_at": 60.0,
+          "action": "set_profile",
+          "from": "medium",
+          "to": "low",
+          "reason": "reactive_recommendation"
+        },
+        {
+          "observed_at": 85.0,
+          "action": "set_profile",
+          "from": "low",
+          "to": "medium",
+          "reason": "reactive_recommendation"
+        },
+        {
+          "observed_at": 105.0,
+          "action": "set_profile",
+          "from": "medium",
+          "to": "high",
+          "reason": "reactive_recommendation"
+        }
+      ]
+    },
+    "reactive_predictive_agent": {
+      "duration_seconds": 150.0,
+      "content_available_seconds": 147.0,
+      "interruption_seconds": 3.0,
+      "unsupported_profile_seconds": 3.0,
+      "backup_seconds": 12.0,
+      "profile_switches": 4,
+      "average_live_profile_level": 2.1555555555555554,
+      "continuity_ratio": 0.98,
+      "quality_ratio": 0.666666666666668,
+      "stability_ratio": 0.19999999999999996,
+      "qoe_proxy_score": 92.53333333333335,
+      "events": [
+        {
+          "observed_at": 40.0,
+          "action": "reduce",
+          "from": "high",
+          "to": "medium",
+          "backup_active": false,
+          "reason": "El modelo reactivo recomienda menor capacidad.",
+          "reason_code": "reactive_capacity_reduction",
+          "operational_state": "protecting"
+        },
+        {
+          "observed_at": 50.0,
+          "action": "reduce",
+          "from": "medium",
+          "to": "low",
+          "backup_active": false,
+          "reason": "Riesgo predictivo de degradación; reducción preventiva.",
+          "reason_code": "predictive_risk",
+          "operational_state": "protecting"
+        },
+        {
+          "observed_at": 83.0,
+          "action": "switch_to_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Pérdida total confirmada; activación automática del video de respaldo.",
+          "reason_code": "signal_loss_confirmed",
+          "operational_state": "backup"
+        },
+        {
+          "observed_at": 84.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "La señal principal continúa ausente; se mantiene el respaldo.",
+          "reason_code": "backup_held_signal_absent",
+          "operational_state": "backup"
+        },
+        {
+          "observed_at": 85.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 86.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 87.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 88.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 89.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 90.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 91.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 92.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 93.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 94.0,
+          "action": "maintain_backup",
+          "from": "low",
+          "to": "low",
+          "backup_active": true,
+          "reason": "Señal recuperada; esperando estabilidad antes de restaurar el vivo.",
+          "reason_code": "recovery_hysteresis",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 95.0,
+          "action": "restore_live",
+          "from": "low",
+          "to": "low",
+          "backup_active": false,
+          "reason": "Señal principal estable; restauración automática del vivo.",
+          "reason_code": "live_signal_stable",
+          "operational_state": "recovering"
+        },
+        {
+          "observed_at": 100.0,
+          "action": "increase",
+          "from": "low",
+          "to": "medium",
+          "backup_active": false,
+          "reason": "Estabilidad confirmada; aumento de un nivel.",
+          "reason_code": "upgrade_stability_confirmed",
+          "operational_state": "stable"
+        },
+        {
+          "observed_at": 134.0,
+          "action": "increase",
+          "from": "medium",
+          "to": "high",
+          "backup_active": false,
+          "reason": "Estabilidad confirmada; aumento de un nivel.",
+          "reason_code": "upgrade_stability_confirmed",
+          "operational_state": "stable"
+        }
+      ]
+    }
+  },
+  "full_agent_improvement_over_fixed_points": 33.70000000000001,
+  "source": "escenario demostrativo determinista (sintético; no es evidencia de campo)"
+}

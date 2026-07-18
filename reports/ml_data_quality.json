@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.0.0",
+  "reactive": {
+    "dataset": "reactive",
+    "rows": 26686,
+    "sessions": 26686,
+    "class_distribution": {
+      "high": {
+        "count": 21590,
+        "fraction": 0.8090384471258337
+      },
+      "low": {
+        "count": 2798,
+        "fraction": 0.10484898448624747
+      },
+      "medium": {
+        "count": 2298,
+        "fraction": 0.08611256838791875
+      }
+    },
+    "split_rows": {
+      "train": 16012,
+      "validation": 5337,
+      "test": 5337
+    },
+    "split_session_overlap": {
+      "train_vs_validation": [],
+      "train_vs_test": [],
+      "validation_vs_test": []
+    },
+    "unique_feature_vectors": 26686,
+    "duplicate_feature_rows": 0,
+    "constant_features": [],
+    "missing_by_feature": {
+      "upload_mbps": 0,
+      "download_mbps": 0,
+      "latency_ms": 0
+    },
+    "non_finite_by_feature": {
+      "upload_mbps": 0,
+      "download_mbps": 0,
+      "latency_ms": 0
+    },
+    "warnings": [
+      {
+        "code": "pseudo_label_target",
+        "severity": "medium",
+        "message": "El target es una pseudoetiqueta derivada de reglas; una métrica casi perfecta no demuestra por sí sola una mejora real de QoE."
+      }
+    ]
+  },
+  "predictive": {
+    "dataset": "predictive",
+    "rows": 4336,
+    "sessions": 17,
+    "class_distribution_windows": {
+      "downgrade_needed": {
+        "count": 4028,
+        "fraction": 0.9289667896678967
+      },
+      "maintain": {
+        "count": 308,
+        "fraction": 0.07103321033210332
+      }
+    },
+    "class_distribution_sessions": {
+      "downgrade_needed": {
+        "count": 13,
+        "fraction": 0.7647058823529411
+      },
+      "maintain": {
+        "count": 4,
+        "fraction": 0.23529411764705882
+      }
+    },
+    "pure_label_sessions": 17,
+    "unique_feature_vectors": 266,
+    "duplicate_feature_rows": 4070,
+    "duplicate_feature_fraction": 0.9386531365313653,
+    "constant_features": [
+      "lookback_duration_seconds",
+      "measurements_count"
+    ],
+    "missing_by_feature": {
+      "throughput_mean": 0,
+      "throughput_median": 0,
+      "throughput_min": 0,
+      "throughput_max": 0,
+      "throughput_std": 0,
+      "throughput_p10": 0,
+      "throughput_p25": 0,
+      "throughput_first": 0,
+      "throughput_last": 0,
+      "throughput_change": 0,
+      "throughput_slope": 0,
+      "throughput_coefficient_variation": 0,
+      "measurements_count": 0,
+      "lookback_duration_seconds": 0,
+      "proportion_below_low": 0,
+      "proportion_below_medium": 0,
+      "proportion_below_high": 0,
+      "current_profile": 0,
+      "required_capacity_mbps": 0
+    },
+    "non_finite_by_feature": {
+      "throughput_mean": 0,
+      "throughput_median": 0,
+      "throughput_min": 0,
+      "throughput_max": 0,
+      "throughput_std": 0,
+      "throughput_p10": 0,
+      "throughput_p25": 0,
+      "throughput_first": 0,
+      "throughput_last": 0,
+      "throughput_change": 0,
+      "throughput_slope": 0,
+      "throughput_coefficient_variation": 0,
+      "measurements_count": 0,
+      "lookback_duration_seconds": 0,
+      "proportion_below_low": 0,
+      "proportion_below_medium": 0,
+      "proportion_below_high": 0,
+      "current_profile": 0,
+      "required_capacity_mbps": 0
+    },
+    "window_overlap": {
+      "adjacent_pairs": 4319,
+      "overlapping_pairs": 4319,
+      "overlap_fraction": 1.0
+    },
+    "cross_split_feature_overlap": {
+      "train_vs_validation": {
+        "shared_unique_feature_vectors": 19,
+        "right_rows_seen_in_left_fraction": 0.9746001881467544
+      },
+      "train_vs_test": {
+        "shared_unique_feature_vectors": 30,
+        "right_rows_seen_in_left_fraction": 0.6269113149847095
+      },
+      "validation_vs_test": {
+        "shared_unique_feature_vectors": 16,
+        "right_rows_seen_in_left_fraction": 0.6126401630988787
+      }
+    },
+    "split_session_counts": {
+      "test": 4,
+      "train": 9,
+      "validation": 4
+    },
+    "warnings": [
+      {
+        "code": "duplicate_feature_vectors",
+        "severity": "high",
+        "message": "Varias ventanas contienen entradas idénticas; las métricas deben reportarse por sesión y los splits deben permanecer agrupados."
+      },
+      {
+        "code": "high_window_overlap",
+        "severity": "high",
+        "message": "La mayoría de las ventanas adyacentes se solapan; su cantidad no representa observaciones independientes."
+      },
+      {
+        "code": "cross_split_feature_overlap",
+        "severity": "high",
+        "message": "Existen vectores idénticos entre splits aunque las sesiones estén separadas."
+      },
+      {
+        "code": "class_imbalance",
+        "severity": "high",
+        "message": "La clase minoritaria representa menos del 15% de las ventanas; deben usarse métricas por clase y balanceadas."
+      },
+      {
+        "code": "constant_features",
+        "severity": "medium",
+        "message": "Estas variables son constantes y no discriminan en el dataset actual: lookback_duration_seconds, measurements_count."
+      }
+    ]
+  }
+}
