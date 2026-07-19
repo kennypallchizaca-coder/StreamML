@@ -55,10 +55,13 @@ Los modelos serializados, métricas, contratos de variables y matrices de confus
 
 El repositorio ha sido optimizado para servidores de producción, eliminando dependencias de experimentación.
 
-### Requisitos Previos
+### Requisitos Previos (Para el Servidor de Producción)
 * Motor de contenedores Docker y Docker Compose.
 * Dominio público y certificados SSL (requeridos para la correcta transmisión vía WebRTC sin retrasos).
 * Intérprete de Bash (Linux/macOS) o PowerShell (Windows).
+
+> [!IMPORTANT]
+> **Separación de roles:** Toda la arquitectura anterior (Servidor Web, API, Modelos ML, Streaming) se ejecuta centralizada y aislada dentro de **Docker**. Sin embargo, el **Conector Local de OBS** (`apps/connector`) es el único componente que no va en el servidor: debe ser ejecutado en tu computadora local con Python para poder enviar comandos directamente al puerto local de tu OBS Studio.
 
 ### Proceso de Configuración e Instalación
 
