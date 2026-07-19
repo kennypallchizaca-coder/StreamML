@@ -96,4 +96,3 @@ def requirements_snapshot() -> str:
 
 def file_hashes(paths: list[Path], root: Path) -> dict[str, str]:
     return {path.relative_to(root).as_posix(): sha256_file(path) for path in paths if path.exists()}
-

@@ -37,15 +37,17 @@ def test_local_setup_keeps_sensitive_connector_values_out_of_json(tmp_path: Path
     vault = FakeVault()
     service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]
 
-    result = service.save_connector({
-        "api_base_url": "http://127.0.0.1:8000",
-        "obs_host": "127.0.0.1",
-        "obs_port": 4455,
-        "connector_name": "OBS de pruebas",
-        "live_scene": "StreamML Live",
-        "backup_scene": "StreamML Backup",
-        "obs_password": "contraseña-que-no-debe-escribirse",
-    })
+    result = service.save_connector(
+        {
+            "api_base_url": "http://127.0.0.1:8000",
+            "obs_host": "127.0.0.1",
+            "obs_port": 4455,
+            "connector_name": "OBS de pruebas",
+            "live_scene": "StreamML Live",
+            "backup_scene": "StreamML Backup",
+            "obs_password": "contraseña-que-no-debe-escribirse",
+        }
+    )
 
     saved = store.path.read_text(encoding="utf-8")
     assert "contraseña-que-no-debe-escribirse" not in saved
@@ -58,25 +60,31 @@ def test_connector_gui_rejects_remote_obs_and_accepts_loopback_only():
     with pytest.raises(SetupValidationError, match="loopback"):
         normalize_connector_values({"api_base_url": "https://streamml.example", "obs_host": "192.168.1.25"})
 
-    value = normalize_connector_values({
-        "api_base_url": "https://streamml.example",
-        "obs_host": "localhost",
-        "obs_port": "4455",
-        "connector_name": "OBS seguro",
-        "live_scene": "Vivo",
-        "backup_scene": "Respaldo",
-    })
+    value = normalize_connector_values(
+        {
+            "api_base_url": "https://streamml.example",
+            "obs_host": "localhost",
+            "obs_port": "4455",
+            "connector_name": "OBS seguro",
+            "live_scene": "Vivo",
+            "backup_scene": "Respaldo",
+        }
+    )
     assert value["api_base_url"] == "https://streamml.example"
     assert value["obs_host"] == "localhost"
 
 
 def test_connection_check_uses_visible_unsaved_values(monkeypatch, tmp_path: Path):
     store = LocalConfigurationStore(tmp_path / "setup.json")
-    store.save_connector(normalize_connector_values({
-        "api_base_url": "http://127.0.0.1:8999",
-        "obs_host": "127.0.0.1",
-        "connector_name": "Configuración anterior",
-    }))
+    store.save_connector(
+        normalize_connector_values(
+            {
+                "api_base_url": "http://127.0.0.1:8999",
+                "obs_host": "127.0.0.1",
+                "connector_name": "Configuración anterior",
+            }
+        )
+    )
     vault = FakeVault()
     service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]
     observed: dict[str, object] = {}
@@ -102,16 +110,18 @@ def test_connection_check_uses_visible_unsaved_values(monkeypatch, tmp_path: Pat
     monkeypatch.setattr("apps.connector.streamml_connector.setup_ui.ObsClient", FakeObsClient)
     monkeypatch.setattr("apps.connector.streamml_connector.setup_ui.TokenStore.load", lambda _self: None)
 
-    result = service.connector_checks({
-        "api_base_url": "http://127.0.0.1:8000",
-        "obs_host": "localhost",
-        "obs_port": 4456,
-        "connector_name": "Valores visibles",
-        "live_scene": "Vivo",
-        "backup_scene": "Respaldo",
-        "obs_password": "clave-visible-no-guardada",
-        "pairing_code": "CODIGO1",
-    })
+    result = service.connector_checks(
+        {
+            "api_base_url": "http://127.0.0.1:8000",
+            "obs_host": "localhost",
+            "obs_port": 4456,
+            "connector_name": "Valores visibles",
+            "live_scene": "Vivo",
+            "backup_scene": "Respaldo",
+            "obs_password": "clave-visible-no-guardada",
+            "pairing_code": "CODIGO1",
+        }
+    )
 
     assert observed["url"] == "http://127.0.0.1:8000/health"
     assert observed["password"] == "clave-visible-no-guardada"
@@ -119,41 +129,46 @@ def test_connection_check_uses_visible_unsaved_values(monkeypatch, tmp_path: Pat
     assert {item["status"] for item in result["checks"]} == {"ok"}
 
 
-def test_deployment_validation_requires_https_and_keeps_password_in_vault(
-    monkeypatch, tmp_path: Path
-):
+def test_deployment_validation_requires_https_and_keeps_password_in_vault(monkeypatch, tmp_path: Path):
     certificate = tmp_path / "fullchain.pem"
     private_key = tmp_path / "privkey.pem"
     certificate.write_text("certificate", encoding="utf-8")
     private_key.write_text("private-key", encoding="utf-8")
+
     class FakeTlsContext:
         def load_cert_chain(self, _certificate, _private_key):
             return None
 
     monkeypatch.setattr(setup_ui.ssl, "SSLContext", lambda _protocol: FakeTlsContext())
-    values = normalize_deployment_values({
-        "public_origin": "https://streamml.example.com",
-        "bootstrap_email": "admin@example.com",
-        "tls_cert_file": str(certificate),
-        "tls_key_file": str(private_key),
-    })
-    assert values["allowed_origins"] == "https://streamml.example.com"
-
-    with pytest.raises(SetupValidationError, match="HTTPS"):
-        normalize_deployment_values({
-            "public_origin": "http://streamml.example.com",
+    values = normalize_deployment_values(
+        {
+            "public_origin": "https://streamml.example.com",
             "bootstrap_email": "admin@example.com",
             "tls_cert_file": str(certificate),
             "tls_key_file": str(private_key),
-        })
+        }
+    )
+    assert values["allowed_origins"] == "https://streamml.example.com"
+
+    with pytest.raises(SetupValidationError, match="HTTPS"):
+        normalize_deployment_values(
+            {
+                "public_origin": "http://streamml.example.com",
+                "bootstrap_email": "admin@example.com",
+                "tls_cert_file": str(certificate),
+                "tls_key_file": str(private_key),
+            }
+        )
 
     store = LocalConfigurationStore(tmp_path / "setup.json")
     vault = FakeVault()
     service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]
-    result = service.save_deployment({
-        **values,
-        "bootstrap_password": "UnaClaveDePruebaSegura123",
-    })
+    result = service.save_deployment(
+        {
+            **values,
+            "bootstrap_password": "UnaClaveDePruebaSegura123",
+        }
+    )
     saved = store.path.read_text(encoding="utf-8")
     assert "UnaClaveDePruebaSegura123" not in saved
     assert vault.has("deployment_bootstrap_password")
@@ -167,12 +182,14 @@ def test_deployment_validation_rejects_invalid_tls_files(tmp_path: Path):
     private_key.write_text("not-a-private-key", encoding="utf-8")
 
     with pytest.raises(SetupValidationError, match="no son válidos"):
-        normalize_deployment_values({
-            "public_origin": "https://streamml.example.com",
-            "bootstrap_email": "admin@example.com",
-            "tls_cert_file": str(certificate),
-            "tls_key_file": str(private_key),
-        })
+        normalize_deployment_values(
+            {
+                "public_origin": "https://streamml.example.com",
+                "bootstrap_email": "admin@example.com",
+                "tls_cert_file": str(certificate),
+                "tls_key_file": str(private_key),
+            }
+        )
 
 
 def test_new_pairing_restarts_a_running_connector(monkeypatch, tmp_path: Path):
@@ -203,12 +220,14 @@ def test_new_pairing_restarts_a_running_connector(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(service, "stop_connector", lambda: calls.append("stop") or {})
     monkeypatch.setattr(service, "start_connector", lambda: calls.append("start") or {})
 
-    result = service.save_connector({
-        "api_base_url": "http://127.0.0.1:8000",
-        "obs_host": "127.0.0.1",
-        "connector_name": "OBS de pruebas",
-        "pairing_code": "CODIGO1234",
-    })
+    result = service.save_connector(
+        {
+            "api_base_url": "http://127.0.0.1:8000",
+            "obs_host": "127.0.0.1",
+            "connector_name": "OBS de pruebas",
+            "pairing_code": "CODIGO1234",
+        }
+    )
 
     assert calls == ["stop", "start"]
     assert result["restarted"] is True
@@ -216,12 +235,16 @@ def test_new_pairing_restarts_a_running_connector(monkeypatch, tmp_path: Path):
 
 def test_connector_start_uses_source_path_and_reports_running_state(monkeypatch, tmp_path: Path):
     store = LocalConfigurationStore(tmp_path / "setup.json")
-    store.save_connector(normalize_connector_values({
-        "api_base_url": "http://127.0.0.1:8000",
-        "obs_host": "127.0.0.1",
-        "obs_port": 4855,
-        "connector_name": "OBS de pruebas",
-    }))
+    store.save_connector(
+        normalize_connector_values(
+            {
+                "api_base_url": "http://127.0.0.1:8000",
+                "obs_host": "127.0.0.1",
+                "obs_port": 4855,
+                "connector_name": "OBS de pruebas",
+            }
+        )
+    )
     vault = FakeVault()
     vault.set("obs_websocket_password", "segura")
     service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]
@@ -254,11 +277,15 @@ def test_connector_start_uses_source_path_and_reports_running_state(monkeypatch,
 
 def test_connector_start_never_reports_false_success(monkeypatch, tmp_path: Path):
     store = LocalConfigurationStore(tmp_path / "setup.json")
-    store.save_connector(normalize_connector_values({
-        "api_base_url": "http://127.0.0.1:8000",
-        "obs_host": "127.0.0.1",
-        "connector_name": "OBS de pruebas",
-    }))
+    store.save_connector(
+        normalize_connector_values(
+            {
+                "api_base_url": "http://127.0.0.1:8000",
+                "obs_host": "127.0.0.1",
+                "connector_name": "OBS de pruebas",
+            }
+        )
+    )
     vault = FakeVault()
     vault.set("obs_websocket_password", "segura")
     service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]

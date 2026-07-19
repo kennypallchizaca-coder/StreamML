@@ -1,7 +1,11 @@
 import pytest
 
 from apps.media.restream_worker import (
-    RestreamSupervisor, RestreamTarget, fallback_command, ffmpeg_command, load_targets,
+    RestreamSupervisor,
+    RestreamTarget,
+    fallback_command,
+    ffmpeg_command,
+    load_targets,
     source_url,
 )
 
@@ -10,13 +14,9 @@ PATH = "stream-0123456789abcdef0123456789abcdef"
 
 
 def test_restream_config_and_ffmpeg_command() -> None:
-    targets = load_targets(
-        '{"' + PATH + '":{"youtube":"rtmps://example.test/live/secret-key"}}'
-    )
+    targets = load_targets('{"' + PATH + '":{"youtube":"rtmps://example.test/live/secret-key"}}')
     assert targets == [RestreamTarget(PATH, "youtube", "rtmps://example.test/live/secret-key")]
-    command = ffmpeg_command(
-        targets[0], rtmp_base="rtmp://mediamtx:1935", media_secret="x" * 32
-    )
+    command = ffmpeg_command(targets[0], rtmp_base="rtmp://mediamtx:1935", media_secret="x" * 32)
     assert command[0] == "ffmpeg"
     assert "-c" in command and "copy" in command
     assert command[-1] == "rtmps://example.test/live/secret-key"

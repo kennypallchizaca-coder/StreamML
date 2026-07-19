@@ -31,6 +31,24 @@ class FakeObs:
         self.calls.append("GetSceneList")
         return SimpleNamespace(scenes=[{"sceneName": "StreamML Live"}, {"sceneName": "StreamML Backup"}])
 
+    def get_scene_item_list(self, scene_name):
+        self.calls.append(("GetSceneItemList", scene_name))
+        return SimpleNamespace(
+            scene_items=[
+                {
+                    "sourceName": "VDO",
+                    "inputKind": "browser_source",
+                }
+            ]
+        )
+
+    def get_input_settings(self, name):
+        self.calls.append(("GetInputSettings", name))
+        return SimpleNamespace(input_settings={"url": "https://vdo.ninja/?view=direct"})
+
+    def set_input_settings(self, name, settings, overlay):
+        self.calls.append(("SetInputSettings", name, settings, overlay))
+
     def disconnect(self):
         self.calls.append("disconnect")
 
@@ -62,8 +80,12 @@ def test_obs_adapter_collects_telemetry_without_inventing_network_metrics():
     client.connect("not-logged")
     first = client.collect()
     fake.get_stream_status = lambda: SimpleNamespace(
-        output_active=True, output_reconnecting=False, output_skipped_frames=2,
-        output_total_frames=200, output_congestion=0.0, output_bytes=3_000_000,
+        output_active=True,
+        output_reconnecting=False,
+        output_skipped_frames=2,
+        output_total_frames=200,
+        output_congestion=0.0,
+        output_bytes=3_000_000,
     )
     second = client.collect()
     assert fake.calls[:2] == ["GetStats", "GetStreamStatus"]
@@ -72,31 +94,73 @@ def test_obs_adapter_collects_telemetry_without_inventing_network_metrics():
     assert second.latency_ms is None
     assert second.packet_loss_percent is None
     assert ObsClient.ALLOWED_REQUESTS == {
-        "GetStats", "GetStreamStatus", "GetSceneList", "SetProfileParameter", "SetCurrentProgramScene"
+        "GetStats",
+        "GetStreamStatus",
+        "GetSceneList",
+        "GetSceneItemList",
+        "GetInputSettings",
+        "SetInputSettings",
+        "SetProfileParameter",
+        "SetCurrentProgramScene",
     }
     assert client.validate_scenes() == []
+
+
+def test_obs_adapter_replaces_the_only_live_browser_source_with_the_secure_bridge():
+    fake = FakeObs()
+    config = ConnectorConfig(
+        api_base_url="https://streamml.test",
+        obs_host="127.0.0.1",
+        obs_port=4455,
+        connector_name="test",
+        session_id=None,
+        poll_interval_seconds=1,
+        request_timeout_seconds=5,
+        reconnect_initial_seconds=1,
+        reconnect_max_seconds=10,
+        keyring_service="test",
+        log_level="INFO",
+    )
+    client = ObsClient(config, client_factory=lambda **_kwargs: fake)
+    client.connect("not-logged")
+    bridge = "http://127.0.0.1:5173/vdo-bridge/session-id?token=scoped"
+
+    assert client.ensure_vdo_bridge(bridge) == "VDO"
+    assert ("SetInputSettings", "VDO", {"url": bridge}, True) in fake.calls
 
 
 def test_obs_adapter_applies_only_validated_profile_and_scene_commands():
     fake = FakeObs()
     config = ConnectorConfig(
-        api_base_url="https://streamml.test", obs_host="127.0.0.1", obs_port=4455,
-        connector_name="test", session_id=None, poll_interval_seconds=1,
-        request_timeout_seconds=5, reconnect_initial_seconds=1, reconnect_max_seconds=10,
-        keyring_service="test", log_level="INFO",
+        api_base_url="https://streamml.test",
+        obs_host="127.0.0.1",
+        obs_port=4455,
+        connector_name="test",
+        session_id=None,
+        poll_interval_seconds=1,
+        request_timeout_seconds=5,
+        reconnect_initial_seconds=1,
+        reconnect_max_seconds=10,
+        keyring_service="test",
+        log_level="INFO",
     )
     client = ObsClient(config, client_factory=lambda **_kwargs: fake)
     client.connect("not-logged")
-    client.apply_command({
-        "command_type": "set_profile",
-        "payload": {
-            "profile": "low",
-            "spec": {
-                "width": 854, "height": 480, "fps": 24,
-                "video_bitrate_kbps": 1000, "audio_bitrate_kbps": 96,
+    client.apply_command(
+        {
+            "command_type": "set_profile",
+            "payload": {
+                "profile": "low",
+                "spec": {
+                    "width": 854,
+                    "height": 480,
+                    "fps": 24,
+                    "video_bitrate_kbps": 1000,
+                    "audio_bitrate_kbps": 96,
+                },
             },
-        },
-    })
+        }
+    )
     client.apply_command({"command_type": "activate_backup", "payload": {}})
     client.apply_command({"command_type": "restore_live", "payload": {}})
     assert sum(call[0] == "SetProfileParameter" for call in fake.calls if isinstance(call, tuple)) == 5

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.streamml.security.auth import utc_now_iso
+
 from .database import Database
 from .telemetry import telemetry_snapshot
 
 
-def prediction_view(
-    record: dict[str, Any] | None, registry: Any | None = None
-) -> dict[str, Any] | None:
+def prediction_view(record: dict[str, Any] | None, registry: Any | None = None) -> dict[str, Any] | None:
     if not record:
         return None
     result = record.get("result") or {}
@@ -55,16 +55,15 @@ class SessionStore:
         if not session:
             return None
         raw_telemetry = self.database.latest_telemetry(user_id, session_id)
+        phone_telemetry = self.database.latest_vdo_telemetry(user_id, session_id)
         predictions = self.database.recent_predictions(user_id, session_id)
         agent_state = self.database.load_agent_state(user_id, session_id)
         if raw_telemetry and raw_telemetry.get("network") and agent_state:
             raw_telemetry["network"]["current_profile"] = agent_state.get("current_profile")
-        session["telemetry"] = telemetry_snapshot(raw_telemetry, self.registry)
-        session["latest_prediction"] = prediction_view(
-            predictions[0] if predictions else None, self.registry
+        session["telemetry"] = telemetry_snapshot(
+            raw_telemetry, self.registry, phone_telemetry, reference_at=utc_now_iso()
         )
-        session["recent_predictions"] = [
-            prediction_view(item, self.registry) for item in predictions
-        ]
+        session["latest_prediction"] = prediction_view(predictions[0] if predictions else None, self.registry)
+        session["recent_predictions"] = [prediction_view(item, self.registry) for item in predictions]
         session["agent_decision"] = self.database.latest_agent_decision(user_id, session_id)
         return session

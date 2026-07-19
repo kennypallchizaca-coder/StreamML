@@ -1,10 +1,10 @@
 {
-  "created_at_utc": "2026-07-17T16:12:51.555464+00:00",
+  "created_at_utc": "2026-07-18T16:10:55.555900+00:00",
   "release_version": "3.0.0",
   "model_role": "predictive",
   "model_path": "models/registry/predictive/model.joblib",
   "dataset_path": "data/processed/predictive_dataset.csv",
-  "dataset_sha256": "41aedb2da167b7a6c17b0753ad66b73b7f8bc792c723651565ba1c9afff22989",
+  "dataset_sha256": "d928c27b179fb1cdb18e298ecc3daea91874a399e7dae9b7c6afb522b21c0a93",
   "random_state": 42,
   "split_method": "session_id grouped deterministic permutation; no row-level split",
   "splits": {

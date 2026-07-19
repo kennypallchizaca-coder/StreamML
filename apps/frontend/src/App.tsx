@@ -13,6 +13,7 @@ const ModelsPage = lazy(() => import("./pages/ModelsPage"));
 const AlertsPage = lazy(() => import("./pages/AlertsPage"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const VdoBridgePage = lazy(() => import("./pages/VdoBridgePage"));
 
 interface AuthContextValue {
   authenticated: boolean;
@@ -119,6 +120,7 @@ export default function App() {
     <AuthContext.Provider value={auth}>
       <Suspense fallback={<main className="route-loading" aria-live="polite">Cargando StreamML…</main>}>
         <Routes>
+          <Route path="/vdo-bridge/:sessionId" element={<VdoBridgePage />} />
           <Route path="/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />

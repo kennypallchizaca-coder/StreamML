@@ -22,6 +22,10 @@ export interface FeatureAvailability {
 export interface TelemetrySnapshot {
   captured_at?: string | null;
   phone_status?: string | null;
+  phone_captured_at?: string | null;
+  phone_bitrate_kbps?: number | null;
+  phone_available_bitrate_kbps?: number | null;
+  phone_fps?: number | null;
   obs_status?: string | null;
   mediamtx_status?: string | null;
   stream_active?: boolean | null;
@@ -35,8 +39,34 @@ export interface TelemetrySnapshot {
   upload_mbps?: number | null;
   download_mbps?: number | null;
   connection_capacity_mbps?: number | null;
+  network_source?: string | null;
   current_profile?: string | null;
   features?: FeatureAvailability[];
+}
+
+export interface VdoNinjaMetrics {
+  bitrate_kbps?: number;
+  available_outgoing_bitrate_kbps?: number;
+  packet_loss_percent?: number;
+  packets_lost?: number;
+  packets_received?: number;
+  jitter_ms?: number;
+  round_trip_time_ms?: number;
+  frames_per_second?: number;
+  frames_dropped?: number;
+  frames_received?: number;
+  frame_width?: number;
+  frame_height?: number;
+}
+
+export interface VdoNinjaTelemetryPayload {
+  session_id: string;
+  source: "vdo_ninja_iframe";
+  reporter_id: string;
+  sequence: number;
+  observed_at: string;
+  status: "waiting" | "connected" | "disconnected" | "error";
+  metrics: VdoNinjaMetrics;
 }
 
 export interface AgentDecision {
@@ -77,6 +107,7 @@ export interface VideoEndpoints {
 export interface VdoNinjaSession {
   phone_url?: string | null;
   embed_url?: string | null;
+  bridge_url?: string | null;
   expires_at?: string | null;
   source?: "streamml" | "external" | string;
 }

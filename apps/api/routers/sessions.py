@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Request, status
 from apps.api.dependencies import client_ip, current_user, require_owned_session
 from apps.api.schemas import SessionCreate
 from apps.api.routers.streams import stream_payload
+from src.streamml.security.vdo import vdo_bridge_token
 
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
@@ -22,13 +23,19 @@ def _public_session(session: dict) -> dict:
 
 def _vdo_ninja(request: Request, session: dict) -> dict:
     seed = f"vdo:{session['user_id']}:{session['id']}".encode("utf-8")
-    room_id = hmac.new(
-        request.app.state.settings.media_auth_secret.encode("utf-8"), seed, hashlib.sha256
-    ).hexdigest()[:32]
+    room_id = hmac.new(request.app.state.settings.media_auth_secret.encode("utf-8"), seed, hashlib.sha256).hexdigest()[
+        :32
+    ]
     encoded = quote(room_id, safe="")
+    remote_id = hmac.new(
+        request.app.state.settings.media_auth_secret.encode("utf-8"),
+        f"vdo-remote:{session['user_id']}:{session['id']}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:24]
+    remote = quote(remote_id, safe="")
     generated = {
-        "phone_url": f"https://vdo.ninja/?push={encoded}&webcam&autostart",
-        "embed_url": f"https://vdo.ninja/?view={encoded}&cleanoutput&autostart",
+        "phone_url": f"https://vdo.ninja/?push={encoded}&webcam&autostart&remote={remote}",
+        "embed_url": f"https://vdo.ninja/?view={encoded}&cleanoutput&autostart&remote={remote}",
         "expires_at": None,
     }
     external_embed_url = session.get("configuration", {}).get("vdo_embed_url")
@@ -37,6 +44,16 @@ def _vdo_ninja(request: Request, session: dict) -> dict:
         generated["source"] = "external"
     else:
         generated["source"] = "streamml"
+    request_origin = (request.headers.get("origin") or "").rstrip("/")
+    frontend_origin = (
+        request_origin
+        if request_origin in request.app.state.settings.allowed_origins
+        else request.app.state.settings.allowed_origins[0]
+    )
+    bridge_token = vdo_bridge_token(request.app.state.settings.media_auth_secret, session["id"])
+    generated["bridge_url"] = (
+        f"{frontend_origin}/vdo-bridge/{quote(session['id'], safe='')}?token={quote(bridge_token, safe='')}"
+    )
     return generated
 
 
@@ -52,7 +69,8 @@ def _detail_response(request: Request, session: dict, *, include_private_links: 
 def create_session(payload: SessionCreate, request: Request, user: dict = Depends(current_user)) -> dict:
     defaults = request.app.state.database.get_user_settings(user["id"])["stream"]
     session = request.app.state.database.create_session(
-        user["id"], payload.name,
+        user["id"],
+        payload.name,
         {
             "platform": payload.platform or defaults["platform"],
             "resolution": payload.resolution or defaults["preferred_resolution"],
@@ -62,8 +80,13 @@ def create_session(payload: SessionCreate, request: Request, user: dict = Depend
         },
     )
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="session.create", resource_type="session",
-        resource_id=session["id"], outcome="success", client_ip=client_ip(request),
+        user_id=user["id"],
+        actor_type="user",
+        action="session.create",
+        resource_type="session",
+        resource_id=session["id"],
+        outcome="success",
+        client_ip=client_ip(request),
     )
     return _detail_response(request, session, include_private_links=True)
 

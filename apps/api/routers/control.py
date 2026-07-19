@@ -13,9 +13,7 @@ router = APIRouter(prefix="/api/v1/connectors/commands", tags=["connector-contro
 
 @router.get("/next")
 def next_command(request: Request, connector: dict = Depends(current_connector)) -> dict:
-    command = request.app.state.database.pending_control_command(
-        connector["id"], connector["session_id"]
-    )
+    command = request.app.state.database.pending_control_command(connector["id"], connector["session_id"])
     if not command:
         return {"command": None}
     return {

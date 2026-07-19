@@ -34,8 +34,7 @@ class InferenceEngine:
             prediction = str(model.predict(frame)[0])
             probabilities = model.predict_proba(frame)[0]
         probability_by_label = {
-            str(label): float(probability)
-            for label, probability in zip(model.classes_, probabilities, strict=True)
+            str(label): float(probability) for label, probability in zip(model.classes_, probabilities, strict=True)
         }
         confidence = probability_by_label[prediction]
         return {

@@ -63,14 +63,14 @@ un cambio de ubicación incrementaría el riesgo sin mejorar el producto.
 
 | Comprobación | Resultado |
 |---|---|
-| `python -m pytest -q` | 76 pruebas aprobadas |
+| `python -m pytest -q` | 89 pruebas aprobadas |
 | `python -m compileall -q apps src scripts` | correcta |
 | `python scripts/verify_release.py` | `STREAMML RELEASE VERIFIED` |
 | `python scripts/check_no_secrets.py --history` | correcta, sin firmas conocidas en el historial alcanzable |
 | `python -m pip check` | sin requisitos rotos |
 | `python -m pip wheel --no-deps ... apps/connector` | wheel `streamml-connector` construido |
 | `npm ls --depth=0` y `npm audit --audit-level=high` | árbol resuelto; 0 vulnerabilidades reportadas |
-| `npm test`, `npm run lint` y `npm run build` | 17 pruebas aprobadas, lint limpio y compilación correcta; advertencia informativa por el chunk HLS cargado bajo demanda |
+| `npm test`, `npm run lint` y `npm run build` | 21 pruebas aprobadas, lint limpio y compilación correcta; HLS permanece cargado bajo demanda |
 | `docker compose ... config --quiet` | configuración válida de API, frontend, MediaMTX, fallback, worker y nginx |
 | Réplica Linux del job Python | instalación del conector incluida; hashes y modelos verificados fuera de Windows |
 | `git diff --check` | sin errores de whitespace |

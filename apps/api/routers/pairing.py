@@ -22,9 +22,7 @@ def _new_code() -> str:
 
 @router.post("/api/v1/pairing/codes", status_code=status.HTTP_201_CREATED)
 @router.post("/api/v1/connectors/pairing-codes", status_code=status.HTTP_201_CREATED, include_in_schema=False)
-def create_pairing_code(
-    payload: PairingCodeCreate, request: Request, user: dict = Depends(current_user)
-) -> dict:
+def create_pairing_code(payload: PairingCodeCreate, request: Request, user: dict = Depends(current_user)) -> dict:
     settings = request.app.state.settings
     require_owned_session(request, user, payload.session_id)
     if not request.app.state.rate_limiter.allow(
@@ -38,8 +36,13 @@ def create_pairing_code(
     )
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=settings.pairing_ttl_seconds)).isoformat()
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="connector.pairing_code.create",
-        resource_type="pairing_code", resource_id=pairing_id, outcome="success", client_ip=client_ip(request),
+        user_id=user["id"],
+        actor_type="user",
+        action="connector.pairing_code.create",
+        resource_type="pairing_code",
+        resource_id=pairing_id,
+        outcome="success",
+        client_ip=client_ip(request),
     )
     return {"code": code, "expires_at": expires_at, "session_id": payload.session_id}
 
@@ -56,7 +59,9 @@ def link_connector(payload: ConnectorLink, request: Request) -> dict:
     access_token = random_token()
     connector = request.app.state.database.consume_pairing_code(
         hash_pairing_code(payload.code, settings.token_secret),
-        payload.connector_name.strip(), payload.connector_version.strip(), hash_token(access_token),
+        payload.connector_name.strip(),
+        payload.connector_version.strip(),
+        hash_token(access_token),
         settings.connector_ttl_seconds,
     )
     if not connector:
@@ -65,8 +70,13 @@ def link_connector(payload: ConnectorLink, request: Request) -> dict:
         )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired pairing code.")
     request.app.state.database.record_audit(
-        user_id=connector["user_id"], actor_type="connector", action="connector.link",
-        resource_type="connector", resource_id=connector["id"], outcome="success", client_ip=ip,
+        user_id=connector["user_id"],
+        actor_type="connector",
+        action="connector.link",
+        resource_type="connector",
+        resource_id=connector["id"],
+        outcome="success",
+        client_ip=ip,
     )
     return {
         "access_token": access_token,

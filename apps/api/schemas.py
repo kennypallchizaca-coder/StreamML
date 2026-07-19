@@ -174,8 +174,12 @@ class NetworkMetrics(StrictModel):
     @model_validator(mode="after")
     def finite_values(self) -> "NetworkMetrics":
         for name in (
-            "upload_mbps", "download_mbps", "latency_ms", "jitter_ms",
-            "packet_loss_percent", "connection_capacity_mbps",
+            "upload_mbps",
+            "download_mbps",
+            "latency_ms",
+            "jitter_ms",
+            "packet_loss_percent",
+            "connection_capacity_mbps",
         ):
             if not math.isfinite(float(getattr(self, name))):
                 raise ValueError(f"{name} must be finite.")
@@ -190,6 +194,64 @@ class TelemetryRequest(StrictModel):
     metrics: ObsMetrics
     network: NetworkMetrics | None = None
     unsupported: UnsupportedMetrics = Field(default_factory=UnsupportedMetrics)
+
+    @field_validator("session_id")
+    @classmethod
+    def valid_session_id(cls, value: str) -> str:
+        return _uuid(value)
+
+    @field_validator("observed_at")
+    @classmethod
+    def timezone_required(cls, value: str) -> str:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("observed_at must be an ISO-8601 datetime.") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("observed_at must include a timezone.")
+        return parsed.isoformat()
+
+
+class VdoNinjaMetrics(StrictModel):
+    """Privacy-safe WebRTC measurements extracted by the VDO.Ninja bridge."""
+
+    bitrate_kbps: float | int | None = Field(default=None, ge=0, le=100_000)
+    available_outgoing_bitrate_kbps: float | int | None = Field(default=None, ge=0, le=100_000)
+    packet_loss_percent: float | int | None = Field(default=None, ge=0, le=100)
+    packets_lost: int | None = Field(default=None, ge=0)
+    packets_received: int | None = Field(default=None, ge=0)
+    jitter_ms: float | int | None = Field(default=None, ge=0, le=60_000)
+    round_trip_time_ms: float | int | None = Field(default=None, ge=0, le=60_000)
+    frames_per_second: float | int | None = Field(default=None, ge=0, le=240)
+    frames_dropped: int | None = Field(default=None, ge=0)
+    frames_received: int | None = Field(default=None, ge=0)
+    frame_width: int | None = Field(default=None, ge=0, le=16_384)
+    frame_height: int | None = Field(default=None, ge=0, le=16_384)
+
+    @model_validator(mode="after")
+    def finite_values(self) -> "VdoNinjaMetrics":
+        for name in (
+            "bitrate_kbps",
+            "available_outgoing_bitrate_kbps",
+            "packet_loss_percent",
+            "jitter_ms",
+            "round_trip_time_ms",
+            "frames_per_second",
+        ):
+            value = getattr(self, name)
+            if value is not None and not math.isfinite(float(value)):
+                raise ValueError(f"{name} must be finite.")
+        return self
+
+
+class VdoNinjaTelemetryRequest(StrictModel):
+    session_id: str
+    source: Literal["vdo_ninja_iframe"]
+    reporter_id: str = Field(min_length=8, max_length=80, pattern=r"^[A-Za-z0-9._-]+$")
+    sequence: int = Field(ge=0)
+    observed_at: str
+    status: Literal["waiting", "connected", "disconnected", "error"]
+    metrics: VdoNinjaMetrics = Field(default_factory=VdoNinjaMetrics)
 
     @field_validator("session_id")
     @classmethod

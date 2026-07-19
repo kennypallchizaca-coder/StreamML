@@ -21,9 +21,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
     database = request.app.state.database
     settings = request.app.state.settings
     ip = client_ip(request)
-    if not request.app.state.rate_limiter.allow(
-        f"login:{ip}", settings.login_limit, settings.rate_window_seconds
-    ):
+    if not request.app.state.rate_limiter.allow(f"login:{ip}", settings.login_limit, settings.rate_window_seconds):
         database.record_audit(actor_type="anonymous", action="auth.login", outcome="rate_limited", client_ip=ip)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts.")
     try:
@@ -34,7 +32,10 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
     valid = bool(user) and verify_password(payload.password.get_secret_value(), user["password_hash"])
     if not valid:
         database.record_audit(
-            actor_type="anonymous", action="auth.login", outcome="denied", client_ip=ip,
+            actor_type="anonymous",
+            action="auth.login",
+            outcome="denied",
+            client_ip=ip,
             details={"email_sha256": hashlib.sha256(email.encode("utf-8")).hexdigest()},
         )
         audit_log("auth.login.denied", client_ip=ip)
@@ -50,12 +51,11 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
         samesite="strict",
         path="/",
     )
-    database.record_audit(
-        user_id=user["id"], actor_type="user", action="auth.login", outcome="success", client_ip=ip
-    )
+    database.record_audit(user_id=user["id"], actor_type="user", action="auth.login", outcome="success", client_ip=ip)
     return {
         "user": {
-            "id": user["id"], "email": user["email"],
+            "id": user["id"],
+            "email": user["email"],
             "display_name": user.get("display_name") or user["email"],
         },
         "authenticated": True,
@@ -66,7 +66,8 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
 def me(user: dict = Depends(current_user)) -> dict:
     return {
         "user": {
-            "id": user["id"], "email": user["email"],
+            "id": user["id"],
+            "email": user["email"],
             "display_name": user.get("display_name") or user["email"],
         },
         "authenticated": True,

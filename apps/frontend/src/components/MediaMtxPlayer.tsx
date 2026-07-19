@@ -47,6 +47,7 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
     peer.addTransceiver("audio", { direction: "recvonly" });
     peer.ontrack = (event) => {
       video.srcObject = event.streams[0];
+      video.play().catch((e) => console.warn("Autoplay prevenido por el navegador", e));
     };
     peer.onconnectionstatechange = () => {
       if (["failed", "disconnected", "closed"].includes(peer.connectionState) && hlsUrl) setMode("hls");
@@ -90,6 +91,9 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
     let hls: HlsType | null = null;
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = hlsUrl;
+      video.addEventListener("loadedmetadata", () => {
+        video.play().catch((e) => console.warn("Autoplay prevenido por el navegador", e));
+      }, { once: true });
     } else {
       void import("hls.js").then(({ default: Hls }) => {
         if (!active) return;
@@ -100,6 +104,9 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl }: MediaMtxPlayerProps)
         hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch((e) => console.warn("Autoplay prevenido por el navegador", e));
+        });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) setError("La reproducción HLS no está disponible.");
         });

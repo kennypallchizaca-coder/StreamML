@@ -10,9 +10,9 @@ WORKDIR /app
 RUN groupadd --system streamml \
     && useradd --system --gid streamml --home-dir /home/streamml --create-home streamml
 
-COPY requirements-api.txt /app/requirements-api.txt
+COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /app/requirements-api.txt
+    && python -m pip install -r /app/requirements.txt
 
 COPY apps/__init__.py /app/apps/__init__.py
 COPY apps/api /app/apps/api

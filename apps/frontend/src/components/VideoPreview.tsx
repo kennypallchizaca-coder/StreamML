@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import VdoNinjaCamera from "./VdoNinjaCamera";
 import VideoConnectionStatus from "./VideoConnectionStatus";
+import type { VdoNinjaMetrics } from "../types";
 
 interface VideoPreviewProps {
   embedUrl: string;
   isLiveMonitor?: boolean;
   onStatus?: (status: string) => void;
+  onTelemetry?: (metrics: VdoNinjaMetrics, status: "waiting" | "connected" | "disconnected" | "error") => void;
 }
 
-export default function VideoPreview({ embedUrl, isLiveMonitor, onStatus }: VideoPreviewProps) {
+export default function VideoPreview({ embedUrl, isLiveMonitor, onStatus, onTelemetry }: VideoPreviewProps) {
   const [loading, setLoading] = useState(true);
   const [videoStatus, setVideoStatus] = useState<"connected" | "waiting" | "error">("waiting");
 
@@ -46,6 +48,7 @@ export default function VideoPreview({ embedUrl, isLiveMonitor, onStatus }: Vide
           embedUrl={embedUrl}
           onLoad={() => setLoading(false)}
           onStatus={handleStatus}
+          onTelemetry={onTelemetry}
         />
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-media-background/85 text-media-foreground backdrop-blur-sm">

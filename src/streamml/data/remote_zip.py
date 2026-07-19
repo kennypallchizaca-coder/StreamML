@@ -47,9 +47,7 @@ class HTTPRangeReader(io.RawIOBase):
     def read(self, size: int = -1) -> bytes:
         if self.position >= self.size:
             return b""
-        end = self.size - 1 if size is None or size < 0 else min(
-            self.size - 1, self.position + size - 1
-        )
+        end = self.size - 1 if size is None or size < 0 else min(self.size - 1, self.position + size - 1)
         request = urllib.request.Request(
             self.url,
             headers={

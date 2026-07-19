@@ -75,7 +75,9 @@ services:
     stop_grace_period: 20s
     environment:
       MTX_WEBRTCADDITIONALHOSTS: ${MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS:?Set the public MediaMTX host}
-      MTX_AUTHHTTPADDRESS: http://mediamtx:${STREAMML_MEDIA_AUTH_SECRET:?Set STREAMML_MEDIA_AUTH_SECRET in the deployment env file}@api:8000/api/v1/internal/mediamtx/auth
+      MTX_AUTHHTTPADDRESS: http://mediamtx:${STREAMML_MEDIA_AUTH_SECRET:?Set STREAMML_MEDIA_AUTH_SECRET in the deployment env file}@${STREAMML_API_HOST:-api}:8000/api/v1/internal/mediamtx/auth
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../mediamtx/mediamtx.yml:/mediamtx.yml:ro
       - fallback_media:/fallback:ro

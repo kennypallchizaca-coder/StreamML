@@ -71,9 +71,7 @@ def _telemetry_payload(
     metrics.pop("packet_loss_percent")
     session_id = credentials.session_id or config.session_id
     if session_id is None:
-        raise SecretStorageError(
-            "The pairing response did not provide a session id and STREAMML_SESSION_ID is unset."
-        )
+        raise SecretStorageError("The pairing response did not provide a session id and STREAMML_SESSION_ID is unset.")
     payload = {
         "session_id": session_id,
         "sequence": sequence,
@@ -108,10 +106,10 @@ def _send_disconnected(
         LOGGER.warning("OBS is unavailable and the disconnected state could not reach the API.")
 
 
-def _apply_runtime_settings(
-    obs_client: ObsClient, settings: ConnectorRuntimeSettings
-) -> None:
+def _apply_runtime_settings(obs_client: ObsClient, settings: ConnectorRuntimeSettings) -> None:
     obs_client.set_scene_names(live_scene=settings.live_scene, backup_scene=settings.backup_scene)
+    if settings.vdo_bridge_url and obs_client.connected and obs_client.ensure_vdo_bridge(settings.vdo_bridge_url):
+        LOGGER.info("Verified the monitored StreamML browser source in OBS.")
 
 
 def run(*, pair: bool, once: bool, forget_token: bool) -> int:
@@ -177,9 +175,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
                             if measured is not None:
                                 last_network = measured
                             next_network_probe_at = now + network_probe_interval
-                        payload = _telemetry_payload(
-                            config, credentials, snapshot, sequence, last_network
-                        )
+                        payload = _telemetry_payload(config, credentials, snapshot, sequence, last_network)
                         api.send_telemetry(credentials, payload)
                         command = api.next_command(credentials)
                         if command is not None:
@@ -194,9 +190,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
                                 )
                                 LOGGER.error("OBS rejected a StreamML control command (%s).", type(exc).__name__)
                             else:
-                                api.acknowledge_command(
-                                    credentials, str(command["id"]), success=True
-                                )
+                                api.acknowledge_command(credentials, str(command["id"]), success=True)
                                 LOGGER.info("Applied StreamML control command %s.", command.get("command_type"))
                     except ApiClientError as exc:
                         if exc.authentication_failed:
@@ -205,9 +199,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
                                 "and save it in the StreamML local assistant."
                             )
                             return 3
-                        LOGGER.warning(
-                            "StreamML API unavailable; OBS remains connected and telemetry will retry."
-                        )
+                        LOGGER.warning("StreamML API unavailable; OBS remains connected and telemetry will retry.")
                         if once:
                             return 2
                         time.sleep(min(config.reconnect_max_seconds, api_delay))

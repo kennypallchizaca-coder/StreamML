@@ -102,9 +102,7 @@ class LocalConfigurationStore:
         self._atomic_write(current)
 
     def _atomic_write(self, value: dict[str, dict[str, Any]]) -> None:
-        descriptor, temporary_name = tempfile.mkstemp(
-            prefix=".streamml-", suffix=".json", dir=str(self.path.parent)
-        )
+        descriptor, temporary_name = tempfile.mkstemp(prefix=".streamml-", suffix=".json", dir=str(self.path.parent))
         temporary_path = Path(temporary_name)
         try:
             with os.fdopen(descriptor, "w", encoding="utf-8") as stream:

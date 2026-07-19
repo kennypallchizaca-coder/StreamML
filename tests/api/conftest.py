@@ -44,4 +44,3 @@ def create_session(client: TestClient, name: str = "Transmisión de prueba") -> 
     response = client.post("/api/v1/sessions", json={"name": name})
     assert response.status_code == 201, response.text
     return response.json()
-

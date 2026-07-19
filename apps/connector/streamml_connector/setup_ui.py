@@ -159,7 +159,14 @@ def _origin(value: str, *, name: str) -> tuple[str, str]:
         parsed = urlparse(value)
     except ValueError as exc:
         raise SetupValidationError(f"{name} no es una URL válida.") from exc
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
         raise SetupValidationError(f"{name} debe usar HTTPS, incluir un host y no contener credenciales ni parámetros.")
     if parsed.path not in {"", "/"}:
         raise SetupValidationError(f"{name} no debe incluir una ruta.")
@@ -219,13 +226,16 @@ def normalize_deployment_values(values: dict[str, Any]) -> dict[str, Any]:
 
 
 def _secret_presence(vault: LocalSecretVault) -> dict[str, bool]:
-    return {name: vault.has(name) for name in (
-        "obs_websocket_password",
-        "deployment_token_secret",
-        "deployment_media_auth_secret",
-        "deployment_bootstrap_password",
-        "deployment_restream_config_json",
-    )}
+    return {
+        name: vault.has(name)
+        for name in (
+            "obs_websocket_password",
+            "deployment_token_secret",
+            "deployment_media_auth_secret",
+            "deployment_bootstrap_password",
+            "deployment_restream_config_json",
+        )
+    }
 
 
 def _safe_command_output(result: subprocess.CompletedProcess[str]) -> str:
@@ -315,10 +325,7 @@ class SetupService:
             finally:
                 client.close()
             linked = True
-            restart_after_save = bool(
-                self._connector_process is not None
-                and self._connector_process.poll() is None
-            )
+            restart_after_save = bool(self._connector_process is not None and self._connector_process.poll() is None)
         if password:
             self.vault.set("obs_websocket_password", password)
         self.store.save_connector(values)
@@ -346,17 +353,35 @@ class SetupService:
         checks: list[CheckResult] = []
         try:
             response = httpx.get(f"{config.api_base_url}/health", timeout=5, follow_redirects=False)
-            checks.append(CheckResult("api", "API", "ok" if response.is_success else "error", "Conectada." if response.is_success else f"HTTP {response.status_code}."))
+            checks.append(
+                CheckResult(
+                    "api",
+                    "API",
+                    "ok" if response.is_success else "error",
+                    "Conectada." if response.is_success else f"HTTP {response.status_code}.",
+                )
+            )
         except httpx.HTTPError:
             checks.append(CheckResult("api", "API", "error", "Sin conexión. Revisa la URL y el servidor."))
         try:
             pairing_code = _as_text(visible, "pairing_code")
             credentials = TokenStore(config.keyring_service, config.api_base_url, config.connector_name).load()
             pairing_ready = bool(credentials or pairing_code)
-            message = "Conector vinculado." if credentials else ("Código listo." if pairing_code else "Falta el código temporal.")
+            message = (
+                "Conector vinculado."
+                if credentials
+                else ("Código listo." if pairing_code else "Falta el código temporal.")
+            )
             checks.append(CheckResult("pairing", "Vinculación", "ok" if pairing_ready else "warning", message))
         except SecretStorageError:
-            checks.append(CheckResult("pairing", "Vinculación", "error", "No se puede acceder al Administrador de credenciales de Windows."))
+            checks.append(
+                CheckResult(
+                    "pairing",
+                    "Vinculación",
+                    "error",
+                    "No se puede acceder al Administrador de credenciales de Windows.",
+                )
+            )
         try:
             password = _as_text(visible, "obs_password") or self.vault.get("obs_websocket_password")
             if not password:
@@ -391,10 +416,17 @@ class SetupService:
             log_handle = SETUP_LOG.open("a", encoding="utf-8")
             connector_environment = os.environ.copy()
             for name in (
-                "STREAMML_API_URL", "OBS_WEBSOCKET_HOST", "OBS_WEBSOCKET_PORT",
-                "STREAMML_CONNECTOR_NAME", "STREAMML_SESSION_ID", "STREAMML_POLL_INTERVAL_SECONDS",
-                "STREAMML_REQUEST_TIMEOUT_SECONDS", "STREAMML_LIVE_SCENE", "STREAMML_BACKUP_SCENE",
-                "STREAMML_NETWORK_PROBE_INTERVAL_SECONDS", "STREAMML_NETWORK_PROBE_BYTES",
+                "STREAMML_API_URL",
+                "OBS_WEBSOCKET_HOST",
+                "OBS_WEBSOCKET_PORT",
+                "STREAMML_CONNECTOR_NAME",
+                "STREAMML_SESSION_ID",
+                "STREAMML_POLL_INTERVAL_SECONDS",
+                "STREAMML_REQUEST_TIMEOUT_SECONDS",
+                "STREAMML_LIVE_SCENE",
+                "STREAMML_BACKUP_SCENE",
+                "STREAMML_NETWORK_PROBE_INTERVAL_SECONDS",
+                "STREAMML_NETWORK_PROBE_BYTES",
             ):
                 connector_environment.pop(name, None)
             # Run from source as well as from the installed entry point. This
@@ -405,13 +437,17 @@ class SetupService:
             connector_environment["PYTHONPATH"] = os.pathsep.join(
                 item for item in (connector_source, existing_pythonpath) if item
             )
-            options: dict[str, Any] = {"cwd": str(REPOSITORY_ROOT), "stdout": log_handle, "stderr": subprocess.STDOUT, "close_fds": True, "env": connector_environment}
+            options: dict[str, Any] = {
+                "cwd": str(REPOSITORY_ROOT),
+                "stdout": log_handle,
+                "stderr": subprocess.STDOUT,
+                "close_fds": True,
+                "env": connector_environment,
+            }
             if os.name == "nt":
                 options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             try:
-                self._connector_process = subprocess.Popen(
-                    [sys.executable, "-m", "streamml_connector"], **options
-                )
+                self._connector_process = subprocess.Popen([sys.executable, "-m", "streamml_connector"], **options)
             finally:
                 log_handle.close()
             # A missing module or invalid environment exits immediately. Do
@@ -471,7 +507,10 @@ class SetupService:
                 # Generated values are intentionally never returned to the browser.
                 self.vault.set(name, secrets.token_urlsafe(48))
         self.store.save_deployment(values)
-        return {"message": "La configuración del servidor se guardó. Los secretos quedaron cifrados en el almacén del sistema.", "state": self.state()}
+        return {
+            "message": "La configuración del servidor se guardó. Los secretos quedaron cifrados en el almacén del sistema.",
+            "state": self.state(),
+        }
 
     def _deployment_env(self) -> dict[str, str]:
         values = normalize_deployment_values(self.store.deployment())
@@ -497,7 +536,9 @@ class SetupService:
             "TLS_KEY_FILE": str(values["tls_key_file"]),
         }
 
-    def _with_temporary_env(self, action: Callable[[Path], subprocess.CompletedProcess[str]]) -> subprocess.CompletedProcess[str]:
+    def _with_temporary_env(
+        self, action: Callable[[Path], subprocess.CompletedProcess[str]]
+    ) -> subprocess.CompletedProcess[str]:
         if shutil.which("docker") is None:
             raise SetupValidationError("Docker Desktop no está instalado o no está iniciado.")
         if not COMPOSE_FILE.is_file():
@@ -523,22 +564,46 @@ class SetupService:
                     pass
 
     def deployment_check(self) -> dict[str, Any]:
-        command_result = self._with_temporary_env(lambda path: subprocess.run(
-            ["docker", "compose", "--env-file", str(path), "-f", str(COMPOSE_FILE), "config", "-q"],
-            cwd=REPOSITORY_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60, check=False,
-        ))
+        command_result = self._with_temporary_env(
+            lambda path: subprocess.run(
+                ["docker", "compose", "--env-file", str(path), "-f", str(COMPOSE_FILE), "config", "-q"],
+                cwd=REPOSITORY_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+                check=False,
+            )
+        )
         if command_result.returncode != 0:
-            raise SetupValidationError("Docker Compose no pudo validar la configuración: " + _safe_command_output(command_result))
-        return {"message": "Docker Compose validó la infraestructura. Los secretos no se escribieron de forma permanente.", "checks": [CheckResult("compose", "Infraestructura", "ok", "Configuración válida.").to_dict()]}
+            raise SetupValidationError(
+                "Docker Compose no pudo validar la configuración: " + _safe_command_output(command_result)
+            )
+        return {
+            "message": "Docker Compose validó la infraestructura. Los secretos no se escribieron de forma permanente.",
+            "checks": [CheckResult("compose", "Infraestructura", "ok", "Configuración válida.").to_dict()],
+        }
 
     def start_deployment(self) -> dict[str, Any]:
-        command_result = self._with_temporary_env(lambda path: subprocess.run(
-            ["docker", "compose", "--env-file", str(path), "-f", str(COMPOSE_FILE), "up", "-d", "--build"],
-            cwd=REPOSITORY_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300, check=False,
-        ))
+        command_result = self._with_temporary_env(
+            lambda path: subprocess.run(
+                ["docker", "compose", "--env-file", str(path), "-f", str(COMPOSE_FILE), "up", "-d", "--build"],
+                cwd=REPOSITORY_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=300,
+                check=False,
+            )
+        )
         if command_result.returncode != 0:
-            raise SetupValidationError("Docker Compose no pudo iniciar los servicios: " + _safe_command_output(command_result))
-        return {"message": "Infraestructura iniciada o actualizada. Comprueba la URL pública después de que terminen los contenedores.", "output": _safe_command_output(command_result)}
+            raise SetupValidationError(
+                "Docker Compose no pudo iniciar los servicios: " + _safe_command_output(command_result)
+            )
+        return {
+            "message": "Infraestructura iniciada o actualizada. Comprueba la URL pública después de que terminen los contenedores.",
+            "output": _safe_command_output(command_result),
+        }
 
 
 class SetupHttpServer(ThreadingHTTPServer):
@@ -618,12 +683,23 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
             return
         try:
             self._json(HTTPStatus.OK, action(payload))
-        except (SetupValidationError, ConfigurationError, LocalConfigurationError, SecretStorageError, ApiClientError) as exc:
+        except (
+            SetupValidationError,
+            ConfigurationError,
+            LocalConfigurationError,
+            SecretStorageError,
+            ApiClientError,
+        ) as exc:
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
         except subprocess.TimeoutExpired:
-            self._json_error(HTTPStatus.GATEWAY_TIMEOUT, "La operación tardó demasiado. Revisa Docker Desktop y vuelve a intentarlo.")
+            self._json_error(
+                HTTPStatus.GATEWAY_TIMEOUT, "La operación tardó demasiado. Revisa Docker Desktop y vuelve a intentarlo."
+            )
         except Exception:
-            self._json_error(HTTPStatus.INTERNAL_SERVER_ERROR, "La operación no se pudo completar. Revisa el registro local y vuelve a intentarlo.")
+            self._json_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                "La operación no se pudo completar. Revisa el registro local y vuelve a intentarlo.",
+            )
 
     def _allowed_host(self) -> bool:
         host = self.headers.get("Host", "").split(":", 1)[0].casefold()
@@ -647,7 +723,10 @@ class SetupRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy", f"default-src 'self'; style-src 'self'; script-src 'self' 'nonce-{self.server.csp_nonce}'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+        self.send_header(
+            "Content-Security-Policy",
+            f"default-src 'self'; style-src 'self'; script-src 'self' 'nonce-{self.server.csp_nonce}'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+        )
 
     def _json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")

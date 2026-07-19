@@ -23,6 +23,7 @@ def process_telemetry(
     observed_at: str,
     metrics: dict[str, Any],
     network: dict[str, Any] | None,
+    phone_signal_available: bool | None = None,
 ) -> dict[str, Any]:
     """Run every compatible model, update agent state and queue required action."""
 
@@ -30,7 +31,10 @@ def process_telemetry(
     reactive_result: dict[str, Any] | None = None
     predictive_result: dict[str, Any] | None = None
 
-    if network is not None:
+    reactive_network_ready = network is not None and all(
+        network.get(name) is not None for name in ("source", "upload_mbps", "download_mbps", "latency_ms")
+    )
+    if reactive_network_ready:
         source = str(network["source"])
         reactive_input = [
             {"name": "upload_mbps", "value": network["upload_mbps"], "unit": "Mbps", "source": source},
@@ -51,9 +55,7 @@ def process_telemetry(
             )
         )
     else:
-        predictions.append(
-            _blocked(database, registry, user_id, session_id, "reactive")
-        )
+        predictions.append(_blocked(database, registry, user_id, session_id, "reactive"))
 
     stored_state = database.load_agent_state(user_id, session_id)
     if stored_state is None:
@@ -69,15 +71,11 @@ def process_telemetry(
     # The connector cadence includes request time and is therefore not exactly
     # one second. Fetch enough real observations for the fastest supported
     # cadence, then interpolate only inside a continuous measured interval.
-    history = database.recent_network_telemetry(
-        user_id, session_id, required_count * 5 + 5
-    )
+    history = database.recent_network_telemetry(user_id, session_id, required_count * 5 + 5)
     samples = _predictive_samples(history, required_count)
     if samples is not None:
         try:
-            predictive_result = engine.predict_predictive(
-                samples, _profile_level(state.current_profile)
-            )
+            predictive_result = engine.predict_predictive(samples, _profile_level(state.current_profile))
         except IncompatibleFeatures:
             predictive_result = None
         if predictive_result is not None:
@@ -96,15 +94,16 @@ def process_telemetry(
                 )
             )
         else:
-            predictions.append(
-                _blocked(database, registry, user_id, session_id, "predictive")
-            )
+            predictions.append(_blocked(database, registry, user_id, session_id, "predictive"))
     else:
-        predictions.append(
-            _blocked(database, registry, user_id, session_id, "predictive")
-        )
+        predictions.append(_blocked(database, registry, user_id, session_id, "predictive"))
 
-    signal_available = bool(metrics.get("obs_connected")) and bool(metrics.get("stream_active"))
+    signal_available = (
+        bool(metrics.get("obs_connected"))
+        and bool(metrics.get("stream_active"))
+        and not bool(metrics.get("stream_reconnecting"))
+        and phone_signal_available is not False
+    )
     decision = agent.decide(
         state,
         AgentInput(
@@ -138,9 +137,7 @@ def process_telemetry(
             user_id=user_id,
             session_id=session_id,
             connector_id=connector_id,
-            command_type=(
-                "activate_backup" if decision.action == "switch_to_backup" else "restore_live"
-            ),
+            command_type=("activate_backup" if decision.action == "switch_to_backup" else "restore_live"),
             payload={
                 "reason": decision.reason,
                 "previous_backup_active": not decision.backup_active,
@@ -155,9 +152,7 @@ def process_telemetry(
     }
 
 
-def _predictive_samples(
-    history: list[dict[str, Any]], required_count: int
-) -> list[dict[str, Any]] | None:
+def _predictive_samples(history: list[dict[str, Any]], required_count: int) -> list[dict[str, Any]] | None:
     """Resample real, continuous capacity observations to the model's 1 Hz grid."""
 
     if required_count < 2 or len(history) < 2:
@@ -178,9 +173,7 @@ def _predictive_samples(
     start_at = end_at - (required_count - 1)
     if points[0][0] > start_at:
         return None
-    coverage_start = max(
-        index for index, point in enumerate(points[:-1]) if point[0] <= start_at
-    )
+    coverage_start = max(index for index, point in enumerate(points[:-1]) if point[0] <= start_at)
     points = points[coverage_start:]
     deltas = [later[0] - earlier[0] for earlier, later in zip(points, points[1:])]
     if any(delta <= 0 or delta > 2.0 for delta in deltas):
@@ -205,12 +198,14 @@ def _predictive_samples(
         else:
             ratio = (target - left_point[0]) / (right_point[0] - left_point[0])
             capacity = left_point[1] + ratio * (right_point[1] - left_point[1])
-        samples.append({
-            "elapsed_seconds": elapsed,
-            "throughput_mbps": capacity,
-            "unit": "Mbps",
-            "source": "connection_capacity_mbps",
-        })
+        samples.append(
+            {
+                "elapsed_seconds": elapsed,
+                "throughput_mbps": capacity,
+                "unit": "Mbps",
+                "source": "connection_capacity_mbps",
+            }
+        )
     return samples
 
 
@@ -220,9 +215,7 @@ def _continuous_one_hz_window(history: list[dict[str, Any]], required_count: int
     return _predictive_samples(history, required_count) is not None
 
 
-def _blocked(
-    database: Any, registry: Any, user_id: str, session_id: str, role: str
-) -> dict[str, Any]:
+def _blocked(database: Any, registry: Any, user_id: str, session_id: str, role: str) -> dict[str, Any]:
     return database.store_prediction(
         user_id=user_id,
         session_id=session_id,

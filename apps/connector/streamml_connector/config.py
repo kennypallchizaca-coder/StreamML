@@ -171,15 +171,11 @@ def load_config() -> ConnectorConfig:
     """Load non-secret configuration and enforce local OBS plus HTTPS boundaries."""
 
     saved = _saved_local_settings()
-    api_base_url = _validate_api_url(
-        str(_value("STREAMML_API_URL", saved, "http://127.0.0.1:8000"))
-    )
+    api_base_url = _validate_api_url(str(_value("STREAMML_API_URL", saved, "http://127.0.0.1:8000")))
     reconnect_initial = _env_float("STREAMML_RECONNECT_INITIAL_SECONDS", 1.0)
     reconnect_max = _env_float("STREAMML_RECONNECT_MAX_SECONDS", 30.0)
     if reconnect_max < reconnect_initial:
-        raise ConfigurationError(
-            "STREAMML_RECONNECT_MAX_SECONDS cannot be lower than the initial delay."
-        )
+        raise ConfigurationError("STREAMML_RECONNECT_MAX_SECONDS cannot be lower than the initial delay.")
 
     connector_name = str(_value("STREAMML_CONNECTOR_NAME", saved, platform.node())).strip()
     if not connector_name or len(connector_name) > 100:
@@ -208,7 +204,5 @@ def load_config() -> ConnectorConfig:
         live_scene=str(_value("STREAMML_LIVE_SCENE", saved, "StreamML Live")).strip() or "StreamML Live",
         backup_scene=str(_value("STREAMML_BACKUP_SCENE", saved, "StreamML Backup")).strip() or "StreamML Backup",
         network_probe_interval_seconds=_stored_float("STREAMML_NETWORK_PROBE_INTERVAL_SECONDS", saved, 5.0),
-        network_probe_bytes=_stored_positive_int(
-            "STREAMML_NETWORK_PROBE_BYTES", saved, 256 * 1024, maximum=512 * 1024
-        ),
+        network_probe_bytes=_stored_positive_int("STREAMML_NETWORK_PROBE_BYTES", saved, 256 * 1024, maximum=512 * 1024),
     )

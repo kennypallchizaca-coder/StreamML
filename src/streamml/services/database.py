@@ -87,6 +87,20 @@ CREATE TABLE IF NOT EXISTS telemetry (
     UNIQUE(connector_id, sequence)
 );
 CREATE INDEX IF NOT EXISTS telemetry_session_idx ON telemetry(user_id, session_id, observed_at DESC);
+CREATE TABLE IF NOT EXISTS vdo_telemetry (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    reporter_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL,
+    observed_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    metrics_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(reporter_id, sequence)
+);
+CREATE INDEX IF NOT EXISTS vdo_telemetry_session_idx
+ON vdo_telemetry(user_id, session_id, observed_at DESC);
 CREATE TABLE IF NOT EXISTS predictions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -135,7 +149,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 """
 
-LATEST_SCHEMA_VERSION = 3
+LATEST_SCHEMA_VERSION = 4
 
 
 def _expiry(seconds: int) -> str:
@@ -195,31 +209,26 @@ class Database:
                 "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(1,?,?)",
                 ("baseline_schema", utc_now_iso()),
             )
-            columns = {
-                row["name"]
-                for row in connection.execute("PRAGMA table_info(telemetry)").fetchall()
-            }
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(telemetry)").fetchall()}
             if "network_json" not in columns:
                 connection.execute("ALTER TABLE telemetry ADD COLUMN network_json TEXT")
             connection.execute(
                 "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(2,?,?)",
                 ("telemetry_network_metrics", utc_now_iso()),
             )
-            user_columns = {
-                row["name"] for row in connection.execute("PRAGMA table_info(users)").fetchall()
-            }
+            user_columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)").fetchall()}
             if "display_name" not in user_columns:
                 connection.execute("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
-            session_columns = {
-                row["name"] for row in connection.execute("PRAGMA table_info(sessions)").fetchall()
-            }
+            session_columns = {row["name"] for row in connection.execute("PRAGMA table_info(sessions)").fetchall()}
             if "configuration_json" not in session_columns:
-                connection.execute(
-                    "ALTER TABLE sessions ADD COLUMN configuration_json TEXT NOT NULL DEFAULT '{}'"
-                )
+                connection.execute("ALTER TABLE sessions ADD COLUMN configuration_json TEXT NOT NULL DEFAULT '{}'")
             connection.execute(
                 "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(3,?,?)",
                 ("gui_settings_and_profiles", utc_now_iso()),
+            )
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version,name,applied_at) VALUES(4,?,?)",
+                ("vdo_ninja_webrtc_telemetry", utc_now_iso()),
             )
 
     def schema_version(self) -> int:
@@ -286,9 +295,7 @@ class Database:
     ) -> dict[str, Any] | None:
         with self._connect() as connection:
             if new_password is None:
-                connection.execute(
-                    "UPDATE users SET display_name=? WHERE id=?", (display_name, user_id)
-                )
+                connection.execute("UPDATE users SET display_name=? WHERE id=?", (display_name, user_id))
             else:
                 connection.execute(
                     "UPDATE users SET display_name=?,password_hash=? WHERE id=?",
@@ -333,9 +340,7 @@ class Database:
             ).fetchone()
         return dict(row) if row else None
 
-    def create_session(
-        self, user_id: str, name: str, configuration: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def create_session(self, user_id: str, name: str, configuration: dict[str, Any] | None = None) -> dict[str, Any]:
         session_id = str(uuid.uuid4())
         now = utc_now_iso()
         stream_id = "stream-" + uuid.uuid4().hex
@@ -345,8 +350,14 @@ class Database:
                    (id,user_id,name,status,stream_id,configuration_json,created_at,updated_at)
                    VALUES(?,?,?,?,?,?,?,?)""",
                 (
-                    session_id, user_id, name, "created", stream_id,
-                    json.dumps(configuration or {}, separators=(",", ":"), sort_keys=True), now, now,
+                    session_id,
+                    user_id,
+                    name,
+                    "created",
+                    stream_id,
+                    json.dumps(configuration or {}, separators=(",", ":"), sort_keys=True),
+                    now,
+                    now,
                 ),
             )
         return self.get_session(user_id, session_id) or {}
@@ -357,6 +368,21 @@ class Database:
                 """SELECT id,user_id,name,status,stream_id,configuration_json,created_at,updated_at
                    FROM sessions WHERE id=? AND user_id=?""",
                 (session_id, user_id),
+            ).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["configuration"] = _json_object(result.pop("configuration_json", None), {})
+        return result
+
+    def get_session_by_id(self, session_id: str) -> dict[str, Any] | None:
+        """Resolve a session only after a scoped integration credential is verified."""
+
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT id,user_id,name,status,stream_id,configuration_json,created_at,updated_at
+                   FROM sessions WHERE id=?""",
+                (session_id,),
             ).fetchone()
         if not row:
             return None
@@ -390,7 +416,9 @@ class Database:
                 "UPDATE sessions SET configuration_json=?,updated_at=? WHERE id=? AND user_id=?",
                 (
                     json.dumps(configuration, separators=(",", ":"), sort_keys=True),
-                    utc_now_iso(), session_id, user_id,
+                    utc_now_iso(),
+                    session_id,
+                    user_id,
                 ),
             )
         return self.get_session(user_id, session_id)
@@ -419,7 +447,10 @@ class Database:
         }
 
     def update_user_settings(
-        self, user_id: str, *, preferences: dict[str, Any] | None = None,
+        self,
+        user_id: str,
+        *,
+        preferences: dict[str, Any] | None = None,
         stream: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         current = self.get_user_settings(user_id)
@@ -431,7 +462,9 @@ class Database:
                 """UPDATE user_settings SET preferences_json=?,stream_json=?,updated_at=? WHERE user_id=?""",
                 (
                     json.dumps(updated_preferences, separators=(",", ":"), sort_keys=True),
-                    json.dumps(updated_stream, separators=(",", ":"), sort_keys=True), now, user_id,
+                    json.dumps(updated_stream, separators=(",", ":"), sort_keys=True),
+                    now,
+                    user_id,
                 ),
             )
         return self.get_user_settings(user_id)
@@ -518,8 +551,14 @@ class Database:
                    (id,user_id,session_id,name,version,token_hash,expires_at,created_at)
                    VALUES(?,?,?,?,?,?,?,?)""",
                 (
-                    connector_id, pairing["user_id"], pairing["session_id"], connector_name,
-                    connector_version, connector_token_hash, _expiry(token_ttl_seconds), now,
+                    connector_id,
+                    pairing["user_id"],
+                    pairing["session_id"],
+                    connector_name,
+                    connector_version,
+                    connector_token_hash,
+                    _expiry(token_ttl_seconds),
+                    now,
                 ),
             )
             connection.commit()
@@ -561,10 +600,17 @@ class Database:
                        (id,user_id,session_id,connector_id,sequence,observed_at,source,metrics_json,network_json,unsupported_json,created_at)
                        VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
                     (
-                        telemetry_id, user_id, session_id, connector_id, sequence, observed_at, source,
+                        telemetry_id,
+                        user_id,
+                        session_id,
+                        connector_id,
+                        sequence,
+                        observed_at,
+                        source,
                         json.dumps(metrics, separators=(",", ":"), sort_keys=True),
                         json.dumps(network, separators=(",", ":"), sort_keys=True) if network is not None else None,
-                        json.dumps(unsupported, separators=(",", ":"), sort_keys=True), created_at,
+                        json.dumps(unsupported, separators=(",", ":"), sort_keys=True),
+                        created_at,
                     ),
                 )
                 connection.execute("UPDATE connectors SET last_seen_at=? WHERE id=?", (created_at, connector_id))
@@ -612,9 +658,110 @@ class Database:
         result["unsupported"] = json.loads(result.pop("unsupported_json"))
         return result
 
-    def recent_network_telemetry(
-        self, user_id: str, session_id: str, limit: int
-    ) -> list[dict[str, Any]]:
+    def store_vdo_telemetry(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        reporter_id: str,
+        sequence: int,
+        observed_at: str,
+        status: str,
+        metrics: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        telemetry_id = str(uuid.uuid4())
+        created_at = utc_now_iso()
+        with self._connect() as connection:
+            try:
+                connection.execute(
+                    """INSERT INTO vdo_telemetry
+                       (id,user_id,session_id,reporter_id,sequence,observed_at,status,metrics_json,created_at)
+                       VALUES(?,?,?,?,?,?,?,?,?)""",
+                    (
+                        telemetry_id,
+                        user_id,
+                        session_id,
+                        reporter_id,
+                        sequence,
+                        observed_at,
+                        status,
+                        json.dumps(metrics, separators=(",", ":"), sort_keys=True),
+                        created_at,
+                    ),
+                )
+                inserted = True
+            except sqlite3.IntegrityError:
+                row = connection.execute(
+                    "SELECT * FROM vdo_telemetry WHERE reporter_id=? AND sequence=?",
+                    (reporter_id, sequence),
+                ).fetchone()
+                if not row:
+                    raise
+                telemetry_id = row["id"]
+                observed_at = row["observed_at"]
+                status = row["status"]
+                metrics = json.loads(row["metrics_json"])
+                created_at = row["created_at"]
+                inserted = False
+        return {
+            "id": telemetry_id,
+            "session_id": session_id,
+            "reporter_id": reporter_id,
+            "sequence": sequence,
+            "observed_at": observed_at,
+            "status": status,
+            "metrics": metrics,
+            "created_at": created_at,
+        }, inserted
+
+    def latest_vdo_telemetry(self, user_id: str, session_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT * FROM vdo_telemetry WHERE user_id=? AND session_id=?
+                   ORDER BY observed_at DESC, sequence DESC LIMIT 100""",
+                (user_id, session_id),
+            ).fetchall()
+        if not rows:
+            return None
+
+        # A session can have the persistent OBS bridge and the dashboard open
+        # at the same time. Use the latest state per reporter and consider the
+        # phone available when any fresh reporter still sees the stream.
+        latest_by_reporter: dict[str, sqlite3.Row] = {}
+        for row in rows:
+            latest_by_reporter.setdefault(row["reporter_id"], row)
+        connected = [row for row in latest_by_reporter.values() if row["status"] == "connected"]
+        selected = connected[0] if connected else rows[0]
+        result = dict(selected)
+        metrics = json.loads(result.pop("metrics_json"))
+        selected_at = datetime.fromisoformat(str(selected["observed_at"]).replace("Z", "+00:00"))
+
+        # Some VDO.Ninja replies contain counters but omit a calculated rate.
+        # Fill only missing/zero fields from the same reporter's immediately
+        # preceding connected samples; never cross a disconnect boundary.
+        for row in rows:
+            if row["reporter_id"] != selected["reporter_id"]:
+                continue
+            row_at = datetime.fromisoformat(str(row["observed_at"]).replace("Z", "+00:00"))
+            if (selected_at - row_at).total_seconds() > 5:
+                break
+            if row["status"] != "connected":
+                if row["id"] != selected["id"]:
+                    break
+                continue
+            older = json.loads(row["metrics_json"])
+            for key, value in older.items():
+                current = metrics.get(key)
+                if current is None or (
+                    key in {"bitrate_kbps", "available_outgoing_bitrate_kbps"} and float(current) <= 0 < float(value)
+                ):
+                    metrics[key] = value
+            if metrics.get("bitrate_kbps", 0) or metrics.get("available_outgoing_bitrate_kbps", 0):
+                break
+        result["metrics"] = metrics
+        return result
+
+    def recent_network_telemetry(self, user_id: str, session_id: str, limit: int) -> list[dict[str, Any]]:
         """Return compatible network samples in chronological order."""
 
         with self._connect() as connection:
@@ -625,8 +772,7 @@ class Database:
                 (user_id, session_id, limit),
             ).fetchall()
         results = [
-            {"observed_at": row["observed_at"], "network": json.loads(row["network_json"])}
-            for row in reversed(rows)
+            {"observed_at": row["observed_at"], "network": json.loads(row["network_json"])} for row in reversed(rows)
         ]
         return results
 
@@ -693,9 +839,14 @@ class Database:
                    (id,user_id,session_id,connector_id,command_type,payload_json,status,created_at)
                    VALUES(?,?,?,?,?,?,?,?)""",
                 (
-                    command_id, user_id, session_id, connector_id, command_type,
+                    command_id,
+                    user_id,
+                    session_id,
+                    connector_id,
+                    command_type,
                     json.dumps(payload, separators=(",", ":"), sort_keys=True),
-                    "pending", created_at,
+                    "pending",
+                    created_at,
                 ),
             )
         return {
@@ -708,7 +859,14 @@ class Database:
         }
 
     def pending_control_command(self, connector_id: str, session_id: str) -> dict[str, Any] | None:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
         with self._connect() as connection:
+            connection.execute(
+                """UPDATE control_commands
+                   SET status='failed',acknowledged_at=?,error_message='Command expired before delivery.'
+                   WHERE status='pending' AND created_at<?""",
+                (utc_now_iso(), cutoff),
+            )
             row = connection.execute(
                 """SELECT * FROM control_commands
                    WHERE session_id=? AND status='pending'
@@ -758,7 +916,9 @@ class Database:
                         "UPDATE agent_states SET state_json=?,updated_at=? WHERE user_id=? AND session_id=?",
                         (
                             json.dumps(state, separators=(",", ":"), sort_keys=True),
-                            utc_now_iso(), command["user_id"], command["session_id"],
+                            utc_now_iso(),
+                            command["user_id"],
+                            command["session_id"],
                         ),
                     )
         return updated.rowcount == 1
@@ -783,15 +943,27 @@ class Database:
                    (id,user_id,session_id,model_role,model_version,status,result_json,blocked_reason,input_fingerprint,created_at)
                    VALUES(?,?,?,?,?,?,?,?,?,?)""",
                 (
-                    prediction_id, user_id, session_id, model_role, model_version, status,
+                    prediction_id,
+                    user_id,
+                    session_id,
+                    model_role,
+                    model_version,
+                    status,
                     json.dumps(result, separators=(",", ":"), sort_keys=True) if result is not None else None,
-                    blocked_reason, input_fingerprint, created_at,
+                    blocked_reason,
+                    input_fingerprint,
+                    created_at,
                 ),
             )
         return {
-            "id": prediction_id, "session_id": session_id, "model_role": model_role,
-            "model_version": model_version, "status": status, "result": result,
-            "blocked_reason": blocked_reason, "created_at": created_at,
+            "id": prediction_id,
+            "session_id": session_id,
+            "model_role": model_role,
+            "model_version": model_version,
+            "status": status,
+            "result": result,
+            "blocked_reason": blocked_reason,
+            "created_at": created_at,
         }
 
     def recent_predictions(self, user_id: str, session_id: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -827,7 +999,15 @@ class Database:
                    (id,user_id,actor_type,action,resource_type,resource_id,outcome,client_ip,details_json,created_at)
                    VALUES(?,?,?,?,?,?,?,?,?,?)""",
                 (
-                    str(uuid.uuid4()), user_id, actor_type, action, resource_type, resource_id,
-                    outcome, client_ip, json.dumps(safe_details, separators=(",", ":"), sort_keys=True), utc_now_iso(),
+                    str(uuid.uuid4()),
+                    user_id,
+                    actor_type,
+                    action,
+                    resource_type,
+                    resource_id,
+                    outcome,
+                    client_ip,
+                    json.dumps(safe_details, separators=(",", ":"), sort_keys=True),
+                    utc_now_iso(),
                 ),
             )

@@ -79,9 +79,7 @@ class OfficialModelRegistry:
             except PackageNotFoundError as exc:
                 raise RuntimeError(f"Required model runtime package is missing: {package}") from exc
             if installed != declared[package]:
-                raise RuntimeError(
-                    f"Incompatible {package} runtime: expected {declared[package]}, found {installed}."
-                )
+                raise RuntimeError(f"Incompatible {package} runtime: expected {declared[package]}, found {installed}.")
 
     def _load_role(self, role: str) -> None:
         directory = self.release_dir / role
@@ -134,11 +132,7 @@ class OfficialModelRegistry:
             if contract.get("feature_metadata"):
                 public_fields = {"definition", "unit", "training_source", "formula", "availability"}
                 public_feature_metadata = {
-                    name: {
-                        key: value
-                        for key, value in metadata.items()
-                        if key in public_fields
-                    }
+                    name: {key: value for key, value in metadata.items() if key in public_fields}
                     for name, metadata in contract["feature_metadata"].items()
                 }
             item: dict[str, Any] = {
@@ -157,10 +151,7 @@ class OfficialModelRegistry:
                 "dataset": metrics.get("dataset"),
                 "trained_at": training.get("created_at_utc"),
                 "split_method": training.get("split_method"),
-                "split_counts": (
-                    training.get("split_window_counts")
-                    or training.get("split_rows")
-                ),
+                "split_counts": (training.get("split_window_counts") or training.get("split_rows")),
                 "generalization_gap": metrics.get("generalization_gap"),
                 "improvement_over_baseline_macro_f1": (
                     metrics.get("improvement_over_dummy_test_macro_f1")

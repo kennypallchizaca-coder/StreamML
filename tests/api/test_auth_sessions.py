@@ -10,10 +10,13 @@ def test_auth_session_creation_and_listing(client: TestClient):
     assert health["schema_version"] > 0
     assert client.get("/health/live").json() == {"status": "ok"}
     assert client.get("/health/ready").status_code == 200
-    assert client.post(
-        "/api/v1/auth/login",
-        json={"email": "owner@example.com", "password": "incorrect"},
-    ).status_code == 401
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={"email": "owner@example.com", "password": "incorrect"},
+        ).status_code
+        == 401
+    )
 
     login(client)
     created = create_session(client)

@@ -81,12 +81,13 @@ mantiene por ser funcionalidad en uso.
 
 | Verificación | Resultado |
 |---|---|
-| `python -m pytest -q` | 76 aprobadas |
+| `python -m pytest -q` | 89 aprobadas |
 | Ruff | limpio |
 | `compileall` | correcto |
 | release de modelos | `STREAMML RELEASE VERIFIED` |
 | demo de inferencia | reactivo `high`; predictivo `maintain` |
-| frontend Vitest | 17 aprobadas |
+| cuatro notebooks con `nbconvert --execute` | ejecutados desde kernels nuevos, sin errores |
+| frontend Vitest | 20 aprobadas |
 | ESLint | limpio, cero advertencias |
 | TypeScript y Vite | compilación correcta |
 | `npm audit --omit=dev` | 0 vulnerabilidades |
@@ -107,7 +108,7 @@ asistente local. El tema global mantiene bordes cuadrados y tokens compartidos.
 
 | Requisito | Estado | Evidencia |
 |---|---|---|
-| Captura móvil por VDO.Ninja y uso en OBS | Implementado, certificación física pendiente | URLs `push`/`view`, validación y fuente de navegador; el estado del teléfono depende de eventos externos de VDO.Ninja |
+| Captura móvil por VDO.Ninja y uso en OBS | Implementado, certificación física pendiente | URLs `push`/`view`, puente OBS persistente, estadísticas WebRTC normalizadas y detección de desconexión |
 | Telemetría actual de OBS y red | Cumplido | 2.136 muestras reales y métricas visibles |
 | Modelo reactivo `low/medium/high` | Cumplido | release verificado e inferencia real ejecutada |
 | Predictivo de 10 minutos `maintain/downgrade_needed` | Cumplido | ventana de 600 muestras e inferencias ejecutadas |
@@ -122,11 +123,10 @@ asistente local. El tema global mantiene bordes cuadrados y tokens compartidos.
 
 - La fuente predictiva contiene solo 17 sesiones largas y fuerte desbalance; una
   métrica perfecta no demuestra generalización en redes móviles reales.
-- La sonda HTTP mide la ruta OBS-servidor, no la calidad WebRTC interna entre el
-  teléfono y VDO.Ninja.
-- La vista local actual no recibe siempre un evento verificable de VDO.Ninja;
-  por eso el teléfono permanece "No disponible" aunque OBS pueda consumir la
-  fuente. El panel no inventa ese estado.
+- VDO.Ninja no expone métricas físicas de radio celular (RSRP/RSRQ/SINR/dBm);
+  el sistema mide el trayecto WebRTC y no inventa esas variables.
+- Un enlace externo sin el parámetro remoto puede ofrecer menos campos. El
+  puente usa las estadísticas entrantes disponibles; si la señal móvil queda vencida, bloquea la inferencia y activa el respaldo sin sustituirla por la red del servidor.
 - `hls.js` se carga de forma diferida pero su chunk minificado supera 500 kB;
   Vite emite una advertencia de tamaño no bloqueante.
 - Deben probarse físicamente pérdida/recuperación, cambio de bitrate mientras el

@@ -36,6 +36,7 @@ class ConnectorRuntimeSettings:
     backup_scene: str
     network_probe_interval_seconds: float
     network_probe_bytes: int
+    vdo_bridge_url: str | None = None
 
 
 class StreamMLApiClient:
@@ -77,9 +78,7 @@ class StreamMLApiClient:
             session_id=_optional_string(data.get("session_id")),
         )
 
-    def send_telemetry(
-        self, credentials: ConnectorCredentials, payload: dict[str, Any]
-    ) -> TelemetryReceipt:
+    def send_telemetry(self, credentials: ConnectorCredentials, payload: dict[str, Any]) -> TelemetryReceipt:
         response = self._request(
             "POST",
             "/api/v1/telemetry",
@@ -107,7 +106,8 @@ class StreamMLApiClient:
 
     def connector_settings(self, credentials: ConnectorCredentials) -> ConnectorRuntimeSettings:
         response = self._request(
-            "GET", "/api/v1/connectors/settings",
+            "GET",
+            "/api/v1/connectors/settings",
             headers={"Authorization": f"Bearer {credentials.access_token}"},
         )
         data = self._json_object(response)
@@ -116,11 +116,12 @@ class StreamMLApiClient:
             backup_scene = str(data["backup_scene"]).strip()
             interval = float(data["network_probe_interval_seconds"])
             probe_bytes = int(data["network_probe_bytes"])
+            bridge_url = str(data.get("vdo_bridge_url") or "").strip() or None
         except (KeyError, TypeError, ValueError) as exc:
             raise ApiClientError("The connector settings response was invalid.") from exc
         if not live_scene or not backup_scene or not 1 <= interval <= 60 or not 1024 <= probe_bytes <= 512 * 1024:
             raise ApiClientError("The connector settings response was outside safe limits.")
-        return ConnectorRuntimeSettings(live_scene, backup_scene, interval, probe_bytes)
+        return ConnectorRuntimeSettings(live_scene, backup_scene, interval, probe_bytes, bridge_url)
 
     def acknowledge_command(
         self,
@@ -139,13 +140,15 @@ class StreamMLApiClient:
 
     def probe_latency(self, credentials: ConnectorCredentials) -> None:
         self._request(
-            "GET", "/api/v1/network/probe/latency",
+            "GET",
+            "/api/v1/network/probe/latency",
             headers={"Authorization": f"Bearer {credentials.access_token}"},
         )
 
     def probe_download(self, credentials: ConnectorCredentials, size: int) -> int:
         response = self._request(
-            "GET", "/api/v1/network/probe/download",
+            "GET",
+            "/api/v1/network/probe/download",
             params={"size": size},
             headers={"Authorization": f"Bearer {credentials.access_token}"},
         )
@@ -153,7 +156,9 @@ class StreamMLApiClient:
 
     def probe_upload(self, credentials: ConnectorCredentials, payload: bytes) -> int:
         response = self._request(
-            "POST", "/api/v1/network/probe/upload", content=payload,
+            "POST",
+            "/api/v1/network/probe/upload",
+            content=payload,
             headers={
                 "Authorization": f"Bearer {credentials.access_token}",
                 "Content-Type": "application/octet-stream",

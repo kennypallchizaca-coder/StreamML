@@ -13,6 +13,7 @@ import json
 import os
 from typing import Final
 
+
 class SecretStorageError(RuntimeError):
     """Raised when a secret cannot be stored securely."""
 
@@ -57,9 +58,7 @@ class LocalSecretVault:
         try:
             keyring.set_password(self._service, name, value)
         except Exception as exc:
-            raise SecretStorageError(
-                "La credencial no se pudo guardar en el almacén seguro del sistema."
-            ) from exc
+            raise SecretStorageError("La credencial no se pudo guardar en el almacén seguro del sistema.") from exc
 
     def delete(self, name: str) -> None:
         self._validate_name(name)
@@ -101,9 +100,7 @@ def read_obs_password() -> str:
 def read_pairing_code(explicit_code: str | None) -> str:
     """Read a one-time linking code without echoing it to the terminal."""
 
-    code = explicit_code if explicit_code is not None else getpass(
-        "Temporary StreamML linking code: "
-    )
+    code = explicit_code if explicit_code is not None else getpass("Temporary StreamML linking code: ")
     code = code.strip()
     if not code:
         raise SecretStorageError("A temporary linking code is required.")
@@ -143,9 +140,7 @@ class TokenStore:
         try:
             keyring.set_password(self._service, self._account, payload)
         except Exception as exc:
-            raise SecretStorageError(
-                "The connector token could not be saved in the operating system keyring."
-            ) from exc
+            raise SecretStorageError("The connector token could not be saved in the operating system keyring.") from exc
 
     def delete(self) -> None:
         keyring = _load_keyring()

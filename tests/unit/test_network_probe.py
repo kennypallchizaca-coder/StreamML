@@ -29,4 +29,3 @@ def test_network_probe_reports_compatible_metrics_without_obs_bitrate() -> None:
     assert measured.upload_mbps == 2.0
     assert measured.connection_capacity_mbps == measured.upload_mbps
     assert measured.packet_loss_percent == 0.0
-

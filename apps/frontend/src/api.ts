@@ -9,6 +9,7 @@ import type {
   StreamSession,
   StreamSettings,
   VideoEndpoints,
+  VdoNinjaTelemetryPayload,
 } from "./types";
 
 const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim() || "/api/v1";
@@ -34,7 +35,11 @@ function errorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  options: { suppressUnauthorizedEvent?: boolean } = {},
+): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -53,7 +58,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     : await response.text();
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !options.suppressUnauthorizedEvent) {
       window.dispatchEvent(new Event("streamml:unauthorized"));
     }
     throw new ApiError(errorMessage(payload, `Error HTTP ${response.status}`), response.status, payload);
@@ -70,7 +75,7 @@ export const api = {
     });
   },
   me() {
-    return request<LoginResponse>("/auth/me");
+    return request<LoginResponse>("/auth/me", {}, { suppressUnauthorizedEvent: true });
   },
   logout() {
     return request<{ message?: string }>("/auth/logout", { method: "POST" });
@@ -97,6 +102,24 @@ export const api = {
   },
   getStream(id: string) {
     return request<VideoEndpoints>(`/streams/${encodeURIComponent(id)}`);
+  },
+  sendVdoNinjaTelemetry(payload: VdoNinjaTelemetryPayload, bridgeToken?: string) {
+    return request<{ accepted: boolean; duplicate: boolean; phone_status?: string | null }>(
+      "/telemetry/vdo-ninja",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: bridgeToken ? { Authorization: `Bearer ${bridgeToken}` } : undefined,
+      },
+      { suppressUnauthorizedEvent: Boolean(bridgeToken) },
+    );
+  },
+  getVdoNinjaBridge(sessionId: string, bridgeToken: string) {
+    return request<{ session_id: string; embed_url: string }>(
+      `/telemetry/vdo-ninja/${encodeURIComponent(sessionId)}/bridge`,
+      { headers: { Authorization: `Bearer ${bridgeToken}` } },
+      { suppressUnauthorizedEvent: true },
+    );
   },
   getModels() {
     return request<ModelsResponse | ModelSummary[]>("/models");

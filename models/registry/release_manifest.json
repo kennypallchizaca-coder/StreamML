@@ -1,7 +1,7 @@
 {
   "release_version": "3.0.0",
   "official_release": true,
-  "created_at_utc": "2026-07-17T17:21:37.432289+00:00",
+  "created_at_utc": "2026-07-18T16:10:58.754304+00:00",
   "reactive_model_ready": true,
   "predictive_model_ready": true,
   "reactive_model": {
@@ -315,7 +315,7 @@
       }
     },
     "dataset": "data/processed/predictive_dataset.csv",
-    "dataset_sha256": "41aedb2da167b7a6c17b0753ad66b73b7f8bc792c723651565ba1c9afff22989"
+    "dataset_sha256": "d928c27b179fb1cdb18e298ecc3daea91874a399e7dae9b7c6afb522b21c0a93"
   },
   "random_state": 42,
   "library_versions": [
@@ -331,14 +331,14 @@
     "models/registry/reactive/feature_contract.json": "24e756c012a704f2992358190c97bf13ddd2635f6a2d9e0dd3a7b2b17d9c396a",
     "models/registry/reactive/metrics.json": "5d4d3f86bf248f8011e60763e5194226fc8f9dcc989a41a330285efa0a9b3da8",
     "models/registry/reactive/class_mapping.json": "8fa7b63a1ed473c70a8681accbfd6dcde81036470f6a6f47993f07470c79ef6a",
-    "models/registry/reactive/training_manifest.json": "45813aa251a71d3598b3c226ae57f3e68560619f7be2edc2fd5a91fbca605bc0",
+    "models/registry/reactive/training_manifest.json": "b4432513a436b4ee5295c3dac7b94580658ea01c3a14637dfcf76e46a9ae9640",
     "models/registry/reactive/source_manifest.json": "79ba6d769993382464d6e0ea1b548978a1e924b39da6f88eb9637f72b0b31229",
     "models/registry/reactive/requirements_snapshot.txt": "4a015106dc1895e475053845c6ff2a8a2464d87cfc4b3d56e6f3a3674de997be",
     "models/registry/predictive/model.joblib": "91188d60de11b40eb32889e5eb8c531b463c43f19b34af2095b95abb9ddfd5d2",
     "models/registry/predictive/feature_contract.json": "35de2aaccd6f494b78e3111cecc1a97a6e754447714ec5d8920856359b62ea8b",
     "models/registry/predictive/metrics.json": "91e0bd5d0e96dc0e48fb6cd5caffef04a71ddd231a276b170f5a70dc1ab581e2",
     "models/registry/predictive/class_mapping.json": "35b4d38a9d1e97ff7c5fbf7b4c7ccdba86a5422ae78973ef811dc9a02ce6639f",
-    "models/registry/predictive/training_manifest.json": "29d6c5f6a14f039a8f8da4ef769a039a589b455d01df853cab7e8a7b0891820b",
+    "models/registry/predictive/training_manifest.json": "cf2b2cb1a1cd63bc545864379c37e20955ee005059a2d51b5aa46bd7fdbf137a",
     "models/registry/predictive/source_manifest.json": "79ba6d769993382464d6e0ea1b548978a1e924b39da6f88eb9637f72b0b31229",
     "models/registry/predictive/requirements_snapshot.txt": "eb6fb932994b1b38c04e2108c3c45c990fc08cfa80a5ade82fd96f5583734de0",
     "models/registry/predictive/threshold.json": "1982210773bc25cc18049e5d1453204ae9cfa263bf33141f313289c2b460debd"

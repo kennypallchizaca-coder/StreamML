@@ -131,12 +131,10 @@ def build_session_windows(
         historical_throughput = _sample_capacity(bandwidth, history_times)
         future_throughput = _sample_capacity(bandwidth, future_times)
         historical_app = application.loc[
-            (application["epoch_seconds"] >= history_start)
-            & (application["epoch_seconds"] < history_end)
+            (application["epoch_seconds"] >= history_start) & (application["epoch_seconds"] < history_end)
         ]
         future_app = application.loc[
-            (application["epoch_seconds"] >= history_end)
-            & (application["epoch_seconds"] < future_end)
+            (application["epoch_seconds"] >= history_end) & (application["epoch_seconds"] < future_end)
         ]
         if historical_app.empty:
             discards["missing_historical_application"] += 1

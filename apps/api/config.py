@@ -58,7 +58,7 @@ class Settings:
     bootstrap_password: str = ""
     login_limit: int = 8
     pairing_limit: int = 10
-    telemetry_limit: int = 240
+    telemetry_limit: int = 600
     rate_window_seconds: int = 60
 
     @classmethod
@@ -102,10 +102,18 @@ class Settings:
             raise RuntimeError("Bootstrap email and password must be configured together.")
         if self.bootstrap_password and len(self.bootstrap_password) < 12:
             raise RuntimeError("STREAMML_BOOTSTRAP_PASSWORD must contain at least 12 characters.")
-        if any(value <= 0 for value in (
-            self.session_ttl_seconds, self.connector_ttl_seconds, self.pairing_ttl_seconds,
-            self.login_limit, self.pairing_limit, self.telemetry_limit, self.rate_window_seconds,
-        )):
+        if any(
+            value <= 0
+            for value in (
+                self.session_ttl_seconds,
+                self.connector_ttl_seconds,
+                self.pairing_ttl_seconds,
+                self.login_limit,
+                self.pairing_limit,
+                self.telemetry_limit,
+                self.rate_window_seconds,
+            )
+        ):
             raise RuntimeError("TTL and rate-limit values must be positive integers.")
         if self.environment == "production":
             if not self.cookie_secure or not self.enforce_https:

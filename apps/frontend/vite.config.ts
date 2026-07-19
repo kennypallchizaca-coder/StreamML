@@ -25,5 +25,8 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    // hls.js is already lazy-loaded as a separate fallback player (about
+    // 162 KiB gzip). Keep the warning threshold above that intentional chunk.
+    chunkSizeWarningLimit: 550,
   },
 });

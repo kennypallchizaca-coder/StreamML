@@ -11,10 +11,7 @@ import pandas as pd
 def _class_distribution(values: pd.Series) -> dict[str, dict[str, float | int]]:
     counts = values.astype(str).value_counts(dropna=False)
     total = max(1, int(counts.sum()))
-    return {
-        str(label): {"count": int(count), "fraction": float(count / total)}
-        for label, count in counts.items()
-    }
+    return {str(label): {"count": int(count), "fraction": float(count / total)} for label, count in counts.items()}
 
 
 def _feature_fingerprints(frame: pd.DataFrame, feature_columns: list[str]) -> pd.Series:
@@ -26,9 +23,7 @@ def _feature_fingerprints(frame: pd.DataFrame, feature_columns: list[str]) -> pd
     return pd.util.hash_pandas_object(frame.loc[:, feature_columns], index=False)
 
 
-def _missing_and_non_finite(
-    frame: pd.DataFrame, feature_columns: list[str]
-) -> tuple[dict[str, int], dict[str, int]]:
+def _missing_and_non_finite(frame: pd.DataFrame, feature_columns: list[str]) -> tuple[dict[str, int], dict[str, int]]:
     missing: dict[str, int] = {}
     non_finite: dict[str, int] = {}
     for column in feature_columns:
@@ -43,14 +38,10 @@ def _missing_and_non_finite(
 
 
 def _constant_features(frame: pd.DataFrame, feature_columns: list[str]) -> list[str]:
-    return sorted(
-        column for column in feature_columns if frame[column].nunique(dropna=False) <= 1
-    )
+    return sorted(column for column in feature_columns if frame[column].nunique(dropna=False) <= 1)
 
 
-def _split_for_sessions(
-    frame: pd.DataFrame, splits: dict[str, list[str]]
-) -> pd.Series:
+def _split_for_sessions(frame: pd.DataFrame, splits: dict[str, list[str]]) -> pd.Series:
     session_to_split: dict[str, str] = {}
     for split_name, sessions in splits.items():
         for session in sessions:
@@ -64,9 +55,7 @@ def _split_for_sessions(
     return assigned
 
 
-def _cross_split_duplicates(
-    fingerprints: pd.Series, split_names: pd.Series
-) -> dict[str, Any]:
+def _cross_split_duplicates(fingerprints: pd.Series, split_names: pd.Series) -> dict[str, Any]:
     result: dict[str, Any] = {}
     fingerprint_sets = {
         name: set(fingerprints.loc[split_names == name].astype("uint64").tolist())
@@ -90,9 +79,7 @@ def _window_overlap(frame: pd.DataFrame) -> dict[str, float | int]:
         return {"adjacent_pairs": 0, "overlapping_pairs": 0, "overlap_fraction": 0.0}
     pairs = 0
     overlaps = 0
-    for _, session in frame.sort_values(
-        ["session_id", "window_start_seconds"]
-    ).groupby("session_id"):
+    for _, session in frame.sort_values(["session_id", "window_start_seconds"]).groupby("session_id"):
         starts = session["window_start_seconds"].to_numpy(dtype=float)
         ends = session["window_end_seconds"].to_numpy(dtype=float)
         if len(session) < 2:
@@ -121,9 +108,7 @@ def audit_predictive_dataset(
     split_names = _split_for_sessions(frame, splits)
     missing, non_finite = _missing_and_non_finite(frame, feature_columns)
     session_targets = (
-        frame.groupby("session_id")["target_code"].mean().ge(0.5).map(
-            {False: "maintain", True: "downgrade_needed"}
-        )
+        frame.groupby("session_id")["target_code"].mean().ge(0.5).map({False: "maintain", True: "downgrade_needed"})
     )
     pure_sessions = int(frame.groupby("session_id")["target"].nunique().eq(1).sum())
     overlap = _window_overlap(frame)
@@ -132,40 +117,47 @@ def audit_predictive_dataset(
 
     warnings: list[dict[str, str]] = []
     if duplicate_rows:
-        warnings.append({
-            "code": "duplicate_feature_vectors",
-            "severity": "high",
-            "message": "Varias ventanas contienen entradas idénticas; las métricas deben reportarse por sesión y los splits deben permanecer agrupados.",
-        })
+        warnings.append(
+            {
+                "code": "duplicate_feature_vectors",
+                "severity": "high",
+                "message": "Varias ventanas contienen entradas idénticas; las métricas deben reportarse por sesión y los splits deben permanecer agrupados.",
+            }
+        )
     if overlap["overlap_fraction"] > 0.5:
-        warnings.append({
-            "code": "high_window_overlap",
-            "severity": "high",
-            "message": "La mayoría de las ventanas adyacentes se solapan; su cantidad no representa observaciones independientes.",
-        })
-    if any(
-        item["shared_unique_feature_vectors"]
-        for item in cross_split.values()
-    ):
-        warnings.append({
-            "code": "cross_split_feature_overlap",
-            "severity": "high",
-            "message": "Existen vectores idénticos entre splits aunque las sesiones estén separadas.",
-        })
+        warnings.append(
+            {
+                "code": "high_window_overlap",
+                "severity": "high",
+                "message": "La mayoría de las ventanas adyacentes se solapan; su cantidad no representa observaciones independientes.",
+            }
+        )
+    if any(item["shared_unique_feature_vectors"] for item in cross_split.values()):
+        warnings.append(
+            {
+                "code": "cross_split_feature_overlap",
+                "severity": "high",
+                "message": "Existen vectores idénticos entre splits aunque las sesiones estén separadas.",
+            }
+        )
     class_counts = frame["target"].value_counts()
     if len(class_counts) < 2 or float(class_counts.min() / class_counts.sum()) < 0.15:
-        warnings.append({
-            "code": "class_imbalance",
-            "severity": "high",
-            "message": "La clase minoritaria representa menos del 15% de las ventanas; deben usarse métricas por clase y balanceadas.",
-        })
+        warnings.append(
+            {
+                "code": "class_imbalance",
+                "severity": "high",
+                "message": "La clase minoritaria representa menos del 15% de las ventanas; deben usarse métricas por clase y balanceadas.",
+            }
+        )
     constant = _constant_features(frame, feature_columns)
     if constant:
-        warnings.append({
-            "code": "constant_features",
-            "severity": "medium",
-            "message": f"Estas variables son constantes y no discriminan en el dataset actual: {', '.join(constant)}.",
-        })
+        warnings.append(
+            {
+                "code": "constant_features",
+                "severity": "medium",
+                "message": f"Estas variables son constantes y no discriminan en el dataset actual: {', '.join(constant)}.",
+            }
+        )
 
     return {
         "dataset": "predictive",
@@ -200,10 +192,7 @@ def audit_reactive_dataset(
         raise ValueError(f"Reactive dataset is missing: {sorted(required - set(frame.columns))}")
     fingerprints = _feature_fingerprints(frame, feature_columns)
     missing, non_finite = _missing_and_non_finite(frame, feature_columns)
-    split_sessions = {
-        name: set(group["session_id"].astype(str))
-        for name, group in frame.groupby("split")
-    }
+    split_sessions = {name: set(group["session_id"].astype(str)) for name, group in frame.groupby("split")}
     leakage = {
         f"{left}_vs_{right}": sorted(split_sessions.get(left, set()) & split_sessions.get(right, set()))
         for left, right in (("train", "validation"), ("train", "test"), ("validation", "test"))
@@ -220,9 +209,11 @@ def audit_reactive_dataset(
         "constant_features": _constant_features(frame, feature_columns),
         "missing_by_feature": missing,
         "non_finite_by_feature": non_finite,
-        "warnings": [{
-            "code": "pseudo_label_target",
-            "severity": "medium",
-            "message": "El target es una pseudoetiqueta derivada de reglas; una métrica casi perfecta no demuestra por sí sola una mejora real de QoE.",
-        }],
+        "warnings": [
+            {
+                "code": "pseudo_label_target",
+                "severity": "medium",
+                "message": "El target es una pseudoetiqueta derivada de reglas; una métrica casi perfecta no demuestra por sí sola una mejora real de QoE.",
+            }
+        ],
     }

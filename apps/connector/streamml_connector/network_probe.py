@@ -60,10 +60,7 @@ class NetworkProbe:
         self._outcomes.append(True)
         self._latencies.append(latency_ms)
         jitter = (
-            statistics.fmean(
-                abs(right - left)
-                for left, right in zip(self._latencies, list(self._latencies)[1:])
-            )
+            statistics.fmean(abs(right - left) for left, right in zip(self._latencies, list(self._latencies)[1:]))
             if len(self._latencies) > 1
             else 0.0
         )
@@ -103,9 +100,7 @@ class NetworkProbe:
     def _loss_percent(self) -> float:
         return round(100.0 * (1.0 - sum(self._outcomes) / len(self._outcomes)), 3)
 
-    def _with_current_loss(
-        self, value: NetworkMeasurement | None
-    ) -> NetworkMeasurement | None:
+    def _with_current_loss(self, value: NetworkMeasurement | None) -> NetworkMeasurement | None:
         if value is None:
             return None
         updated = NetworkMeasurement(

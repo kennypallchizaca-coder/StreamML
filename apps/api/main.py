@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+# Uvicorn reload trigger
 from contextlib import asynccontextmanager
 import re
 import time
@@ -13,7 +14,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.config import Settings
-from apps.api.routers import auth, control, models, network, pairing, predictions, sessions, settings as settings_router, streams, telemetry, websockets
+from apps.api.routers import (
+    auth,
+    control,
+    models,
+    network,
+    pairing,
+    predictions,
+    sessions,
+    settings as settings_router,
+    streams,
+    telemetry,
+    websockets,
+)
 from src.streamml.inference import InferenceEngine, OfficialModelRegistry
 from src.streamml.agent import AutonomousStreamingAgent
 from src.streamml.observability.logging import LOGGER, audit_log, configure_logging
@@ -71,7 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def security_middleware(request: Request, call_next):
         started = time.perf_counter()
         supplied_request_id = request.headers.get("x-request-id", "")
-        request_id = supplied_request_id if re.fullmatch(r"[A-Za-z0-9._-]{1,80}", supplied_request_id) else uuid.uuid4().hex
+        request_id = (
+            supplied_request_id if re.fullmatch(r"[A-Za-z0-9._-]{1,80}", supplied_request_id) else uuid.uuid4().hex
+        )
         forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",", 1)[0].strip()
         internal_http_paths = {"/health", "/health/live", "/health/ready", "/api/v1/internal/mediamtx/auth"}
         if config.enforce_https and forwarded_proto != "https" and request.url.path not in internal_http_paths:
@@ -141,8 +156,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse(status_code=200 if is_ready else 503, content=payload)
 
     for api_router in (
-        auth.router, sessions.router, pairing.router, control.router, settings_router.router, settings_router.connector_router,
-        network.router, telemetry.router, predictions.router, models.router, streams.router, websockets.router,
+        auth.router,
+        sessions.router,
+        pairing.router,
+        control.router,
+        settings_router.router,
+        settings_router.connector_router,
+        network.router,
+        telemetry.router,
+        predictions.router,
+        models.router,
+        streams.router,
+        websockets.router,
     ):
         application.include_router(api_router)
     return application

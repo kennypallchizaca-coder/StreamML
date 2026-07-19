@@ -32,9 +32,7 @@ from src.streamml.services.release import (
 
 def load_contract(root: Path) -> dict[str, Any]:
     return json.loads(
-        (root / "src" / "streamml" / "config" / "reactive_feature_contract.json").read_text(
-            encoding="utf-8"
-        )
+        (root / "src" / "streamml" / "config" / "reactive_feature_contract.json").read_text(encoding="utf-8")
     )
 
 
@@ -221,9 +219,7 @@ def train_reactive_release(root: Path) -> dict[str, Any]:
         "test": test_metrics,
         "baseline": {"model": "DummyClassifier(strategy='most_frequent')", "test": baseline_metrics},
         "generalization_gap": float(validation_metrics["macro_f1"] - test_metrics["macro_f1"]),
-        "improvement_over_baseline_test_macro_f1": float(
-            test_metrics["macro_f1"] - baseline_metrics["macro_f1"]
-        ),
+        "improvement_over_baseline_test_macro_f1": float(test_metrics["macro_f1"] - baseline_metrics["macro_f1"]),
         "statuses": {
             "official_release": True,
             "reactive_model_ready": True,

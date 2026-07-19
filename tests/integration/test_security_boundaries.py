@@ -22,8 +22,7 @@ def test_connector_control_surface_contains_no_stream_start_stop_or_toggle():
 
 def test_models_and_training_artifacts_are_not_connector_dependencies():
     source = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (ROOT / "apps" / "connector" / "streamml_connector").glob("*.py")
+        path.read_text(encoding="utf-8") for path in (ROOT / "apps" / "connector" / "streamml_connector").glob("*.py")
     )
     assert "models/registry" not in source
     assert "train_models" not in source

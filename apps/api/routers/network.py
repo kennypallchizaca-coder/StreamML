@@ -32,9 +32,7 @@ def download_probe(
 
 
 @router.post("/upload")
-async def upload_probe(
-    request: Request, _connector: dict = Depends(current_connector)
-) -> dict:
+async def upload_probe(request: Request, _connector: dict = Depends(current_connector)) -> dict:
     content_length = request.headers.get("content-length")
     if not content_length or not content_length.isdigit():
         raise HTTPException(status_code=411, detail="Content-Length is required.")

@@ -38,7 +38,7 @@ export default function HelpPage() {
               <li>Abre VDO.Ninja en tu celular.</li>
               <li>Escanea el código QR o pega el enlace de emisión de StreamML en la aplicación.</li>
               <li>Permite el uso de cámara y micrófono si la aplicación lo solicita.</li>
-              <li>En OBS usa el enlace de visualización, no el enlace de emisión del teléfono.</li>
+              <li>En OBS usa el enlace monitorizado que StreamML muestra en el paso 3, no el enlace de emisión del teléfono.</li>
             </ul>
             <p className="font-semibold text-warning mt-2">Importante: No bloquees la pantalla de tu teléfono mientras transmites.</p>
           </CardContent>
@@ -50,7 +50,7 @@ export default function HelpPage() {
             <CardTitle className="flex items-center gap-2"><MonitorPlay className="size-5 text-primary" />Conectar aplicación de transmisión</CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-4 text-muted-foreground">
-            <p>StreamML Connector recibe telemetría de OBS y aplica únicamente los comandos autenticados del agente para perfiles y escenas configuradas.</p>
+            <p>La fuente monitorizada mide el trayecto WebRTC del teléfono. StreamML Connector añade la telemetría de OBS y aplica únicamente los comandos autenticados del agente.</p>
             <ul className="list-disc list-inside space-y-2">
               <li>Abre tu software de transmisión.</li>
               <li>Instala y vincula StreamML Connector con el código temporal de tu sesión.</li>

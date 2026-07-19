@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import time
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 import obsws_python as obs
 
@@ -64,7 +65,16 @@ class ObsClient:
     """
 
     ALLOWED_REQUESTS = frozenset(
-        {"GetStats", "GetStreamStatus", "GetSceneList", "SetProfileParameter", "SetCurrentProgramScene"}
+        {
+            "GetStats",
+            "GetStreamStatus",
+            "GetSceneList",
+            "GetSceneItemList",
+            "GetInputSettings",
+            "SetInputSettings",
+            "SetProfileParameter",
+            "SetCurrentProgramScene",
+        }
     )
 
     def __init__(
@@ -151,9 +161,46 @@ class ObsClient:
                 names.add(str(name))
         return [name for name in (self._live_scene, self._backup_scene) if name not in names]
 
-    def _derive_output_bitrate(
-        self, output_bytes: int, sample_time: float, stream_active: bool
-    ) -> float | None:
+    def ensure_vdo_bridge(self, bridge_url: str) -> str | None:
+        """Configure an unambiguous live Browser Source with the scoped bridge."""
+
+        if self._client is None:
+            raise RuntimeError("OBS is not connected.")
+        parsed = urlparse(bridge_url)
+        loopback = parsed.hostname in {"127.0.0.1", "localhost", "::1"}
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or (parsed.scheme != "https" and not loopback)
+            or not parsed.path.startswith("/vdo-bridge/")
+            or parsed.username
+            or parsed.password
+        ):
+            raise ValueError("The VDO bridge URL is outside the allowed security boundary.")
+
+        response = self._client.get_scene_item_list(self._live_scene)
+        browser_sources: list[str] = []
+        for item in getattr(response, "scene_items", ()):
+            if isinstance(item, dict):
+                name = item.get("sourceName") or item.get("source_name")
+                kind = item.get("inputKind") or item.get("input_kind")
+            else:
+                name = getattr(item, "source_name", None) or getattr(item, "sourceName", None)
+                kind = getattr(item, "input_kind", None) or getattr(item, "inputKind", None)
+            if name and kind == "browser_source":
+                browser_sources.append(str(name))
+        for name in browser_sources:
+            settings = self._client.get_input_settings(name)
+            values = getattr(settings, "input_settings", {})
+            if isinstance(values, dict) and values.get("url") == bridge_url:
+                return name
+        if len(browser_sources) != 1:
+            return None
+        name = browser_sources[0]
+        self._client.set_input_settings(name, {"url": bridge_url}, True)
+        return name
+
+    def _derive_output_bitrate(self, output_bytes: int, sample_time: float, stream_active: bool) -> float | None:
         bitrate: float | None = None
         if (
             stream_active
@@ -194,9 +241,7 @@ class ObsClient:
         spec = payload.get("spec")
         if profile not in {"low", "medium", "high"} or not isinstance(spec, dict):
             raise ValueError("Invalid StreamML profile command.")
-        required = {
-            "width", "height", "fps", "video_bitrate_kbps", "audio_bitrate_kbps"
-        }
+        required = {"width", "height", "fps", "video_bitrate_kbps", "audio_bitrate_kbps"}
         if not required.issubset(spec):
             raise ValueError("Profile specification is incomplete.")
         values = {name: int(spec[name]) for name in required}

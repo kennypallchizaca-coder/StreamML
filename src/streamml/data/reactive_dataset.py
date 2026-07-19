@@ -167,8 +167,8 @@ def write_dataset_card(root: Path, statistics: dict[str, Any]) -> None:
 ## Fuente
 
 - Dataset: RTR-NetzTest Open Data.
-- Archivo usado: `{statistics['source_file']}`.
-- SHA-256: `{statistics['source_sha256']}`.
+- Archivo usado: `{statistics["source_file"]}`.
+- SHA-256: `{statistics["source_sha256"]}`.
 - Datos sinteticos: no.
 
 ## Semantica
@@ -184,14 +184,14 @@ porque el dataset reactivo es puntual y no contiene ventanas temporales largas p
 
 ## Target
 
-`target` es una pseudoetiqueta `low`, `medium` o `high`: {statistics['target_definition']}
+`target` es una pseudoetiqueta `low`, `medium` o `high`: {statistics["target_definition"]}
 
 ## Tamano y particiones
 
-- Filas: {statistics['rows']}
-- Sesiones: {statistics['sessions']}
-- Distribucion: {statistics['class_distribution']}
-- Filas por split: {statistics['split_rows']}
+- Filas: {statistics["rows"]}
+- Sesiones: {statistics["sessions"]}
+- Distribucion: {statistics["class_distribution"]}
+- Filas por split: {statistics["split_rows"]}
 """
     (root / "reports").mkdir(exist_ok=True)
     (root / "reports" / "reactive_dataset_card.md").write_text(card, encoding="utf-8")

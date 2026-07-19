@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import MediaMtxPlayer from "../components/MediaMtxPlayer";
@@ -7,13 +7,14 @@ import ReplaceVideoLinkDialog from "../components/ReplaceVideoLinkDialog";
 import useSessionSocket from "../hooks/useSessionSocket";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Pause, Play, Square, Info, Smartphone, Monitor, Server } from "@/components/icons";
-import type { AgentDecision, PredictionSnapshot, StreamSession, TelemetrySnapshot, VideoEndpoints } from "../types";
+import type { AgentDecision, PredictionSnapshot, StreamSession, TelemetrySnapshot, VdoNinjaMetrics, VideoEndpoints } from "../types";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import PageHeader from "../components/PageHeader";
 import FeatureState from "../components/FeatureState";
 import NexaMascot from "../components/NexaMascot";
+import CopyLinkButton from "../components/CopyLinkButton";
 import { getNexaState } from "../lib/nexa";
 
 function translateRecommendation(rec?: string | null) {
@@ -78,6 +79,9 @@ function connectionLabel(value?: string | null) {
     disconnected: "Desconectado",
     reconnecting: "Reconectando",
     pending: "Pendiente",
+    waiting: "Esperando señal",
+    stale: "Sin datos recientes",
+    error: "Error",
   };
   return labels[value.toLowerCase()] ?? value;
 }
@@ -202,6 +206,35 @@ export default function LiveMonitorPage() {
   const [hideVideo, setHideVideo] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
   const [phoneStatus, setPhoneStatus] = useState<string | null>(null);
+  const phoneReporterId = useRef(
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `streamml-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const phoneSequence = useRef(Date.now());
+  const phoneTelemetryFailures = useRef(0);
+
+  const reportPhoneTelemetry = useCallback((
+    metrics: VdoNinjaMetrics,
+    status: "waiting" | "connected" | "disconnected" | "error",
+  ) => {
+    if (!sessionId) return;
+    setPhoneStatus(status);
+    void api.sendVdoNinjaTelemetry({
+      session_id: sessionId,
+      source: "vdo_ninja_iframe",
+      reporter_id: phoneReporterId.current,
+      sequence: phoneSequence.current++,
+      observed_at: new Date().toISOString(),
+      status,
+      metrics,
+    }).then(() => {
+      phoneTelemetryFailures.current = 0;
+    }).catch(() => {
+      phoneTelemetryFailures.current += 1;
+      if (phoneTelemetryFailures.current >= 3) setPhoneStatus("error");
+    });
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -223,15 +256,25 @@ export default function LiveMonitorPage() {
   useEffect(() => {
     if (!monitoring || !socket.message) return;
     const { session, telemetry, prediction, predictions: incomingPredictions, stream, agent_decision } = socket.message;
-    if (session) setSession(session);
-    if (telemetry) setTelemetry(telemetry);
-    if (incomingPredictions?.length) {
+    if (session) {
+      setSession(session);
+      setTelemetry(session.telemetry ?? null);
+      setPredictions((current) => mergeLatestPredictions(
+        session.recent_predictions ?? (session.latest_prediction ? [session.latest_prediction] : []),
+        current,
+      ));
+      setAgentDecision(session.agent_decision ?? null);
+      if (session.stream) setStream(session.stream);
+    } else if (telemetry) {
+      setTelemetry(telemetry);
+    }
+    if (!session && incomingPredictions?.length) {
       setPredictions((current) => mergeLatestPredictions(incomingPredictions, current));
-    } else if (prediction) {
+    } else if (!session && prediction) {
       setPredictions((current) => mergeLatestPredictions([prediction], current));
     }
-    if (agent_decision) setAgentDecision(agent_decision);
-    if (stream) setStream(stream);
+    if (!session && agent_decision) setAgentDecision(agent_decision);
+    if (!session && stream) setStream(stream);
   }, [socket.message, monitoring]);
 
   const reactivePrediction = latestPredictionByRole(predictions, "reactive");
@@ -279,7 +322,10 @@ export default function LiveMonitorPage() {
       
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Teléfono", value: phoneStatus ?? telemetry?.phone_status, icon: Smartphone },
+          // The backend aggregates the persistent OBS bridge and this dashboard.
+          // Prefer that authoritative state so one reporter error cannot hide a
+          // second reporter that still receives the phone stream.
+          { label: "Teléfono", value: telemetry?.phone_status ?? phoneStatus, icon: Smartphone },
           { label: "OBS", value: telemetry?.obs_status, icon: Monitor },
           { label: "MediaMTX", value: telemetry?.mediamtx_status, icon: Server },
         ].map((item) => (
@@ -308,6 +354,12 @@ export default function LiveMonitorPage() {
             </div>
             
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+              <CopyLinkButton
+                link={session?.vdo_ninja?.bridge_url ?? null}
+                label="Copiar fuente OBS"
+                variant="outline"
+                className="h-9 px-3 text-sm"
+              />
               <ReplaceVideoLinkDialog onLinkUpdated={async (url) => {
                 if (!sessionId) throw new Error("No se encontró la transmisión para actualizar.");
                 const updated = await api.updateVideoLink(sessionId, url);
@@ -342,7 +394,13 @@ export default function LiveMonitorPage() {
               </div>
             ) : (
               activeEmbedUrl ? (
-                <VideoPreview key={reconnectKey} embedUrl={activeEmbedUrl} isLiveMonitor={true} onStatus={setPhoneStatus} />
+                <VideoPreview
+                  key={reconnectKey}
+                  embedUrl={activeEmbedUrl}
+                  isLiveMonitor={true}
+                  onStatus={setPhoneStatus}
+                  onTelemetry={reportPhoneTelemetry}
+                />
               ) : (
                 <MediaMtxPlayer key={reconnectKey} whepUrl={stream?.whep_url ?? stream?.webrtc_url} hlsUrl={stream?.hls_url} />
               )
@@ -404,8 +462,13 @@ export default function LiveMonitorPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
               <div className="data-tile text-center">
                 <div className="text-2xl font-bold">{metricNumber(telemetry?.bitrate_kbps, 0)}</div>
-                <div className="text-xs text-muted-foreground mt-1">Bitrate de salida</div>
+                <div className="text-xs text-muted-foreground mt-1">Bitrate OBS</div>
                 <div className="mt-0.5 text-[10px] text-muted-foreground">kbps</div>
+              </div>
+              <div className="data-tile text-center">
+                <div className="text-2xl font-bold">{metricNumber(telemetry?.phone_bitrate_kbps, 0)}</div>
+                <div className="text-xs text-muted-foreground mt-1">Bitrate teléfono</div>
+                <div className="mt-0.5 text-[10px] text-muted-foreground">kbps · WebRTC</div>
               </div>
               <div className="data-tile text-center">
                 <div className="text-2xl font-bold">{metricNumber(telemetry?.fps, 1)}</div>
@@ -437,7 +500,11 @@ export default function LiveMonitorPage() {
               </div>
               <div className="data-tile text-center">
                 <div className="text-2xl font-bold">{telemetry?.upload_mbps != null ? telemetry.upload_mbps.toFixed(2) : "--"}</div>
-                <div className="mt-1 text-xs text-muted-foreground">Subida medida</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {telemetry?.phone_status != null || telemetry?.network_source?.startsWith("vdo_ninja")
+                    ? "Subida móvil"
+                    : "Subida del servidor"}
+                </div>
                 <div className="mt-0.5 text-[10px] text-muted-foreground">Mbps</div>
               </div>
               <div className="data-tile text-center">

@@ -21,13 +21,15 @@ Docker Compose fija `production` y ejecuta API, frontend, MediaMTX, FFmpeg y ngi
 
 ## Streaming y Machine Learning
 
-El enlace `push` de VDO.Ninja pertenece al teléfono; el enlace `view` se utiliza como fuente de visualización. OBS envía el programa por RTMP/WHIP a MediaMTX y FFmpeg mantiene la retransmisión o el respaldo.
+El enlace `push` de VDO.Ninja pertenece al teléfono y el enlace `view` se carga dentro de una fuente puente de StreamML. El conector recibe la URL puente mediante su credencial de sesión y configura automáticamente la única Browser Source de la escena Live; si la escena es ambigua no modifica nada. El puente permanece abierto en OBS, valida el origen de cada `postMessage` y solicita una única muestra `getFreshStats` cada dos segundos. Evitar consultas continuas, frescas y remotas simultáneas impide que contadores independientes produzcan ceros y picos falsos. El puente normaliza exclusivamente métricas WebRTC permitidas y las envía con un token HMAC limitado a la sesión; el objeto bruto de VDO.Ninja no sale del navegador. OBS envía el programa por RTMP/WHIP a MediaMTX y FFmpeg mantiene la retransmisión o el respaldo.
+
+La orquestación prioriza la capacidad observada, RTT, jitter y pérdida del teléfono; conserva de la sonda del computador únicamente campos no disponibles, como la prueba de descarga. Una muestra móvil antigua queda marcada `stale`, no se presenta como medición actual y activa el mismo temporizador de respaldo que una desconexión explícita. Después de que existe un reportero móvil, StreamML nunca reemplaza una señal vencida con la conexión de la computadora: bloquea la inferencia hasta recuperar datos WebRTC frescos. Las métricas físicas de la antena celular no forman parte de WebRTC y no se simulan.
 
 El registro oficial comprueba hashes, versiones de librerías, contratos y clases antes de crear la aplicación. El estado `production_ready` significa que los artefactos fueron verificados y los controles operativos están activos; no significa que 17 sesiones públicas demuestren generalización universal. La prueba física con el teléfono, operador móvil y destino real sigue siendo un criterio de aceptación del despliegue.
 
 ## Control autónomo
 
-Las acciones de ML no llegan directamente a OBS. El agente determinista aplica margen de seguridad, histéresis, cambios de un solo nivel, tiempo mínimo entre cambios y recuperación estable. El conector solo acepta comandos autenticados y de tipos permitidos: perfil, escena de respaldo y restauración del vivo.
+Las acciones de ML no llegan directamente a OBS. El agente determinista aplica margen de seguridad, histéresis, cambios de un solo nivel, tiempo mínimo entre cambios y recuperación estable. El conector solo acepta comandos autenticados y de tipos permitidos: perfil, escena de respaldo y restauración del vivo. Un comando que no se entrega en cinco minutos caduca para impedir que una sesión antigua cambie OBS al reconectarse mucho después.
 
 Cada decisión conserva un `reason_code` estable y un estado operacional (`stable`, `observing`, `protecting`, `degraded`, `backup` o `recovering`). Esto permite distinguir la recomendación de cada modelo de la política final aplicada y auditar por qué se mantuvo, redujo, aumentó o cambió de escena. Las inferencias exponen únicamente resúmenes de sus entradas validadas como evidencia observada; no se presentan como explicaciones causales.
 

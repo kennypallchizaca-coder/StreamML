@@ -34,9 +34,7 @@ async def session_websocket(websocket: WebSocket, session_id: str) -> None:
         receive_task = asyncio.create_task(websocket.receive_text())
         queue_task = asyncio.create_task(queue.get())
         while True:
-            done, _pending = await asyncio.wait(
-                {receive_task, queue_task}, return_when=asyncio.FIRST_COMPLETED
-            )
+            done, _pending = await asyncio.wait({receive_task, queue_task}, return_when=asyncio.FIRST_COMPLETED)
             if receive_task in done:
                 message = receive_task.result()
                 if message == "ping":

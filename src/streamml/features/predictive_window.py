@@ -30,7 +30,11 @@ def build_predictive_features(
         raw_value = sample.get("throughput_mbps")
         if isinstance(raw_time, bool) or not isinstance(raw_time, (int, float)) or not math.isfinite(float(raw_time)):
             raise IncompatibleFeatures([f"muestra {index}: elapsed_seconds inválido"])
-        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)) or not math.isfinite(float(raw_value)):
+        if (
+            isinstance(raw_value, bool)
+            or not isinstance(raw_value, (int, float))
+            or not math.isfinite(float(raw_value))
+        ):
             raise IncompatibleFeatures([f"muestra {index}: throughput_mbps inválido"])
         if float(raw_value) < 0:
             raise IncompatibleFeatures([f"muestra {index}: throughput_mbps no puede ser negativo"])
@@ -39,9 +43,9 @@ def build_predictive_features(
     normalized = [value - elapsed[0] for value in elapsed]
     expected = [float(index) for index in range(required_count)]
     if any(abs(actual - target) > 1e-6 for actual, target in zip(normalized, expected, strict=True)):
-        raise IncompatibleFeatures([
-            f"la ventana predictiva debe contener {required_count} muestras ordenadas a intervalos de 1 s"
-        ])
+        raise IncompatibleFeatures(
+            [f"la ventana predictiva debe contener {required_count} muestras ordenadas a intervalos de 1 s"]
+        )
     row = build_feature_row(
         throughput, normalized, current_profile, lookback_duration_seconds=float(contract["lookback_seconds"])
     )

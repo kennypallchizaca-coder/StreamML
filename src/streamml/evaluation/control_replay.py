@@ -34,9 +34,7 @@ class ReplaySample:
             reactive_profile=value.get("reactive_profile"),
             predictive_decision=value.get("predictive_decision"),
             downgrade_probability=(
-                None
-                if value.get("downgrade_probability") is None
-                else float(value["downgrade_probability"])
+                None if value.get("downgrade_probability") is None else float(value["downgrade_probability"])
             ),
         )
 
@@ -107,9 +105,7 @@ def _score_strategy(
     }
 
 
-def replay_control_strategies(
-    samples: list[ReplaySample], initial_profile: ProfileName = "high"
-) -> dict[str, Any]:
+def replay_control_strategies(samples: list[ReplaySample], initial_profile: ProfileName = "high") -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one replay sample is required.")
     if any(sample.duration_seconds <= 0 for sample in samples):
@@ -125,13 +121,15 @@ def replay_control_strategies(
         recommended = sample.reactive_profile or reactive_current
         next_profile = _lower_profile(recommended, _safe_profile(sample.capacity_mbps))
         if next_profile != reactive_current:
-            reactive_events.append({
-                "observed_at": sample.observed_at,
-                "action": "set_profile",
-                "from": reactive_current,
-                "to": next_profile,
-                "reason": "reactive_recommendation",
-            })
+            reactive_events.append(
+                {
+                    "observed_at": sample.observed_at,
+                    "action": "set_profile",
+                    "from": reactive_current,
+                    "to": next_profile,
+                    "reason": "reactive_recommendation",
+                }
+            )
         reactive_current = next_profile
         reactive_profiles.append(reactive_current)
 
@@ -155,25 +153,23 @@ def replay_control_strategies(
         agent_profiles.append(state.current_profile)
         agent_backup.append(state.backup_active)
         if decision.action != "maintain" or decision.apply_profile or decision.apply_backup:
-            agent_events.append({
-                "observed_at": sample.observed_at,
-                "action": decision.action,
-                "from": decision.current_profile,
-                "to": decision.target_profile,
-                "backup_active": decision.backup_active,
-                "reason": decision.reason,
-                "reason_code": decision.reason_code,
-                "operational_state": decision.operational_state,
-            })
+            agent_events.append(
+                {
+                    "observed_at": sample.observed_at,
+                    "action": decision.action,
+                    "from": decision.current_profile,
+                    "to": decision.target_profile,
+                    "backup_active": decision.backup_active,
+                    "reason": decision.reason,
+                    "reason_code": decision.reason_code,
+                    "operational_state": decision.operational_state,
+                }
+            )
 
     strategies = {
         "fixed_profile": _score_strategy(samples, fixed_profiles, fixed_backup, []),
-        "reactive_only": _score_strategy(
-            samples, reactive_profiles, [False] * len(samples), reactive_events
-        ),
-        "reactive_predictive_agent": _score_strategy(
-            samples, agent_profiles, agent_backup, agent_events
-        ),
+        "reactive_only": _score_strategy(samples, reactive_profiles, [False] * len(samples), reactive_events),
+        "reactive_predictive_agent": _score_strategy(samples, agent_profiles, agent_backup, agent_events),
     }
     baseline = strategies["fixed_profile"]["qoe_proxy_score"]
     full = strategies["reactive_predictive_agent"]["qoe_proxy_score"]
@@ -208,13 +204,15 @@ def demonstration_samples() -> list[ReplaySample]:
             capacity, reactive, predictive, probability, signal = 4.2, "medium", "maintain", 0.19, True
         else:
             capacity, reactive, predictive, probability, signal = 9.0, "high", "maintain", 0.06, True
-        samples.append(ReplaySample(
-            observed_at=float(second),
-            duration_seconds=1.0,
-            signal_available=signal,
-            capacity_mbps=capacity,
-            reactive_profile=reactive,
-            predictive_decision=predictive,
-            downgrade_probability=probability,
-        ))
+        samples.append(
+            ReplaySample(
+                observed_at=float(second),
+                duration_seconds=1.0,
+                signal_available=signal,
+                capacity_mbps=capacity,
+                reactive_profile=reactive,
+                predictive_decision=predictive,
+                downgrade_probability=probability,
+            )
+        )
     return samples

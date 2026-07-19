@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from apps.api.dependencies import client_ip, current_connector, current_user, require_owned_session
+from apps.api.routers.sessions import _vdo_ninja
 from apps.api.schemas import (
     AccountSettingsUpdate,
     DestructiveActionConfirmation,
@@ -74,9 +75,7 @@ def get_settings(request: Request, user: dict = Depends(current_user)) -> dict:
 
 
 @router.put("/account")
-def update_account(
-    payload: AccountSettingsUpdate, request: Request, user: dict = Depends(current_user)
-) -> dict:
+def update_account(payload: AccountSettingsUpdate, request: Request, user: dict = Depends(current_user)) -> dict:
     database = request.app.state.database
     current = database.get_user_by_id(user["id"])
     if not current:
@@ -86,16 +85,18 @@ def update_account(
         assert payload.current_password is not None
         if not verify_password(payload.current_password.get_secret_value(), current["password_hash"]):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta.")
-    updated = database.update_user_profile(
-        user["id"], display_name=payload.display_name, new_password=new_password
-    )
+    updated = database.update_user_profile(user["id"], display_name=payload.display_name, new_password=new_password)
     if new_password is not None:
         current_token = request.cookies.get(request.app.state.settings.session_cookie_name)
         if current_token:
             database.revoke_other_auth_tokens(user["id"], hash_token(current_token))
     database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.account.update", outcome="success",
-        client_ip=client_ip(request), details={"password_changed": new_password is not None},
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.account.update",
+        outcome="success",
+        client_ip=client_ip(request),
+        details={"password_changed": new_password is not None},
     )
     return {"user": _safe_user(updated or user)}
 
@@ -104,23 +105,25 @@ def update_account(
 def update_preferences(
     payload: PreferencesSettingsUpdate, request: Request, user: dict = Depends(current_user)
 ) -> dict:
-    result = request.app.state.database.update_user_settings(
-        user["id"], preferences=payload.model_dump()
-    )
+    result = request.app.state.database.update_user_settings(user["id"], preferences=payload.model_dump())
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.preferences.update", outcome="success",
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.preferences.update",
+        outcome="success",
         client_ip=client_ip(request),
     )
     return {"preferences": result["preferences"], "updated_at": result["updated_at"]}
 
 
 @router.put("/stream")
-def update_stream_settings(
-    payload: StreamSettingsUpdate, request: Request, user: dict = Depends(current_user)
-) -> dict:
+def update_stream_settings(payload: StreamSettingsUpdate, request: Request, user: dict = Depends(current_user)) -> dict:
     result = request.app.state.database.update_user_settings(user["id"], stream=payload.model_dump())
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.stream.update", outcome="success",
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.stream.update",
+        outcome="success",
         client_ip=client_ip(request),
     )
     return {"stream": result["stream"], "updated_at": result["updated_at"]}
@@ -129,7 +132,10 @@ def update_stream_settings(
 @router.get("/export")
 def export_data(request: Request, user: dict = Depends(current_user)) -> dict:
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.data.export", outcome="success",
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.data.export",
+        outcome="success",
         client_ip=client_ip(request),
     )
     return request.app.state.database.export_user_data(user["id"])
@@ -146,15 +152,21 @@ def delete_history(
         )
     deleted = request.app.state.database.delete_user_history(user["id"])
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.history.delete", outcome="success",
-        client_ip=client_ip(request), details={"sessions_deleted": deleted},
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.history.delete",
+        outcome="success",
+        client_ip=client_ip(request),
+        details={"sessions_deleted": deleted},
     )
     return {"deleted_sessions": deleted}
 
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(
-    payload: DestructiveActionConfirmation, request: Request, response: Response,
+    payload: DestructiveActionConfirmation,
+    request: Request,
+    response: Response,
     user: dict = Depends(current_user),
 ) -> Response:
     if payload.confirmation != f"DELETE {user['email']}":
@@ -168,7 +180,10 @@ def delete_account(
     if not stored or not verify_password(payload.current_password.get_secret_value(), stored["password_hash"]):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta.")
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="settings.account.delete", outcome="success",
+        user_id=user["id"],
+        actor_type="user",
+        action="settings.account.delete",
+        outcome="success",
         client_ip=client_ip(request),
     )
     request.app.state.database.delete_user(user["id"])
@@ -180,7 +195,9 @@ def _valid_vdo_embed_url(value: str) -> str:
     try:
         parsed = urlparse(value.strip())
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="El enlace no es válido.") from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="El enlace no es válido."
+        ) from exc
     if (
         parsed.scheme != "https"
         or parsed.hostname not in {"vdo.ninja", "www.vdo.ninja"}
@@ -202,12 +219,15 @@ def update_video_link(
 ) -> dict:
     require_owned_session(request, user, session_id)
     url = _valid_vdo_embed_url(payload.embed_url)
-    updated = request.app.state.database.update_session_configuration(
-        user["id"], session_id, {"vdo_embed_url": url}
-    )
+    updated = request.app.state.database.update_session_configuration(user["id"], session_id, {"vdo_embed_url": url})
     request.app.state.database.record_audit(
-        user_id=user["id"], actor_type="user", action="session.video_link.update", outcome="success",
-        resource_type="session", resource_id=session_id, client_ip=client_ip(request),
+        user_id=user["id"],
+        actor_type="user",
+        action="session.video_link.update",
+        outcome="success",
+        resource_type="session",
+        resource_id=session_id,
+        client_ip=client_ip(request),
     )
     return {"session_id": session_id, "embed_url": updated["configuration"]["vdo_embed_url"]}
 
@@ -215,9 +235,11 @@ def update_video_link(
 @connector_router.get("/settings")
 def connector_settings(request: Request, connector: dict = Depends(current_connector)) -> dict:
     stream = request.app.state.database.get_user_settings(connector["user_id"])["stream"]
+    session = request.app.state.database.get_session(connector["user_id"], connector["session_id"])
     return {
         "live_scene": stream["live_scene"],
         "backup_scene": stream["backup_scene"],
         "network_probe_interval_seconds": stream["network_probe_interval_seconds"],
         "network_probe_bytes": stream["network_probe_bytes"],
+        "vdo_bridge_url": _vdo_ninja(request, session)["bridge_url"] if session else None,
     }

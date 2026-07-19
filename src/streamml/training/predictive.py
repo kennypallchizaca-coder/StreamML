@@ -55,12 +55,9 @@ def split_sessions(frame: pd.DataFrame, config: dict) -> dict[str, list[str]]:
     # Stratify at session level, never at row/window level.  A session label is
     # its majority target; this keeps rare maintain-only sessions represented
     # in every split without leaking adjacent windows across boundaries.
-    session_labels = (
-        frame.groupby("session_id")["target_code"].mean().ge(0.5).astype(int).to_dict()
-    )
+    session_labels = frame.groupby("session_id")["target_code"].mean().ge(0.5).astype(int).to_dict()
     by_label = {
-        label: np.array([session for session in sessions if session_labels[session] == label])
-        for label in (0, 1)
+        label: np.array([session for session in sessions if session_labels[session] == label]) for label in (0, 1)
     }
     if any(len(group) < 3 for group in by_label.values()):
         raise ValueError("At least three sessions per majority target are required.")
@@ -73,9 +70,7 @@ def split_sessions(frame: pd.DataFrame, config: dict) -> dict[str, list[str]]:
             raise ValueError("Configured grouped split leaves no training sessions.")
         train_count = len(group) - validation_count - test_count
         result["train"].extend(shuffled[:train_count].tolist())
-        result["validation"].extend(
-            shuffled[train_count : train_count + validation_count].tolist()
-        )
+        result["validation"].extend(shuffled[train_count : train_count + validation_count].tolist())
         result["test"].extend(shuffled[train_count + validation_count :].tolist())
     return {name: sorted(values) for name, values in result.items()}
 
@@ -105,9 +100,7 @@ def positive_probability(model: Any, X: pd.DataFrame) -> np.ndarray:
 
 def classification_metrics(y_true: np.ndarray, probability: np.ndarray, threshold: float) -> dict:
     prediction = (probability >= threshold).astype(int)
-    precision, recall, f1, support = precision_recall_fscore_support(
-        y_true, prediction, labels=[0, 1], zero_division=0
-    )
+    precision, recall, f1, support = precision_recall_fscore_support(y_true, prediction, labels=[0, 1], zero_division=0)
     result = {
         "accuracy": float(accuracy_score(y_true, prediction)),
         "balanced_accuracy": float(balanced_accuracy_score(y_true, prediction)),
@@ -127,7 +120,9 @@ def classification_metrics(y_true: np.ndarray, probability: np.ndarray, threshol
     return result
 
 
-def choose_threshold(y_true: np.ndarray, probability: np.ndarray, model_options: list[float]) -> tuple[float, list[dict]]:
+def choose_threshold(
+    y_true: np.ndarray, probability: np.ndarray, model_options: list[float]
+) -> tuple[float, list[dict]]:
     table = [classification_metrics(y_true, probability, float(threshold)) for threshold in model_options]
     best_macro = max(item["macro_f1"] for item in table)
     eligible = [item for item in table if item["macro_f1"] >= 0.95 * best_macro]
@@ -178,10 +173,7 @@ def model_definitions(random_state: int) -> dict[str, tuple[Any, dict[str, list[
 
 
 def grouped_cv_splits(y: np.ndarray, groups: np.ndarray) -> int:
-    group_targets = {
-        group: int(np.mean(y[groups == group]) >= 0.5)
-        for group in np.unique(groups)
-    }
+    group_targets = {group: int(np.mean(y[groups == group]) >= 0.5) for group in np.unique(groups)}
     return min(
         5,
         min(sum(value == label for value in group_targets.values()) for label in (0, 1)),
@@ -200,9 +192,7 @@ def fit_models(
     folds = grouped_cv_splits(y_train, groups_train)
     if folds < 2:
         raise ValueError("Stratified grouped CV requires at least two sessions per target.")
-    group_cv = StratifiedGroupKFold(
-        n_splits=folds, shuffle=True, random_state=random_state
-    )
+    group_cv = StratifiedGroupKFold(n_splits=folds, shuffle=True, random_state=random_state)
     comparisons: dict[str, dict] = {}
     fitted: dict[str, Any] = {}
 
@@ -226,9 +216,7 @@ def fit_models(
             cv_macro_f1 = None
             best_params = {}
         probability = positive_probability(model, X_validation)
-        threshold, threshold_table = choose_threshold(
-            y_validation, probability, config["threshold_values"]
-        )
+        threshold, threshold_table = choose_threshold(y_validation, probability, config["threshold_values"])
         metrics = classification_metrics(y_validation, probability, threshold)
         comparisons[name] = {
             "best_parameters": best_params,
@@ -284,10 +272,7 @@ def feature_importance(model: Any) -> list[dict]:
     else:
         return []
     order = np.argsort(values)[::-1]
-    return [
-        {"feature": FEATURE_COLUMNS[index], "importance": float(values[index])}
-        for index in order
-    ]
+    return [{"feature": FEATURE_COLUMNS[index], "importance": float(values[index])} for index in order]
 
 
 def requirements_snapshot() -> str:
@@ -378,9 +363,7 @@ def train_predictive_release(root: Path, config: dict) -> dict:
         "dataset": {
             "sessions": int(frame["session_id"].nunique()),
             "windows": len(frame),
-            "class_distribution": {
-                str(key): int(value) for key, value in frame["target"].value_counts().items()
-            },
+            "class_distribution": {str(key): int(value) for key, value in frame["target"].value_counts().items()},
         },
         "model_comparison": comparisons,
         "selected_model": selected_name,
@@ -389,9 +372,7 @@ def train_predictive_release(root: Path, config: dict) -> dict:
         "test": test_metrics,
         "baseline": {"model": "DummyClassifier(strategy='most_frequent')", "test": baseline_test},
         "generalization_gap": float(validation_metrics["macro_f1"] - test_metrics["macro_f1"]),
-        "improvement_over_dummy_test_macro_f1": float(
-            test_metrics["macro_f1"] - baseline_test["macro_f1"]
-        ),
+        "improvement_over_dummy_test_macro_f1": float(test_metrics["macro_f1"] - baseline_test["macro_f1"]),
         "feature_importance": feature_importance(final_model),
         "statuses": {
             "official_release": True,
@@ -427,5 +408,3 @@ def evaluate_saved_release(root: Path, config: dict) -> dict:
     saved["evaluation_reloaded_model"] = True
     write_json(release_dir / "metrics.json", saved)
     return saved
-
-

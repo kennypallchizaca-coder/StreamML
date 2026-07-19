@@ -254,18 +254,40 @@ export default function CreateStreamPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl border border-border/70 bg-muted/30 p-5 sm:p-6">
-                <h4 className="font-semibold mb-4">Instrucciones:</h4>
-                <ol className="list-decimal list-inside space-y-3 text-sm">
-                  <li>Copia el enlace a continuación.</li>
-                  <li>Abre OBS (o tu software preferido).</li>
-                  <li>Agrega una nueva fuente de navegador (Browser Source).</li>
-                  <li>Pega el enlace en la URL.</li>
-                  <li>Comprueba que el video aparezca.</li>
-                  <li>Regresa a StreamML y confirma que agregaste la fuente.</li>
-                </ol>
-                <div className="mt-6">
-                  <CopyLinkButton link={vdo?.embed_url || null} className="w-full" />
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-border/70 bg-muted/30 p-5 sm:p-6">
+                  <h4 className="font-semibold mb-4">1. Entrada de Cámara (Browser Source):</h4>
+                  <ol className="list-decimal list-inside space-y-3 text-sm">
+                    <li>Abre OBS y agrega una nueva <strong>Fuente de navegador</strong>.</li>
+                    <li>Copia el enlace de abajo y pégalo en la URL de la fuente.</li>
+                  </ol>
+                  <div className="mt-4">
+                    <CopyLinkButton link={vdo?.bridge_url || vdo?.embed_url || null} className="w-full" />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border/70 bg-muted/30 p-5 sm:p-6">
+                  <h4 className="font-semibold mb-4">2. Salida de Transmisión (RTMP):</h4>
+                  <ol className="list-decimal list-inside space-y-3 text-sm">
+                    <li>En OBS, ve a <strong>Ajustes &gt; Emisión</strong>.</li>
+                    <li>Selecciona "Personalizado" y pega estos datos:</li>
+                  </ol>
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Servidor RTMP</Label>
+                      <div className="flex gap-2">
+                        <Input readOnly value={session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : ""} className="font-mono text-xs" />
+                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : "")}><Copy className="size-4" /></Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Clave de retransmisión (con token)</Label>
+                      <div className="flex gap-2">
+                        <Input readOnly type="password" value={session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.split("/").pop() || "" : ""} className="font-mono text-xs" />
+                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_publish_url?.split("/").pop() || "")}><Copy className="size-4" /></Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -275,7 +297,7 @@ export default function CreateStreamPage() {
                     <Radio className="size-12 text-muted-foreground opacity-50" />
                     <div className="text-center">
                       <p className="font-medium">Confirmación pendiente</p>
-                      <p className="text-sm text-muted-foreground">StreamML no controla ni inspecciona visualmente la fuente de OBS.</p>
+                      <p className="text-sm text-muted-foreground">La fuente enviará métricas WebRTC; StreamML no guarda el contenido del video.</p>
                     </div>
                     <div className="flex flex-col gap-2 w-full px-6">
                       <Button onClick={confirmAppConfiguration}>Confirmar que lo agregué</Button>

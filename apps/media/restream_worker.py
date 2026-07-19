@@ -52,9 +52,7 @@ def load_targets(raw: str) -> list[RestreamTarget]:
     return targets
 
 
-def ffmpeg_command(
-    target: RestreamTarget, *, rtmp_base: str, media_secret: str
-) -> list[str]:
+def ffmpeg_command(target: RestreamTarget, *, rtmp_base: str, media_secret: str) -> list[str]:
     if len(media_secret) < 32:
         raise ValueError("STREAMML_MEDIA_AUTH_SECRET must contain at least 32 characters.")
     base = rtmp_base.rstrip("/")
@@ -66,10 +64,26 @@ def ffmpeg_command(
     credentials = f"media-worker:{quote(media_secret, safe='')}@"
     source = f"rtmp://{credentials}{host}{port}/{target.path}"
     return [
-        "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "warning",
-        "-rw_timeout", "15000000", "-i", source,
-        "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy",
-        "-f", "flv", "-flvflags", "no_duration_filesize", target.url,
+        "ffmpeg",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-rw_timeout",
+        "15000000",
+        "-i",
+        source,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0?",
+        "-c",
+        "copy",
+        "-f",
+        "flv",
+        "-flvflags",
+        "no_duration_filesize",
+        target.url,
     ]
 
 
@@ -77,10 +91,27 @@ def fallback_command(target: RestreamTarget, fallback_file: str) -> list[str]:
     if not fallback_file.startswith("/"):
         raise ValueError("STREAMML_FALLBACK_FILE must be an absolute container path.")
     return [
-        "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "warning",
-        "-re", "-stream_loop", "-1", "-i", fallback_file,
-        "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy",
-        "-f", "flv", "-flvflags", "no_duration_filesize", target.url,
+        "ffmpeg",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-re",
+        "-stream_loop",
+        "-1",
+        "-i",
+        fallback_file,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0?",
+        "-c",
+        "copy",
+        "-f",
+        "flv",
+        "-flvflags",
+        "no_duration_filesize",
+        target.url,
     ]
 
 
@@ -98,7 +129,10 @@ def source_url(path: str, *, rtmp_base: str, media_secret: str) -> str:
 
 class RestreamSupervisor:
     def __init__(
-        self, targets: list[RestreamTarget], rtmp_base: str, media_secret: str,
+        self,
+        targets: list[RestreamTarget],
+        rtmp_base: str,
+        media_secret: str,
         fallback_file: str = "/fallback/fallback.mp4",
     ) -> None:
         self.targets = targets
@@ -159,8 +193,16 @@ class RestreamSupervisor:
         try:
             result = subprocess.run(
                 [
-                    "ffprobe", "-v", "error", "-rw_timeout", "2000000",
-                    "-show_entries", "stream=codec_type", "-of", "csv=p=0", source,
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-rw_timeout",
+                    "2000000",
+                    "-show_entries",
+                    "stream=codec_type",
+                    "-of",
+                    "csv=p=0",
+                    source,
                 ],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
