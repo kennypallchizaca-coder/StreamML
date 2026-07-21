@@ -1,4 +1,4 @@
-"""Train the official StreamML reactive model."""
+"""Entrenamiento del modelo reactivo oficial de StreamML."""
 
 from __future__ import annotations
 

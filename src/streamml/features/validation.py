@@ -1,4 +1,4 @@
-"""Fail-closed feature validation: no coercion, reordering or imputation."""
+"""Validación fail-closed de características: sin coerción, imputación o reordenamiento."""
 
 from __future__ import annotations
 

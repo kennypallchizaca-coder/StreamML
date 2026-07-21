@@ -1,4 +1,4 @@
-"""Closed-loop inference and autonomous action orchestration."""
+"""Inferencia en bucle cerrado y orquestación de acciones autónomas."""
 
 from __future__ import annotations
 

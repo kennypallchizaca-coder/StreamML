@@ -1,4 +1,4 @@
-"""Temporary, one-use connector pairing."""
+"""Vinculación temporal de un solo uso para conectores."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def create_pairing_code(payload: PairingCodeCreate, request: Request, user: dict
     if not request.app.state.rate_limiter.allow(
         f"pairing-create:{user['id']}", settings.pairing_limit, settings.rate_window_seconds
     ):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados intentos.")
     code = _new_code()
     code_hash = hash_pairing_code(code, settings.token_secret)
     pairing_id = request.app.state.database.create_pairing_code(
@@ -55,7 +55,7 @@ def link_connector(payload: ConnectorLink, request: Request) -> dict:
     if not request.app.state.rate_limiter.allow(
         f"pairing-link:{ip}", settings.pairing_limit, settings.rate_window_seconds
     ):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados intentos.")
     access_token = random_token()
     connector = request.app.state.database.consume_pairing_code(
         hash_pairing_code(payload.code, settings.token_secret),
@@ -68,7 +68,7 @@ def link_connector(payload: ConnectorLink, request: Request) -> dict:
         request.app.state.database.record_audit(
             actor_type="connector", action="connector.link", outcome="denied", client_ip=ip
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired pairing code.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código de vinculación inválido o expirado.")
     request.app.state.database.record_audit(
         user_id=connector["user_id"],
         actor_type="connector",

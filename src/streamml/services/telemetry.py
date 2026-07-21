@@ -1,4 +1,4 @@
-"""Customer-safe telemetry views and feature availability."""
+"""Vistas de telemetría seguras y disponibilidad de características (features)."""
 
 from __future__ import annotations
 

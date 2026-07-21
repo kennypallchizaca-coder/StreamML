@@ -1,4 +1,4 @@
-"""Thread-safe inference over only the verified official artifacts."""
+"""Inferencia thread-safe ejecutada únicamente sobre los artefactos oficiales verificados."""
 
 from __future__ import annotations
 

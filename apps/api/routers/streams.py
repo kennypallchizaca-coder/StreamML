@@ -1,4 +1,4 @@
-"""Tenant-scoped MediaMTX URLs and internal authorization callback."""
+"""URLs de MediaMTX con alcance por tenant y callback de autorización interna."""
 
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def authorize_mediamtx(
 ) -> dict:
     settings = request.app.state.settings
     if not _valid_internal_auth(request, settings.media_auth_secret, x_streamml_media_secret):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado.")
     if (
         payload.user == "media-worker"
         and payload.password
@@ -84,7 +84,7 @@ def authorize_mediamtx(
         and (payload.protocol or "").lower() == "rtmp"
     ):
         if not re.fullmatch(r"stream-[0-9a-f]{32}", payload.path.strip("/")):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado.")
         return {"authorized": True}
     token = payload.token or payload.password
     if not token and payload.query:
@@ -94,8 +94,8 @@ def authorize_mediamtx(
     required_scope = "publish" if action == "publish" else "read"
     path = payload.path.strip("/")
     if not claims or claims.get("scope") != required_scope or claims.get("stream_id") != path:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado.")
     session = request.app.state.database.get_session(str(claims.get("user_id")), str(claims.get("session_id")))
     if not session or session["stream_id"] != path:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado.")
     return {"authorized": True}

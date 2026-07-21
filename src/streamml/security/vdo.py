@@ -1,4 +1,4 @@
-"""Session-scoped credentials for the VDO.Ninja OBS telemetry bridge."""
+"""Credenciales con alcance de sesión para la integración con VDO.Ninja."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Persistent SQLite store with tenant-scoped queries and hashed credentials."""
+"""Almacén persistente SQLite con consultas por tenant y credenciales hasheadas."""
 
 from __future__ import annotations
 
@@ -439,7 +439,8 @@ class Database:
             row = connection.execute(
                 "SELECT preferences_json,stream_json,updated_at FROM user_settings WHERE user_id=?", (user_id,)
             ).fetchone()
-        assert row is not None
+        if row is None:
+            raise RuntimeError("La fila de configuración del usuario no existe tras INSERT OR IGNORE.")
         return {
             "preferences": _json_object(row["preferences_json"], DEFAULT_PREFERENCES),
             "stream": _json_object(row["stream_json"], DEFAULT_STREAM_SETTINGS),

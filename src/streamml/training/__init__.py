@@ -1,1 +1,1 @@
-"""Internal training and persisted-model evaluation."""
+"""Entrenamiento interno y evaluación de modelos persistidos."""

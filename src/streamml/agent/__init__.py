@@ -1,4 +1,4 @@
-"""Autonomous streaming control policy."""
+"""Política de control autónomo de transmisión."""
 
 from .policy import (
     AgentDecision,

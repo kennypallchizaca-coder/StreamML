@@ -7,7 +7,7 @@ import os
 import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.streamml.features.feature_builder import build_predictive_features
+from src.streamml.features.feature_builder import build_predictive_features_from_dataframe
 
 
 def test_reactive_contract():
@@ -37,7 +37,7 @@ def test_predictive_buffer():
     df = pd.DataFrame(data)
 
     # Probar construir
-    res = build_predictive_features(df)
+    res = build_predictive_features_from_dataframe(df)
     assert res.shape == (1, 19)
     assert res["measurements_count"].iloc[0] == 600
     assert "throughput_mean" in res.columns
@@ -47,19 +47,19 @@ def test_insufficient_buffer():
     # Ventana insuficiente falla
     df = pd.DataFrame({"timestamp_utc": [1, 2], "upload_mbps": [5.0, 5.0]})
     with pytest.raises(ValueError, match="Cobertura insuficiente"):
-        build_predictive_features(df)
+        build_predictive_features_from_dataframe(df)
 
 
 def test_negative_values():
     df = pd.DataFrame({"timestamp_utc": range(120), "upload_mbps": [-5.0] * 120})
     with pytest.raises(ValueError, match="Valores negativos"):
-        build_predictive_features(df)
+        build_predictive_features_from_dataframe(df)
 
 
 def test_missing_columns():
     df = pd.DataFrame({"timestamp_utc": range(120), "otro": [5.0] * 120})
     with pytest.raises(ValueError, match="No se puede calcular"):
-        build_predictive_features(df)
+        build_predictive_features_from_dataframe(df)
 
 
 def test_model_loading_and_reproducibility():
@@ -81,7 +81,7 @@ def test_model_loading_and_reproducibility():
     data = []
     for i in range(600):
         data.append({"timestamp_utc": i, "upload_mbps": 5.0})
-    feat = build_predictive_features(pd.DataFrame(data))
+    feat = build_predictive_features_from_dataframe(pd.DataFrame(data))
     pp1 = mod_p.predict(feat)
     pp2 = mod_p.predict(feat)
     assert np.array_equal(pp1, pp2)

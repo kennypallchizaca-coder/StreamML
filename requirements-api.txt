@@ -1,4 +1,4 @@
-# Minimal production API/model inference runtime. Development and notebooks use requirements.txt.
+# Runtime mínimo de producción para API e inferencia de modelos.
 pandas==3.0.3
 numpy==2.4.6
 scikit-learn==1.9.0

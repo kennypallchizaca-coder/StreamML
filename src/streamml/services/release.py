@@ -1,4 +1,4 @@
-"""Shared helpers for the official StreamML release."""
+"""Funciones compartidas para la versión oficial de StreamML."""
 
 from __future__ import annotations
 

@@ -1,0 +1,192 @@
+name: streamml-local
+
+x-default-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+    environment:
+      STREAMML_ENVIRONMENT: development
+      STREAMML_DATABASE_PATH: /app/runtime/streamml.sqlite3
+      # Valores dummy para uso estrictamente local/desarrollo
+      STREAMML_TOKEN_SECRET: dummy_secret_for_local_use_only_32_chars
+      STREAMML_MEDIA_AUTH_SECRET: dummy_media_secret_for_local_use_32_chars
+      STREAMML_ALLOWED_ORIGINS: http://localhost
+      STREAMML_MEDIAMTX_PUBLIC_BASE: http://localhost/media
+      STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE: rtmp://127.0.0.1:1935
+      STREAMML_BOOTSTRAP_EMAIL: admin@localhost
+      STREAMML_BOOTSTRAP_PASSWORD: password123456
+      STREAMML_COOKIE_SECURE: "false"
+      STREAMML_ENFORCE_HTTPS: "false"
+    volumes:
+      - ../../models/registry:/app/models/registry:ro
+      - api_data_local:/app/runtime
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_WS_BASE_URL: /ws
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=16m,nosuid,nodev
+      - /var/run:size=4m,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks: [edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  mediamtx:
+    image: bluenviron/mediamtx:1.19.2
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+    environment:
+      MTX_WEBRTCADDITIONALHOSTS: localhost
+      MTX_AUTHHTTPADDRESS: http://mediamtx:dummy_media_secret_for_local_use_32_chars@api:8000/api/v1/internal/mediamtx/auth
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - fallback_media_local:/fallback:ro
+    ports:
+      - "1935:1935"
+      - "8888:8888"
+      - "8889:8889"
+      - "8189:8189/udp"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks: [edge, backend]
+    depends_on:
+      api:
+        condition: service_healthy
+      media-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/mediamtx", "--version"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  media-init:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/media.Dockerfile
+    command: ["/app/apps/media/generate_fallback.sh"]
+    user: "0:0"
+    volumes:
+      - fallback_media_local:/fallback
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: "no"
+
+  media-worker:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/media.Dockerfile
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    environment:
+      STREAMML_MEDIA_AUTH_SECRET: dummy_media_secret_for_local_use_32_chars
+      STREAMML_INTERNAL_RTMP_BASE: rtmp://mediamtx:1935
+      STREAMML_RESTREAM_CONFIG_JSON: "{}"
+    read_only: true
+    volumes:
+      - fallback_media_local:/fallback:ro
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks: [backend]
+    depends_on:
+      mediamtx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; assert Path('/fallback/fallback.mp4').stat().st_size > 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nginx:
+    image: nginx:1.30.3-alpine
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.local.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=16m,nosuid,nodev
+      - /var/run:size=4m,nosuid,nodev
+      - /var/log/nginx:size=16m,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks: [edge, backend]
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      mediamtx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  api_data_local:
+  fallback_media_local:

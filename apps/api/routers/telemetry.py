@@ -1,4 +1,4 @@
-"""Authenticated OBS connector telemetry ingestion."""
+"""Ingesta autenticada de telemetría del conector OBS."""
 
 from __future__ import annotations
 
@@ -34,11 +34,11 @@ def _authorized_vdo_session(request: Request, session_id: str) -> tuple[dict, di
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="VDO.Ninja telemetry authentication required.",
+                detail="Se requiere autenticación para la telemetría de VDO.Ninja.",
             )
         session = request.app.state.database.get_session_by_id(session_id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesión no encontrada.")
         return {"id": session["user_id"]}, session
     session = require_owned_session(request, user, session_id)
     return user, session
@@ -50,11 +50,11 @@ async def receive_telemetry(
 ) -> dict:
     settings = request.app.state.settings
     if payload.session_id != connector["session_id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesión no encontrada.")
     if not request.app.state.rate_limiter.allow(
         f"telemetry:{connector['id']}", settings.telemetry_limit, settings.rate_window_seconds
     ):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many telemetry events.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados eventos de telemetría.")
     metrics = payload.metrics.model_dump(mode="json")
     connector_network = payload.network.model_dump(mode="json") if payload.network else None
     phone = request.app.state.database.latest_vdo_telemetry(connector["user_id"], connector["session_id"])
@@ -153,7 +153,7 @@ async def receive_vdo_ninja_telemetry(
     settings = request.app.state.settings
     rate_key = f"vdo-telemetry:{user['id']}:{payload.session_id}:{payload.reporter_id}"
     if not request.app.state.rate_limiter.allow(rate_key, settings.telemetry_limit, settings.rate_window_seconds):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many telemetry events.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados eventos de telemetría.")
     _record, inserted = request.app.state.database.store_vdo_telemetry(
         user_id=user["id"],
         session_id=payload.session_id,

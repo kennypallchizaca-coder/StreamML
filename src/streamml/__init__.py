@@ -1,1 +1,1 @@
-"""Shared StreamML online runtime."""
+"""Runtime online compartido de StreamML."""

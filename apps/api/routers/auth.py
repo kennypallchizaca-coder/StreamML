@@ -1,4 +1,4 @@
-"""Cookie-based customer authentication."""
+"""Autenticación de usuarios basada en cookies."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
     ip = client_ip(request)
     if not request.app.state.rate_limiter.allow(f"login:{ip}", settings.login_limit, settings.rate_window_seconds):
         database.record_audit(actor_type="anonymous", action="auth.login", outcome="rate_limited", client_ip=ip)
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados intentos.")
     try:
         email = normalize_email(payload.email)
     except ValueError:
@@ -39,7 +39,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
             details={"email_sha256": hashlib.sha256(email.encode("utf-8")).hexdigest()},
         )
         audit_log("auth.login.denied", client_ip=ip)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales inválidas.")
     token = random_token()
     database.save_auth_token(user["id"], hash_token(token), settings.session_ttl_seconds)
     response.set_cookie(

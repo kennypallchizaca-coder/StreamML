@@ -1,4 +1,4 @@
-"""Single-process authenticated WebSocket fan-out."""
+"""Fan-out autenticado de WebSocket en un solo proceso."""
 
 from __future__ import annotations
 

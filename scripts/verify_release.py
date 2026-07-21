@@ -34,6 +34,7 @@ def main() -> None:
         "demo_models.py",
         "verify_release.py",
         "check_no_secrets.py",
+        "check_datasets.py",
         "audit_ml_data.py",
         "evaluate_control_replay.py",
     }

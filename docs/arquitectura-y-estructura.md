@@ -43,7 +43,7 @@ StreamML/
 │   ├── arquitectura-y-estructura.md (Este archivo).
 │   ├── decisiones-tecnicas.md   # Justificación del diseño de seguridad y ML.
 │   ├── configuracion-gui.md     # Guía sobre la UI del conector local.
-│   └── deployment.md            # Guía antigua/extendida de despliegue.
+│   └── deployment.md - Guía de despliegue en servidor y pruebas operacionales.
 │
 ├── infrastructure/              # Archivos de Despliegue y Sistemas
 │   ├── docker/                  # Dockerfiles por cada app y el docker-compose.yml.

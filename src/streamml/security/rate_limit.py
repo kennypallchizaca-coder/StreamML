@@ -1,4 +1,4 @@
-"""Small process-local fixed-window limiter for the single-worker SQLite deployment."""
+"""Limitador de tasa de ventana fija local al proceso."""
 
 from __future__ import annotations
 
@@ -19,6 +19,12 @@ class RateLimiter:
             events = self._events[key]
             while events and events[0] <= cutoff:
                 events.popleft()
+            if not events:
+                del self._events[key]
+                if limit <= 0:
+                    return False
+                self._events[key].append(now)
+                return True
             if len(events) >= limit:
                 return False
             events.append(now)

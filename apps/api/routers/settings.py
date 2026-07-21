@@ -1,4 +1,4 @@
-"""Authenticated, persistent settings and privacy controls for the StreamML UI."""
+"""Configuraciones persistentes, autenticadas, y controles de privacidad del usuario."""
 
 from __future__ import annotations
 
@@ -79,10 +79,11 @@ def update_account(payload: AccountSettingsUpdate, request: Request, user: dict 
     database = request.app.state.database
     current = database.get_user_by_id(user["id"])
     if not current:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticación requerida.")
     new_password = payload.new_password.get_secret_value() if payload.new_password else None
     if new_password is not None:
-        assert payload.current_password is not None
+        if payload.current_password is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual es obligatoria.")
         if not verify_password(payload.current_password.get_secret_value(), current["password_hash"]):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta.")
     updated = database.update_user_profile(user["id"], display_name=payload.display_name, new_password=new_password)

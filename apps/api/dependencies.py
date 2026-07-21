@@ -1,4 +1,4 @@
-"""FastAPI dependencies and tenant authentication guards."""
+"""Dependencias de FastAPI y guardias de autenticación por tenant."""
 
 from __future__ import annotations
 
@@ -19,10 +19,10 @@ def client_ip(request: Request) -> str:
 def current_user(request: Request) -> dict[str, Any]:
     token = request.cookies.get(request.app.state.settings.session_cookie_name)
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticación requerida.")
     user = request.app.state.database.user_from_token_hash(hash_token(token))
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticación requerida.")
     return user
 
 
@@ -30,10 +30,10 @@ def current_connector(request: Request) -> dict[str, Any]:
     authorization = request.headers.get("authorization", "")
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connector authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Se requiere autenticación de conector.")
     connector = request.app.state.database.connector_from_token_hash(hash_token(token))
     if not connector:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connector authentication required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Se requiere autenticación de conector.")
     return connector
 
 
@@ -47,5 +47,5 @@ def websocket_user(websocket: WebSocket) -> dict[str, Any] | None:
 def require_owned_session(request: Request, user: dict[str, Any], session_id: str) -> dict[str, Any]:
     session = request.app.state.database.get_session(user["id"], session_id)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesión no encontrada.")
     return session

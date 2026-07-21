@@ -1,4 +1,4 @@
-"""Hashing and signed-token helpers that never persist plaintext secrets."""
+"""Funciones auxiliares de hashing y tokens firmados que nunca almacenan secretos en texto plano."""
 
 from __future__ import annotations
 

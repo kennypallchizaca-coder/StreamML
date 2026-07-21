@@ -1,4 +1,4 @@
-"""Authenticated, tenant-scoped real-time session updates."""
+"""Actualizaciones de sesión en tiempo real, autenticadas y con alcance por tenant."""
 
 from __future__ import annotations
 

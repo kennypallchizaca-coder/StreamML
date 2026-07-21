@@ -1,4 +1,4 @@
-"""Tenant-scoped transmission sessions."""
+"""Sesiones de transmisión con alcance por tenant."""
 
 from __future__ import annotations
 

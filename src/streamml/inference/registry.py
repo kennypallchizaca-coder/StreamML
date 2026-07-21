@@ -1,4 +1,4 @@
-"""Fail-closed loader for the hash-verified official StreamML release."""
+"""Cargador fail-closed para el release oficial de StreamML verificado por hash."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def _read_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         value = json.load(handle)
     if not isinstance(value, dict):
-        raise RuntimeError(f"Official artifact is not a JSON object: {path.name}")
+        raise RuntimeError(f"El artefacto oficial no es un objeto JSON: {path.name}")
     return value
 
 
@@ -53,16 +53,16 @@ class OfficialModelRegistry:
 
     def _validate_release_hashes(self) -> None:
         if self.release.get("official_release") is not True:
-            raise RuntimeError("The configured model release is not marked official.")
+            raise RuntimeError("El release de modelo configurado no está marcado como oficial.")
         hashes = self.release.get("sha256_hashes")
         if not isinstance(hashes, dict) or not hashes:
-            raise RuntimeError("The official release does not contain artifact hashes.")
+            raise RuntimeError("El release oficial no contiene hashes de artefactos.")
         for relative, expected in hashes.items():
             candidate = (self.root_dir / relative).resolve()
             if self.root_dir not in candidate.parents or not candidate.is_file():
-                raise RuntimeError(f"Missing or invalid official artifact: {relative}")
+                raise RuntimeError(f"Artefacto oficial faltante o inválido: {relative}")
             if _sha256(candidate) != expected:
-                raise RuntimeError(f"Official artifact hash mismatch: {relative}")
+                raise RuntimeError(f"Los hashes del artefacto oficial no coinciden: {relative}")
 
     def _validate_runtime_versions(self) -> None:
         declared: dict[str, str] = {}
@@ -73,13 +73,13 @@ class OfficialModelRegistry:
                     declared[package] = declared_version
         for package in MODEL_RUNTIME_PACKAGES:
             if package not in declared:
-                raise RuntimeError(f"Missing official runtime version for {package}.")
+                raise RuntimeError(f"Falta la versión oficial del entorno de ejecución para {package}.")
             try:
                 installed = version(package)
             except PackageNotFoundError as exc:
-                raise RuntimeError(f"Required model runtime package is missing: {package}") from exc
+                raise RuntimeError(f"Falta un paquete requerido para el modelo: {package}") from exc
             if installed != declared[package]:
-                raise RuntimeError(f"Incompatible {package} runtime: expected {declared[package]}, found {installed}.")
+                raise RuntimeError(f"Entorno de ejecución de {package} incompatible: se esperaba {declared[package]}, se encontró {installed}.")
 
     def _load_role(self, role: str) -> None:
         directory = self.release_dir / role
@@ -90,19 +90,19 @@ class OfficialModelRegistry:
         model = joblib.load(directory / "model.joblib")
         features = contract.get("features")
         if not isinstance(features, list) or contract.get("feature_count") != len(features):
-            raise RuntimeError(f"Invalid {role} feature contract.")
+            raise RuntimeError(f"Contrato de características inválido para el modelo {role}.")
         if list(map(str, getattr(model, "feature_names_in_", []))) != features:
-            raise RuntimeError(f"{role} model feature order does not match its official contract.")
+            raise RuntimeError(f"El orden de características del modelo {role} no coincide con su contrato oficial.")
         if int(getattr(model, "n_features_in_", -1)) != len(features):
-            raise RuntimeError(f"{role} model feature count does not match its official contract.")
+            raise RuntimeError(f"El número de características del modelo {role} no coincide con su contrato oficial.")
         declared_model = self.release[f"{role}_model"]["selected_model"]
         estimator = getattr(model, "named_steps", {}).get("model", model)
         if type(estimator).__name__ != declared_model:
-            raise RuntimeError(f"Unexpected official {role} model type.")
+            raise RuntimeError(f"Tipo inesperado de modelo oficial {role}.")
         classes = list(getattr(model, "classes_", []))
         expected_classes = list(mapping.keys()) if role == "reactive" else list(mapping.values())
         if set(map(str, classes)) != set(map(str, expected_classes)):
-            raise RuntimeError(f"{role} model classes do not match class_mapping.json.")
+            raise RuntimeError(f"Las clases del modelo {role} no coinciden con class_mapping.json.")
         self.models[role] = model
         self.contracts[role] = contract
         self.class_mappings[role] = mapping
@@ -112,13 +112,13 @@ class OfficialModelRegistry:
     def _load_threshold(self) -> float:
         artifact = _read_json(self.release_dir / "predictive" / "threshold.json")
         if "threshold" not in artifact:
-            raise RuntimeError("The official predictive threshold is missing.")
+            raise RuntimeError("Falta el umbral predictivo oficial.")
         threshold = artifact["threshold"]
         if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold):
-            raise RuntimeError("The official predictive threshold is invalid.")
+            raise RuntimeError("El umbral predictivo oficial es inválido.")
         declared = self.release["predictive_model"].get("threshold")
         if threshold != declared:
-            raise RuntimeError("Predictive threshold artifacts disagree.")
+            raise RuntimeError("Los artefactos del umbral predictivo no coinciden.")
         return float(threshold)
 
     def public_models(self) -> list[dict[str, Any]]:

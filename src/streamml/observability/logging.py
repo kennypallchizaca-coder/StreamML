@@ -1,4 +1,4 @@
-"""Structured, redacted application logging."""
+"""Registro estructurado y censurado de la aplicación."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Strict official-model prediction endpoints."""
+"""Endpoints estrictos de predicción con modelos oficiales."""
 
 from __future__ import annotations
 

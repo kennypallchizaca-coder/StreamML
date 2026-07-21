@@ -1,4 +1,4 @@
-"""Tenant-scoped session aggregation."""
+"""Agregación de sesiones con alcance por tenant."""
 
 from __future__ import annotations
 

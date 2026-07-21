@@ -1,4 +1,4 @@
-"""Strict Pydantic transport schemas for the public API."""
+"""Esquemas de transporte Pydantic estrictos para la API pública."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def _uuid(value: str) -> str:
     try:
         return str(uuid.UUID(value))
     except (ValueError, TypeError, AttributeError) as exc:
-        raise ValueError("A valid UUID is required.") from exc
+        raise ValueError("Se requiere un UUID válido.") from exc
 
 
 class LoginRequest(StrictModel):
@@ -38,7 +38,7 @@ class SessionCreate(StrictModel):
     def clean_name(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("Session name cannot be blank.")
+            raise ValueError("El nombre de la sesión no puede estar en blanco.")
         return cleaned
 
 
@@ -50,7 +50,7 @@ class AccountSettingsUpdate(StrictModel):
     @model_validator(mode="after")
     def password_change_is_complete(self) -> "AccountSettingsUpdate":
         if (self.current_password is None) != (self.new_password is None):
-            raise ValueError("Current and new passwords are both required to change the password.")
+            raise ValueError("Las contraseñas actual y nueva son requeridas para cambiar la contraseña.")
         return self
 
     @field_validator("display_name")
@@ -58,7 +58,7 @@ class AccountSettingsUpdate(StrictModel):
     def clean_display_name(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("Display name cannot be blank.")
+            raise ValueError("El nombre a mostrar no puede estar en blanco.")
         return cleaned
 
 
@@ -83,13 +83,13 @@ class StreamSettingsUpdate(StrictModel):
     def clean_scene_name(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("Scene name cannot be blank.")
+            raise ValueError("El nombre de la escena no puede estar en blanco.")
         return cleaned
 
     @model_validator(mode="after")
     def scenes_are_distinct(self) -> "StreamSettingsUpdate":
         if self.live_scene.casefold() == self.backup_scene.casefold():
-            raise ValueError("Live and backup scenes must use different names.")
+            raise ValueError("Las escenas en vivo y de respaldo deben usar nombres diferentes.")
         return self
 
 
@@ -124,9 +124,9 @@ class ControlCommandAck(StrictModel):
     @model_validator(mode="after")
     def error_matches_status(self) -> "ControlCommandAck":
         if self.success and self.error_message:
-            raise ValueError("A successful command cannot include error_message.")
+            raise ValueError("Un comando exitoso no puede incluir error_message.")
         if not self.success and not (self.error_message or "").strip():
-            raise ValueError("A failed command must include error_message.")
+            raise ValueError("Un comando fallido debe incluir error_message.")
         return self
 
 
@@ -148,7 +148,7 @@ class ObsMetrics(StrictModel):
         for name in ("active_fps", "output_congestion", "output_bitrate_kbps"):
             value = getattr(self, name)
             if value is not None and (not math.isfinite(float(value)) or float(value) < 0):
-                raise ValueError(f"{name} must be finite and non-negative.")
+                raise ValueError(f"{name} debe ser finito y no negativo.")
         return self
 
 
@@ -182,7 +182,7 @@ class NetworkMetrics(StrictModel):
             "connection_capacity_mbps",
         ):
             if not math.isfinite(float(getattr(self, name))):
-                raise ValueError(f"{name} must be finite.")
+                raise ValueError(f"{name} debe ser finito.")
         return self
 
 
@@ -206,9 +206,9 @@ class TelemetryRequest(StrictModel):
         try:
             parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise ValueError("observed_at must be an ISO-8601 datetime.") from exc
+            raise ValueError("observed_at debe ser un datetime ISO-8601.") from exc
         if parsed.tzinfo is None or parsed.utcoffset() is None:
-            raise ValueError("observed_at must include a timezone.")
+            raise ValueError("observed_at debe incluir una zona horaria.")
         return parsed.isoformat()
 
 
@@ -240,7 +240,7 @@ class VdoNinjaMetrics(StrictModel):
         ):
             value = getattr(self, name)
             if value is not None and not math.isfinite(float(value)):
-                raise ValueError(f"{name} must be finite.")
+                raise ValueError(f"{name} debe ser finito.")
         return self
 
 
@@ -264,9 +264,9 @@ class VdoNinjaTelemetryRequest(StrictModel):
         try:
             parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise ValueError("observed_at must be an ISO-8601 datetime.") from exc
+            raise ValueError("observed_at debe ser un datetime ISO-8601.") from exc
         if parsed.tzinfo is None or parsed.utcoffset() is None:
-            raise ValueError("observed_at must include a timezone.")
+            raise ValueError("observed_at debe incluir una zona horaria.")
         return parsed.isoformat()
 
 

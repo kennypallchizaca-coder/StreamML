@@ -1,10 +1,10 @@
-"""Deterministic policy that turns model outputs into safe streaming actions.
+"""Política determinista que convierte las salidas de los modelos en acciones seguras de transmisión.
 
-The machine-learning models only recommend network profiles.  This module owns
-the operational rules: safety margin, one-level changes, downgrade priority,
-upgrade hysteresis, cooldowns and live/fallback switching.  Keeping those
-rules outside the models makes every action explainable and straightforward to
-test or audit.
+Los modelos de machine learning solo recomiendan perfiles de red. Este módulo
+posee las reglas operacionales: margen de seguridad, cambios de un nivel,
+prioridad de degradación, histéresis de mejora, cooldowns y conmutación
+vivo/respaldo. Mantener esas reglas fuera de los modelos hace que cada acción
+sea explicable y fácil de probar o auditar.
 """
 
 from __future__ import annotations

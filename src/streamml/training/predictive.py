@@ -1,4 +1,4 @@
-"""Grouped model selection and honest evaluation for StreamML predictive release."""
+"""Selección de modelos agrupados y evaluación honesta para el modelo predictivo de StreamML."""
 
 from __future__ import annotations
 

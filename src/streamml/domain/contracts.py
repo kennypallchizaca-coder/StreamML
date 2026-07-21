@@ -1,4 +1,4 @@
-"""Online provenance labels compatible with the immutable official contracts."""
+"""Etiquetas de procedencia en línea compatibles con los contratos oficiales inmutables."""
 
 REACTIVE_COMPATIBLE_SOURCES = {
     "rtr_netztest_compatible_measurement",

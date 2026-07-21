@@ -1,4 +1,4 @@
-"""Authenticated command delivery and acknowledgement for local connectors."""
+"""Entrega autenticada de comandos y confirmación para conectores locales."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def acknowledge_command(
         error_message=payload.error_message,
     )
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Command not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comando no encontrado.")
     request.app.state.database.record_audit(
         user_id=connector["user_id"],
         actor_type="connector",

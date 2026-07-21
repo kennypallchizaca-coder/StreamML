@@ -1,4 +1,4 @@
-"""Environment-only configuration for the online API."""
+"""Configuración basada exclusivamente en variables de entorno para la API online."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def _secret_env(name: str) -> str:
     try:
         return Path(file_name).read_text(encoding="utf-8").strip()
     except OSError as exc:
-        raise RuntimeError(f"Could not read the secret configured by {name}_FILE.") from exc
+        raise RuntimeError(f"No se pudo leer el secreto configurado por {name}_FILE.") from exc
 
 
 @dataclass(frozen=True)
@@ -91,17 +91,17 @@ class Settings:
 
     def validate_runtime(self) -> None:
         if self.environment not in {"development", "test", "production"}:
-            raise RuntimeError("STREAMML_ENVIRONMENT must be development, test, or production.")
+            raise RuntimeError("STREAMML_ENVIRONMENT debe ser development, test, o production.")
         if len(self.token_secret) < 32:
-            raise RuntimeError("STREAMML_TOKEN_SECRET must contain at least 32 characters.")
+            raise RuntimeError("STREAMML_TOKEN_SECRET debe contener al menos 32 caracteres.")
         if len(self.media_auth_secret) < 32:
-            raise RuntimeError("STREAMML_MEDIA_AUTH_SECRET must contain at least 32 characters.")
+            raise RuntimeError("STREAMML_MEDIA_AUTH_SECRET debe contener al menos 32 caracteres.")
         if not self.allowed_origins or "*" in self.allowed_origins:
-            raise RuntimeError("STREAMML_ALLOWED_ORIGINS must be an explicit non-wildcard allowlist.")
+            raise RuntimeError("STREAMML_ALLOWED_ORIGINS debe ser una lista explícita sin comodines.")
         if bool(self.bootstrap_email) != bool(self.bootstrap_password):
-            raise RuntimeError("Bootstrap email and password must be configured together.")
+            raise RuntimeError("El correo electrónico y contraseña de bootstrap deben configurarse juntos.")
         if self.bootstrap_password and len(self.bootstrap_password) < 12:
-            raise RuntimeError("STREAMML_BOOTSTRAP_PASSWORD must contain at least 12 characters.")
+            raise RuntimeError("STREAMML_BOOTSTRAP_PASSWORD debe contener al menos 12 caracteres.")
         if any(
             value <= 0
             for value in (
@@ -114,14 +114,14 @@ class Settings:
                 self.rate_window_seconds,
             )
         ):
-            raise RuntimeError("TTL and rate-limit values must be positive integers.")
+            raise RuntimeError("Los valores de TTL y límite de tasa deben ser enteros positivos.")
         if self.environment == "production":
             if not self.cookie_secure or not self.enforce_https:
-                raise RuntimeError("Production requires secure cookies and HTTPS enforcement.")
+                raise RuntimeError("Producción requiere cookies seguras y forzar HTTPS.")
             if any(urlparse(origin).scheme != "https" for origin in self.allowed_origins):
-                raise RuntimeError("Production origins must use HTTPS.")
+                raise RuntimeError("Los orígenes de producción deben usar HTTPS.")
             if urlparse(self.mediamtx_public_base).scheme != "https":
-                raise RuntimeError("Production MediaMTX public URL must use HTTPS.")
+                raise RuntimeError("La URL pública de MediaMTX en producción debe usar HTTPS.")
 
     def production_controls_ready(self) -> bool:
         """Report whether the runtime uses the mandatory production security controls."""

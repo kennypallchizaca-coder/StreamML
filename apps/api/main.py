@@ -1,4 +1,4 @@
-"""FastAPI app factory and ASGI entrypoint for StreamML online."""
+"""Fábrica de la aplicación FastAPI y punto de entrada ASGI para StreamML online."""
 
 from __future__ import annotations
 

@@ -1,9 +1,11 @@
+"""Constructor de características predictivas basado en Pandas DataFrame."""
+
 import pandas as pd
 
 from src.streamml.features.predictive_features import FEATURE_COLUMNS, build_feature_row
 
 
-def build_predictive_features(
+def build_predictive_features_from_dataframe(
     historical_window: pd.DataFrame, current_profile: int = None, configuration: dict = None
 ) -> pd.DataFrame:
     """

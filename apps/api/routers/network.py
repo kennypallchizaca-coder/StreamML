@@ -1,4 +1,4 @@
-"""Authenticated HTTP path probes used by the paired local connector."""
+"""Sondas HTTP autenticadas utilizadas por el conector local vinculado."""
 
 from __future__ import annotations
 
@@ -35,11 +35,11 @@ def download_probe(
 async def upload_probe(request: Request, _connector: dict = Depends(current_connector)) -> dict:
     content_length = request.headers.get("content-length")
     if not content_length or not content_length.isdigit():
-        raise HTTPException(status_code=411, detail="Content-Length is required.")
+        raise HTTPException(status_code=411, detail="Content-Length es requerido.")
     declared = int(content_length)
     if not MIN_PROBE_BYTES <= declared <= MAX_PROBE_BYTES:
-        raise HTTPException(status_code=413, detail="Probe payload size is invalid.")
+        raise HTTPException(status_code=413, detail="El tamaño del payload de prueba es inválido.")
     payload = await request.body()
     if len(payload) != declared:
-        raise HTTPException(status_code=400, detail="Probe payload was incomplete.")
+        raise HTTPException(status_code=400, detail="El payload de prueba está incompleto.")
     return {"received_bytes": len(payload)}

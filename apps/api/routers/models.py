@@ -1,4 +1,4 @@
-"""Read-only official model catalogue."""
+"""Catálogo oficial de modelos de solo lectura."""
 
 from __future__ import annotations
 

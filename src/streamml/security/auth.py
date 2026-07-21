@@ -1,4 +1,4 @@
-"""Authentication helpers shared by HTTP and WebSocket routes."""
+"""Funciones de autenticación compartidas por rutas HTTP y WebSocket."""
 
 from __future__ import annotations
 

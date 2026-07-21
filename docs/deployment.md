@@ -1,138 +1,142 @@
-# StreamML online deployment
+# Despliegue en línea de StreamML
 
-This repository contains a production-capable single-node implementation. A
-specific public installation is accepted only after its real OBS, phone,
-network, MediaMTX, WebRTC, platform credentials and trusted TLS certificate pass
-the go-live gate below.
+Este repositorio contiene una implementación de nodo único lista para producción.
+Una instalación pública específica solo se acepta después de que su OBS real,
+teléfono, red, MediaMTX, WebRTC, credenciales de plataforma y certificado TLS
+de confianza pasen la verificación de puesta en marcha descrita abajo.
 
-## Prerequisites
+## Requisitos previos
 
-- Docker Engine with Compose
-- a public DNS name and trusted TLS certificate for online use
-- UDP 8189 reachable by WebRTC clients, or a configured TURN service
-- OBS WebSocket 5.x enabled only on localhost with authentication
-- official StreamML release artifacts already present under `models/registry/`
+- Docker Engine con Compose
+- Un nombre DNS público y certificado TLS de confianza para uso en línea
+- Puerto UDP 8189 accesible por clientes WebRTC, o un servicio TURN configurado
+- OBS WebSocket 5.x habilitado solo en localhost con autenticación
+- Artefactos oficiales del release de StreamML ya presentes en `models/registry/`
 
-## Production go-live gate
+## Verificación de puesta en marcha para producción
 
-Do not use `deployment/.env.example` as a running configuration. Before a
-public deployment, all of the following must be true:
+No usar `deployment/.env.example` como configuración de ejecución. Antes de un
+despliegue público, todo lo siguiente debe cumplirse:
 
-- The target commit has a successful CI run and `python scripts/verify_release.py`
-  reports `STREAMML RELEASE VERIFIED`.
-- `python scripts/check_no_secrets.py --history` passes before the first push.
-- `deployment/.env` is an untracked file with unique, random values for both
-  `STREAMML_*_SECRET` values and the bootstrap password. Store its values in a
-  secret manager or password manager, not in a chat, shell profile or commit.
-- The TLS certificate covers the configured DNS name; ports TCP 80/443 and UDP
-  8189 are reachable as required. Do not publish OBS port 4455, MediaMTX API,
-  HLS or WHEP ports directly.
-- The OBS computer has the `StreamML Live` and `StreamML Backup` scenes (or the
-  configured equivalents), authenticated loopback-only OBS WebSocket, and a
-  tested H.264/AAC output mode.
-- The RTMP(S) destinations, if any, have been tested with non-production keys
-  before their real keys are placed in the ignored deployment environment file.
+- El commit objetivo tiene una ejecución exitosa de CI y `python scripts/verify_release.py`
+  reporta `STREAMML RELEASE VERIFIED`.
+- `python scripts/check_no_secrets.py --history` pasa antes del primer push.
+- `deployment/.env` es un archivo no rastreado con valores únicos y aleatorios para
+  ambos valores `STREAMML_*_SECRET` y la contraseña bootstrap. Almacenar sus valores
+  en un gestor de secretos o contraseñas, no en un chat, perfil de shell o commit.
+- El certificado TLS cubre el nombre DNS configurado; los puertos TCP 80/443 y UDP
+  8189 son accesibles según sea necesario. No publicar el puerto 4455 de OBS, la API
+  de MediaMTX, ni los puertos HLS o WHEP directamente.
+- La computadora con OBS tiene las escenas `StreamML Live` y `StreamML Backup` (o los
+  equivalentes configurados), WebSocket de OBS autenticado solo en loopback, y un
+  modo de salida H.264/AAC probado.
+- Los destinos RTMP(S), si los hay, han sido probados con claves que no son de producción
+  antes de colocar sus claves reales en el archivo de entorno ignorado del despliegue.
 
-On a Linux server, create the deployment file with restrictive permissions
-before editing it:
+En un servidor Linux, crear el archivo de despliegue con permisos restrictivos
+antes de editarlo:
 
 ```sh
 install -m 600 /dev/null deployment/.env
 ```
 
-Generate secrets with an approved secret manager. If one is not available,
-Python can generate a URL-safe value locally; copy it directly into the
-protected environment file and do not keep it in shell history.
+Generar secretos con un gestor de secretos aprobado. Si no hay uno disponible,
+Python puede generar un valor URL-safe localmente; copiarlo directamente al archivo
+de entorno protegido y no conservarlo en el historial del shell.
 
-The Compose deployment mounts `models/registry/` read-only. Versioned data and
-feature contracts live under `src/streamml/config/` and are copied with the API
-source. The deployment does not train, overwrite or regenerate model artifacts.
+El despliegue con Compose monta `models/registry/` como solo lectura. Los datos
+versionados y los contratos de features residen en `src/streamml/config/` y se
+copian con el código fuente de la API. El despliegue no entrena, sobrescribe ni
+regenera artefactos de modelo.
 
-## Server deployment
+## Despliegue en servidor
 
-1. Copy `deployment/.env.example` to `deployment/.env` outside version control.
-2. Replace every `CHANGE_ME` and both TLS paths.
-   `STREAMML_MEDIA_AUTH_SECRET` must be at least 32 URL-safe random characters;
-   MediaMTX uses it as Basic authentication on the isolated callback URL.
-3. Validate configuration without starting services:
+1. Copiar `deployment/.env.example` a `deployment/.env` fuera del control de versiones.
+2. Reemplazar cada `CHANGE_ME` y ambas rutas TLS.
+   `STREAMML_MEDIA_AUTH_SECRET` debe ser al menos 32 caracteres aleatorios URL-safe;
+   MediaMTX lo usa como autenticación Basic en la URL de callback aislada.
+3. Validar la configuración sin iniciar servicios:
 
    ```powershell
    docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml config
    ```
 
-4. Build and start:
+4. Construir e iniciar:
 
    ```powershell
    docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build
    ```
 
-5. Inspect health without printing environment values:
+5. Inspeccionar el estado de salud sin imprimir valores de entorno:
 
    ```powershell
    docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml ps
    ```
 
-6. Confirm the API from inside the private Docker network:
+6. Confirmar la API desde dentro de la red privada de Docker:
 
    ```powershell
    docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml exec api python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).read().decode())"
    ```
 
-The public entry point is nginx on HTTPS/WSS. The API database uses a persistent
-Docker volume, while the MediaMTX control API and metrics listeners have no host
-port. RTMP, direct HLS and direct WHEP listeners are bound to host loopback by
-default (`1935`, `8888` and `8889`) for local diagnostics; do not change them to
-public interfaces. MediaMTX also joins the edge network so Docker materializes
-those explicit bindings, while the API remains isolated on the backend network. The API returns a shared
-`https://<host>/media/` base: WHEP/WHIP resources route to WebRTC and playlists
-or segments route to HLS.
+El punto de entrada público es nginx en HTTPS/WSS. La base de datos de la API usa un
+volumen persistente de Docker, mientras que la API de control y los listeners de métricas
+de MediaMTX no tienen puerto de host. Los listeners RTMP, HLS directo y WHEP directo
+están vinculados al loopback del host por defecto (`1935`, `8888` y `8889`) para
+diagnósticos locales; no cambiarlos a interfaces públicas. MediaMTX también se une a la
+red edge para que Docker materialice esos bindings explícitos, mientras que la API
+permanece aislada en la red backend. La API devuelve una base compartida
+`https://<host>/media/`: los recursos WHEP/WHIP enrutan a WebRTC y las listas de
+reproducción o segmentos enrutan a HLS.
 
-The deployment assistant validates the TLS certificate and private key as a
-matching PEM pair before Compose is allowed to start, preventing nginx restart
-loops caused by placeholder or mismatched files.
+El asistente de despliegue valida el certificado TLS y la clave privada como un par PEM
+coincidente antes de que se permita iniciar Compose, previniendo bucles de reinicio de
+nginx causados por archivos placeholder o no coincidentes.
 
-Media paths are opaque identifiers returned by the authenticated session API:
+Las rutas de medios son identificadores opacos devueltos por la API de sesión autenticada:
 
 ```text
-stream-<32 lowercase hexadecimal characters>
+stream-<32 caracteres hexadecimales en minúscula>
 ```
 
-MediaMTX delegates every publish/read decision to the API over an isolated
-Docker network. The callback is not routed by nginx and every public media
-request still needs a short-lived, session-scoped token; a path alone is never
-authorization.
+MediaMTX delega cada decisión de publicación/lectura a la API a través de una red Docker
+aislada. El callback no es enrutado por nginx y cada solicitud pública de medios aún
+necesita un token de corta duración, con alcance de sesión; una ruta sola nunca es
+autorización.
 
-## Operations, backup and updates
+## Operaciones, respaldo y actualizaciones
 
-Containers use restart policies, read-only filesystems where possible, bounded
-temporary filesystems, `no-new-privileges` and the Docker `local` log driver
-with 10 MiB × 5 rotation per service. Monitor `docker compose ps` and the
-container health status; preserve logs outside Docker if retention longer than
-that bound is required.
+Los contenedores usan políticas de reinicio, sistemas de archivos de solo lectura cuando
+es posible, sistemas de archivos temporales limitados, `no-new-privileges` y el driver
+de log `local` de Docker con rotación de 10 MiB × 5 por servicio. Monitorear
+`docker compose ps` y el estado de salud del contenedor; preservar logs fuera de Docker
+si se requiere retención más prolongada que ese límite.
 
-The API SQLite database is a single-node deployment store. Back it up before
-an update and test restoration on a non-production host. The script uses the
-SQLite Online Backup API, so the result includes committed WAL data consistently:
+La base de datos SQLite de la API es un almacén de despliegue de nodo único. Respaldarla
+antes de una actualización y probar la restauración en un host que no sea de producción.
+El script usa la API de respaldo en línea de SQLite, por lo que el resultado incluye
+datos WAL commitados de forma consistente:
 
 ```powershell
 ./scripts/Backup-StreamML.ps1
 ```
 
-Store the resulting file encrypted and outside the server. To verify a restore,
-copy it to a non-production installation, start the API and require
-`/health/ready` to report the expected schema version and a healthy database.
-Do not overwrite a running production database.
+Almacenar el archivo resultante cifrado y fuera del servidor. Para verificar una
+restauración, copiarlo a una instalación que no sea de producción, iniciar la API y
+requerir que `/health/ready` reporte la versión de esquema esperada y una base de datos
+sana. No sobrescribir una base de datos de producción en ejecución.
 
-For an update: back up the database, review image and dependency changes, run
-the release and secret guards, then use `up -d --build`. Never run `down
---volumes` in production unless the database deletion is intentional and a
-verified backup exists. Pinning `MEDIAMTX_IMAGE` to `1.19.2` is deliberate;
-upgrade it only after replaying the media smoke tests below.
+Para una actualización: respaldar la base de datos, revisar cambios de imagen y
+dependencias, ejecutar las verificaciones de release y secretos, luego usar
+`up -d --build`. Nunca ejecutar `down --volumes` en producción a menos que la eliminación
+de la base de datos sea intencional y exista un respaldo verificado. Fijar
+`MEDIAMTX_IMAGE` a `1.19.2` es deliberado; actualizarlo solo después de reproducir las
+pruebas de humo de medios descritas abajo.
 
-## Local StreamML Connector
+## Conector local de StreamML
 
-The connector runs on the same computer as OBS; do not put it in Compose and do
-not open OBS port 4455 on a router or public firewall.
+El conector se ejecuta en la misma computadora que OBS; no ponerlo en Compose y no
+abrir el puerto 4455 de OBS en un router o firewall público.
 
 ```powershell
 py -3.11 -m venv .venv-connector
@@ -143,76 +147,76 @@ $env:OBS_WEBSOCKET_PORT = "4455"
 .venv-connector\Scripts\streamml-connector --pair
 ```
 
-`--pair` reads the temporary code without terminal echo. The OBS password is
-read from `OBS_WEBSOCKET_PASSWORD` when explicitly configured, otherwise through
-a non-echoing prompt. The API token is stored only in the operating-system
-keyring; there is no plaintext fallback.
+`--pair` lee el código temporal sin eco en la terminal. La contraseña de OBS se lee
+desde `OBS_WEBSOCKET_PASSWORD` cuando está configurada explícitamente, de lo contrario
+mediante un prompt sin eco. El token de la API se almacena solo en el keyring del
+sistema operativo; no hay un respaldo en texto plano.
 
-After the first successful link, run without `--pair`:
+Después del primer enlace exitoso, ejecutar sin `--pair`:
 
 ```powershell
 .venv-connector\Scripts\streamml-connector
 ```
 
-The connector invokes OBS `GetStats` and `GetStreamStatus` for telemetry. It also
-accepts only three authenticated control operations: update the StreamML profile,
-select `StreamML Backup`, and restore `StreamML Live`. It never exposes a generic
-OBS RPC endpoint and never starts or stops a stream. Create both scenes before
-starting the connector, or override `STREAMML_LIVE_SCENE` and
-`STREAMML_BACKUP_SCENE`.
+El conector invoca `GetStats` y `GetStreamStatus` de OBS para telemetría. También acepta
+solo tres operaciones de control autenticadas: actualizar el perfil de StreamML, seleccionar
+`StreamML Backup` y restaurar `StreamML Live`. Nunca expone un endpoint RPC genérico de OBS
+y nunca inicia ni detiene una transmisión. Crear ambas escenas antes de iniciar el conector,
+o sobreescribir `STREAMML_LIVE_SCENE` y `STREAMML_BACKUP_SCENE`.
 
-The connector measures upload, download, latency, jitter and failed probes against
-the authenticated API route every five seconds. `output_bitrate_kbps` remains an
-OBS byte-counter derivative and is never relabeled as upload capacity. Configure
-the probe interval and bounded payload with `STREAMML_NETWORK_PROBE_INTERVAL_SECONDS`
-and `STREAMML_NETWORK_PROBE_BYTES`.
+El conector mide subida, descarga, latencia, jitter y sondas fallidas contra la ruta
+autenticada de la API cada cinco segundos. `output_bitrate_kbps` sigue siendo un derivado
+del contador de bytes de OBS y nunca se reetiqueta como capacidad de subida. Configurar
+el intervalo de sondeo y el payload limitado con `STREAMML_NETWORK_PROBE_INTERVAL_SECONDS`
+y `STREAMML_NETWORK_PROBE_BYTES`.
 
-## Media publication
+## Publicación de medios
 
-Prefer authenticated WHIP through the HTTPS `/media/` route when the installed
-OBS version and codecs have been verified. RTMP remains available as a local
-fallback on `rtmp://127.0.0.1:1935/<media-path>`.
+Preferir WHIP autenticado a través de la ruta HTTPS `/media/` cuando la versión instalada
+de OBS y los codecs hayan sido verificados. RTMP sigue disponible como respaldo local en
+`rtmp://127.0.0.1:1935/<ruta-media>`.
 
-MediaMTX does not transcode the live input. Confirm H.264 video and AAC audio in
-OBS so they are compatible with the generated fallback file and target players.
-The `media-worker` runs one supervised FFmpeg process for each named RTMP(S)
-target declared in `STREAMML_RESTREAM_CONFIG_JSON`. It probes the live MediaMTX
-path, sends `/fallback/fallback.mp4` while unavailable, and restores live input
-after three successful probes. The OBS scene switch separately provides backup
-for the internal MediaMTX/browser path.
+MediaMTX no transcodifica la entrada en vivo. Confirmar H.264 de video y AAC de audio en
+OBS para que sean compatibles con el archivo de respaldo generado y los reproductores
+objetivo. El `media-worker` ejecuta un proceso FFmpeg supervisado para cada destino RTMP(S)
+nombrado declarado en `STREAMML_RESTREAM_CONFIG_JSON`. Sondea la ruta en vivo de MediaMTX,
+envía `/fallback/fallback.mp4` mientras no esté disponible, y restaura la entrada en vivo
+después de tres sondas exitosas. El cambio de escena de OBS proporciona respaldo por
+separado para la ruta interna de MediaMTX/navegador.
 
-Example without printing real keys in logs:
+Ejemplo sin imprimir claves reales en los logs:
 
 ```text
-STREAMML_RESTREAM_CONFIG_JSON={"stream-<id>":{"youtube":"rtmps://host/app/SECRET"}}
+STREAMML_RESTREAM_CONFIG_JSON={"stream-<id>":{"youtube":"rtmps://host/app/SECRETO"}}
 ```
 
-Restart `media-worker` after changing destinations. Validate WHEP/WebRTC, HLS,
-the fallback transition and every external platform separately.
+Reiniciar `media-worker` después de cambiar destinos. Validar WHEP/WebRTC, HLS, la
+transición de respaldo y cada plataforma externa por separado.
 
-## Stop services
+## Detener servicios
 
 ```powershell
 docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml down
 ```
 
-Do not add `--volumes` unless intentional deletion of the API session database
-has been separately approved and backed up.
+No agregar `--volumes` a menos que la eliminación intencional de la base de datos de
+sesiones de la API haya sido aprobada por separado y respaldada.
 
-## Tests that still require real services
+## Pruebas que aún requieren servicios reales
 
-- OBS WebSocket authentication and localhost-only exposure
-- connector recovery after OBS restart and Internet loss
-- HTTPS telemetry and authenticated session WebSocket
-- OBS publication to MediaMTX through WHIP and RTMP
-- WHEP/WebRTC across an external network, ICE/TURN and HLS fallback
-- phone to VDO.Ninja to OBS, including origin-checked `postMessage` events
-- external validation of the HTTP probe against a calibrated network tool
-- live profile changes with the selected OBS output mode and encoder
-- automatic fallback and recovery with matching H.264/AAC codec parameters
-- FFmpeg retransmission to each configured RTMP(S) platform
-- certificate renewal, multi-user isolation and sustained-load behavior
+- Autenticación de OBS WebSocket y exposición solo en localhost
+- Recuperación del conector después de reinicio de OBS y pérdida de Internet
+- Telemetría HTTPS y WebSocket de sesión autenticado
+- Publicación de OBS a MediaMTX a través de WHIP y RTMP
+- WHEP/WebRTC a través de una red externa, ICE/TURN y respaldo HLS
+- Teléfono a VDO.Ninja a OBS, incluyendo eventos `postMessage` con origen verificado
+- Validación externa de la sonda HTTP contra una herramienta de red calibrada
+- Cambios de perfil en vivo con el modo de salida y codificador OBS seleccionado
+- Respaldo automático y recuperación con parámetros de codec H.264/AAC coincidentes
+- Retransmisión FFmpeg a cada plataforma RTMP(S) configurada
+- Renovación de certificados, aislamiento multi-usuario y comportamiento bajo carga sostenida
 
-Treat this list as the final production acceptance gate. A green unit/integration
-suite proves the repository and isolated services; it cannot prove mobile radio
-conditions, third-party RTMP ingestion or a real encoder's behavior.
+Tratar esta lista como la verificación final de aceptación para producción. Una suite
+verde de pruebas unitarias/integración demuestra el repositorio y los servicios aislados;
+no puede demostrar condiciones de radio móvil, ingesta RTMP de terceros o el comportamiento
+real del codificador.

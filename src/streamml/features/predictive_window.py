@@ -1,4 +1,4 @@
-"""Build the immutable predictive input from the configured historical window."""
+"""Construcción de la matriz de entrada predictiva inmutable desde telemetría en vivo."""
 
 from __future__ import annotations
 

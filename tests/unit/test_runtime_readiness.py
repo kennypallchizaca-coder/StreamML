@@ -50,7 +50,7 @@ def test_production_rejects_insecure_runtime_settings(tmp_path: Path):
         cookie_secure=False,
         enforce_https=False,
     )
-    with pytest.raises(RuntimeError, match="secure cookies"):
+    with pytest.raises(RuntimeError, match="cookies seguras"):
         settings.validate_runtime()
     assert settings.production_controls_ready() is False
 
