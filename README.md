@@ -3,6 +3,7 @@
 **Streaming Adaptativo y Predicción de Reducción de Calidad mediante Machine Learning**
 
 **Integrantes:** Alexis Guaman y Cinthya Ramon.
+**Inteligencia Artificial**
 
 StreamML es un prototipo reproducible de streaming adaptativo. Mide la ruta de red, ejecuta modelos de Machine Learning supervisados y utiliza un agente determinista para mantener, aumentar o reducir el perfil de transmisión de video en OBS. Adicionalmente, cambia a una escena o archivo de respaldo cuando se pierde la señal y restaura el vivo tras un periodo estable.
 
