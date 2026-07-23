@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Copy, Check } from "@/components/icons";
+import { toast } from "sonner";
 
 interface CopyLinkButtonProps {
   link: string | null;
@@ -16,6 +17,7 @@ export default function CopyLinkButton({ link, label = "Copiar enlace para OBS",
   const showCopied = () => {
     setCopied(true);
     setCopyFailed(false);
+    toast.success("Enlace copiado al portapapeles");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -36,6 +38,7 @@ export default function CopyLinkButton({ link, label = "Copiar enlace para OBS",
         showCopied();
       } catch {
         setCopyFailed(true);
+        toast.error("No se pudo copiar el enlace automáticamente");
         setTimeout(() => setCopyFailed(false), 3000);
       }
       document.body.removeChild(textArea);

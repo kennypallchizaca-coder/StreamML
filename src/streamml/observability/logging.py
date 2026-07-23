@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.handlers
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from src.streamml.security.crypto import redact_mapping
@@ -32,9 +34,23 @@ class JsonFormatter(logging.Formatter):
 def configure_logging() -> None:
     if LOGGER.handlers:
         return
-    handler = logging.StreamHandler()
-    handler.setFormatter(JsonFormatter())
-    LOGGER.addHandler(handler)
+    formatter = JsonFormatter()
+    
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    LOGGER.addHandler(stream_handler)
+    
+    try:
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_dir / "streamml.log", maxBytes=10*1024*1024, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setFormatter(formatter)
+        LOGGER.addHandler(file_handler)
+    except Exception:
+        pass
+        
     LOGGER.setLevel(logging.INFO)
     LOGGER.propagate = False
 
