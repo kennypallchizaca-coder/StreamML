@@ -34,7 +34,7 @@ Write-Host "API iniciada en segundo plano." -ForegroundColor Green
 Write-Host "`n[3/3] Iniciando servidor Frontend (React/Vite)..." -ForegroundColor Yellow
 Push-Location apps/frontend
 try {
-    Start-Process -NoNewWindow -FilePath "npm" -ArgumentList "run dev"
+    Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList "/c npm run dev"
     Write-Host "Frontend iniciado. Revisa la URL en la terminal (usualmente http://localhost:5173)." -ForegroundColor Green
 } catch {
     Write-Host "Error al iniciar el frontend. Asegúrate de haber ejecutado 'npm install' en 'apps/frontend'." -ForegroundColor Red
