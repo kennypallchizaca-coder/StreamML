@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass

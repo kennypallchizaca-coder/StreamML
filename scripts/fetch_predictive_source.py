@@ -43,17 +43,13 @@ def _article(api_url: str, archive_name: str) -> dict:
 def _select_sessions(overview: bytes, config: dict) -> tuple[list[str], dict[str, int]]:
     rows = list(csv.DictReader(io.StringIO(overview.decode("utf-8-sig"))))
     minimum = float(config["selection"]["minimum_total_playtime_seconds"])
-    groups: dict[str, list[str]] = {
-        "constant_bandwidth": [], "one_to_ten_changes": [], "more_than_ten_changes": []
-    }
+    groups: dict[str, list[str]] = {"constant_bandwidth": [], "one_to_ten_changes": [], "more_than_ten_changes": []}
     for row in rows:
         if float(row["total_playtime"]) < minimum:
             continue
         changes = int(float(row["bw_changes"]))
         group = (
-            "constant_bandwidth" if changes == 0
-            else "one_to_ten_changes" if changes <= 10
-            else "more_than_ten_changes"
+            "constant_bandwidth" if changes == 0 else "one_to_ten_changes" if changes <= 10 else "more_than_ten_changes"
         )
         groups[group].append(row["path:"])
     rng = random.Random(int(config["random_state"]))
@@ -106,24 +102,30 @@ def main() -> None:
             with archive.open(member) as source_file, destination.open("wb") as target:
                 shutil.copyfileobj(source_file, target)
             info = archive.getinfo(member)
-            files_downloaded.append({
-                "path": destination.relative_to(ROOT).as_posix(),
-                "size_bytes": destination.stat().st_size,
-                "sha256": _sha256(destination),
-                "archive_member": member,
-                "compressed_size_bytes": info.compress_size,
-            })
+            files_downloaded.append(
+                {
+                    "path": destination.relative_to(ROOT).as_posix(),
+                    "size_bytes": destination.stat().st_size,
+                    "sha256": _sha256(destination),
+                    "archive_member": member,
+                    "compressed_size_bytes": info.compress_size,
+                }
+            )
             if index % 25 == 0 or index == len(members):
                 print(f"Extracted {index}/{len(members)} selected files", flush=True)
 
     manifest_path = ROOT / config["paths"]["source_manifest"]
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["downloaded_at_utc"] = datetime.now(timezone.utc).isoformat()
-    manifest["archive"].update({
-        "name": remote["name"], "size_bytes": int(remote["size"]),
-        "official_md5": remote.get("supplied_md5"), "full_archive_downloaded": False,
-        "pcap_downloaded": False,
-    })
+    manifest["archive"].update(
+        {
+            "name": remote["name"],
+            "size_bytes": int(remote["size"]),
+            "official_md5": remote.get("supplied_md5"),
+            "full_archive_downloaded": False,
+            "pcap_downloaded": False,
+        }
+    )
     manifest["selection"] = {
         "random_state": int(config["random_state"]),
         "criterion": (

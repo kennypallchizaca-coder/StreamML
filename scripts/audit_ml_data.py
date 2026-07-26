@@ -44,36 +44,32 @@ def _markdown(report: dict) -> str:
     ]
     for warning in reactive["warnings"] + predictive["warnings"]:
         lines.append(f"- **{warning['severity'].upper()} · {warning['code']}**: {warning['message']}")
-    lines.extend([
-        "",
-        "## Solapamiento predictivo",
-        "",
-        f"- Ventanas adyacentes solapadas: {predictive['window_overlap']['overlapping_pairs']} de {predictive['window_overlap']['adjacent_pairs']} ({_percent(predictive['window_overlap']['overlap_fraction'])}).",
-        f"- Sesiones con una sola clase: {predictive['pure_label_sessions']} de {predictive['sessions']}.",
-        "- Los splits son por sesión; el solapamiento de vectores entre splits se reporta como limitación, no se oculta.",
-        "",
-        "## Interpretación",
-        "",
-        "Las métricas oficiales deben presentarse junto al baseline, las métricas balanceadas y estas limitaciones. La validación definitiva del objetivo requiere más sesiones móviles independientes y una comparación de QoE bajo degradaciones reales.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Solapamiento predictivo",
+            "",
+            f"- Ventanas adyacentes solapadas: {predictive['window_overlap']['overlapping_pairs']} de {predictive['window_overlap']['adjacent_pairs']} ({_percent(predictive['window_overlap']['overlap_fraction'])}).",
+            f"- Sesiones con una sola clase: {predictive['pure_label_sessions']} de {predictive['sessions']}.",
+            "- Los splits son por sesión; el solapamiento de vectores entre splits se reporta como limitación, no se oculta.",
+            "",
+            "## Interpretación",
+            "",
+            "Las métricas oficiales deben presentarse junto al baseline, las métricas balanceadas y estas limitaciones. La validación definitiva del objetivo requiere más sesiones móviles independientes y una comparación de QoE bajo degradaciones reales.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
 def main() -> None:
     predictive_frame = pd.read_csv(ROOT / "data" / "processed" / "predictive_dataset.csv")
     reactive_frame = pd.read_csv(ROOT / "data" / "processed" / "reactive_dataset.csv")
-    predictive_manifest = read_json(
-        ROOT / "models" / "registry" / "predictive" / "training_manifest.json"
-    )
-    reactive_contract = read_json(
-        ROOT / "src" / "streamml" / "config" / "reactive_feature_contract.json"
-    )
+    predictive_manifest = read_json(ROOT / "models" / "registry" / "predictive" / "training_manifest.json")
+    reactive_contract = read_json(ROOT / "src" / "streamml" / "config" / "reactive_feature_contract.json")
     report = {
         "schema_version": "1.0.0",
-        "reactive": audit_reactive_dataset(
-            reactive_frame, feature_columns=reactive_contract["features"]
-        ),
+        "reactive": audit_reactive_dataset(reactive_frame, feature_columns=reactive_contract["features"]),
         "predictive": audit_predictive_dataset(
             predictive_frame,
             feature_columns=FEATURE_COLUMNS,
@@ -82,12 +78,17 @@ def main() -> None:
     }
     write_json(ROOT / "reports" / "ml_data_quality.json", report)
     write_text_lf(ROOT / "reports" / "ml_data_quality.md", _markdown(report))
-    print(json.dumps({
-        "reactive_rows": report["reactive"]["rows"],
-        "predictive_windows": report["predictive"]["rows"],
-        "predictive_sessions": report["predictive"]["sessions"],
-        "predictive_warnings": len(report["predictive"]["warnings"]),
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "reactive_rows": report["reactive"]["rows"],
+                "predictive_windows": report["predictive"]["rows"],
+                "predictive_sessions": report["predictive"]["sessions"],
+                "predictive_warnings": len(report["predictive"]["warnings"]),
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

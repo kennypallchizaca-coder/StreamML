@@ -24,9 +24,7 @@ def test_slope_uses_real_elapsed_seconds_not_row_number() -> None:
 
 
 def test_feature_order_matches_official_contract() -> None:
-    contract = load_feature_contract(
-        ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json"
-    )
+    contract = load_feature_contract(ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json")
     assert contract["contract_version"] == "3.0.0-official"
     assert contract["features"] == FEATURE_COLUMNS
     assert len(contract["features"]) == 19
@@ -35,9 +33,7 @@ def test_feature_order_matches_official_contract() -> None:
 
 
 def test_future_and_target_columns_are_not_model_inputs() -> None:
-    contract = load_feature_contract(
-        ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json"
-    )
+    contract = load_feature_contract(ROOT / "src" / "streamml" / "config" / "predictive_feature_contract.json")
     assert not FORBIDDEN_FEATURES.intersection(contract["features"])
     frame = pd.read_csv(ROOT / "data" / "processed" / "predictive_dataset.csv")
     validate_training_frame(frame, contract)

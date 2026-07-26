@@ -39,7 +39,9 @@ def test_official_registry_runs_both_unmodified_models():
     reactive = pd.read_csv(ROOT / "data" / "processed" / "reactive_dataset.csv").iloc[[0]]
     reactive_contract = registry.contracts["reactive"]
     assert str(registry.models["reactive"].predict(reactive[reactive_contract["features"]])[0]) in {
-        "low", "medium", "high"
+        "low",
+        "medium",
+        "high",
     }
 
     predictive = pd.read_csv(ROOT / "data" / "processed" / "predictive_dataset.csv").iloc[[0]]
@@ -61,9 +63,24 @@ def test_reactive_prediction_executes_only_with_exact_contract(client: TestClien
     session_id = create_session(client)["id"]
     row = pd.read_csv(ROOT / "data" / "processed" / "reactive_dataset.csv").iloc[0]
     features = [
-        {"name": "upload_mbps", "value": float(row.upload_mbps), "unit": "Mbps", "source": "rtr_netztest_compatible_measurement"},
-        {"name": "download_mbps", "value": float(row.download_mbps), "unit": "Mbps", "source": "rtr_netztest_compatible_measurement"},
-        {"name": "latency_ms", "value": float(row.latency_ms), "unit": "ms", "source": "rtr_netztest_compatible_measurement"},
+        {
+            "name": "upload_mbps",
+            "value": float(row.upload_mbps),
+            "unit": "Mbps",
+            "source": "rtr_netztest_compatible_measurement",
+        },
+        {
+            "name": "download_mbps",
+            "value": float(row.download_mbps),
+            "unit": "Mbps",
+            "source": "rtr_netztest_compatible_measurement",
+        },
+        {
+            "name": "latency_ms",
+            "value": float(row.latency_ms),
+            "unit": "ms",
+            "source": "rtr_netztest_compatible_measurement",
+        },
     ]
     response = client.post("/api/v1/predict/reactive", json={"session_id": session_id, "features": features})
     assert response.status_code == 200, response.text

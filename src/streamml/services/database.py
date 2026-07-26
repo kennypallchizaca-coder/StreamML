@@ -1025,7 +1025,7 @@ class Database:
     ) -> tuple[list[dict[str, Any]], int]:
         query = "SELECT * FROM audit_events WHERE user_id = ?"
         params: list[Any] = [user_id]
-        
+
         if level:
             if level == "error":
                 query += " AND outcome IN ('error', 'rate_limited', 'failure', 'rejected')"
@@ -1035,22 +1035,22 @@ class Database:
                 query += " AND outcome IN ('success', 'created', 'updated', 'deleted')"
             elif level == "info":
                 query += " AND outcome NOT IN ('error', 'rate_limited', 'failure', 'rejected', 'degraded', 'blocked', 'warning', 'success', 'created', 'updated', 'deleted')"
-                
+
         if action:
             query += " AND action LIKE ?"
             params.append(f"%{action}%")
-            
+
         if date_from:
             query += " AND created_at >= ?"
             params.append(date_from)
-            
+
         if date_to:
             query += " AND created_at <= ?"
             params.append(date_to)
-            
+
         count_query = query.replace("SELECT *", "SELECT COUNT(*)")
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-        
+
         with self._connect() as connection:
             total = connection.execute(count_query, params).fetchone()[0]
             params.extend([limit, offset])
@@ -1060,5 +1060,5 @@ class Database:
                 event = dict(row)
                 event["details"] = json.loads(event.pop("details_json")) if event["details_json"] else {}
                 events.append(event)
-                
+
             return events, total

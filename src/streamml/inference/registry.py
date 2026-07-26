@@ -79,7 +79,9 @@ class OfficialModelRegistry:
             except PackageNotFoundError as exc:
                 raise RuntimeError(f"Falta un paquete requerido para el modelo: {package}") from exc
             if installed != declared[package]:
-                raise RuntimeError(f"Entorno de ejecución de {package} incompatible: se esperaba {declared[package]}, se encontró {installed}.")
+                raise RuntimeError(
+                    f"Entorno de ejecución de {package} incompatible: se esperaba {declared[package]}, se encontró {installed}."
+                )
 
     def _load_role(self, role: str) -> None:
         directory = self.release_dir / role

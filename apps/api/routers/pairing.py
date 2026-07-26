@@ -68,7 +68,9 @@ def link_connector(payload: ConnectorLink, request: Request) -> dict:
         request.app.state.database.record_audit(
             actor_type="connector", action="connector.link", outcome="denied", client_ip=ip
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código de vinculación inválido o expirado.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Código de vinculación inválido o expirado."
+        )
     request.app.state.database.record_audit(
         user_id=connector["user_id"],
         actor_type="connector",

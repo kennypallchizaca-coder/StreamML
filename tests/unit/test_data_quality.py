@@ -4,12 +4,14 @@ from src.streamml.evaluation.data_quality import audit_predictive_dataset
 
 
 def test_predictive_audit_reports_overlap_duplicates_and_grouped_split_overlap() -> None:
-    frame = pd.DataFrame([
-        {"session_id": "a", "target": "maintain", "target_code": 0, "start": 0, "end": 10, "x": 1.0},
-        {"session_id": "a", "target": "maintain", "target_code": 0, "start": 5, "end": 15, "x": 1.0},
-        {"session_id": "b", "target": "downgrade_needed", "target_code": 1, "start": 0, "end": 10, "x": 1.0},
-        {"session_id": "c", "target": "maintain", "target_code": 0, "start": 0, "end": 10, "x": 2.0},
-    ]).rename(columns={"start": "window_start_seconds", "end": "window_end_seconds"})
+    frame = pd.DataFrame(
+        [
+            {"session_id": "a", "target": "maintain", "target_code": 0, "start": 0, "end": 10, "x": 1.0},
+            {"session_id": "a", "target": "maintain", "target_code": 0, "start": 5, "end": 15, "x": 1.0},
+            {"session_id": "b", "target": "downgrade_needed", "target_code": 1, "start": 0, "end": 10, "x": 1.0},
+            {"session_id": "c", "target": "maintain", "target_code": 0, "start": 0, "end": 10, "x": 2.0},
+        ]
+    ).rename(columns={"start": "window_start_seconds", "end": "window_end_seconds"})
     report = audit_predictive_dataset(
         frame,
         feature_columns=["x"],

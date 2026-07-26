@@ -15,9 +15,7 @@ from src.streamml.data.reactive_dataset import build_reactive_dataset, update_so
 
 
 def main() -> None:
-    config = json.loads(
-        (ROOT / "src" / "streamml" / "config" / "dataset_config.json").read_text(encoding="utf-8")
-    )
+    config = json.loads((ROOT / "src" / "streamml" / "config" / "dataset_config.json").read_text(encoding="utf-8"))
     manifest_path = ROOT / config["paths"]["source_manifest"]
     if not manifest_path.exists():
         raise FileNotFoundError(f"Missing source manifest: {manifest_path.relative_to(ROOT)}")
@@ -37,10 +35,15 @@ def main() -> None:
     write_json(ROOT / config["paths"]["build_statistics"], predictive_stats)
     write_json(ROOT / config["paths"]["dataset_schema"], build_schema(predictive))
 
-    print(json.dumps({
-        "reactive": {"path": reactive_path.relative_to(ROOT).as_posix(), "rows": len(reactive)},
-        "predictive": {"path": predictive_path.relative_to(ROOT).as_posix(), "rows": len(predictive)},
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "reactive": {"path": reactive_path.relative_to(ROOT).as_posix(), "rows": len(reactive)},
+                "predictive": {"path": predictive_path.relative_to(ROOT).as_posix(), "rows": len(predictive)},
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

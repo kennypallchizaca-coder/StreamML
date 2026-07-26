@@ -6,6 +6,7 @@ from apps.api.dependencies import current_user
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
+
 @router.get("/events")
 def list_audit_events(
     request: Request,

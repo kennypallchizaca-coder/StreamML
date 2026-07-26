@@ -145,7 +145,7 @@ async def receive_telemetry(
                 details={
                     "reason": result["decision"].get("reason"),
                     "target_profile": result["decision"].get("target_profile"),
-                    "current_profile": result["decision"].get("current_profile")
+                    "current_profile": result["decision"].get("current_profile"),
                 },
             )
     inference_executed = any(item.get("status") == "executed" for item in predictions)

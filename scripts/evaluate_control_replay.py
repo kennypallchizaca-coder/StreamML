@@ -42,13 +42,15 @@ def _markdown(report: dict, source: str) -> str:
             f"{values['interruption_seconds']:.1f} s | {values['backup_seconds']:.1f} s | "
             f"{values['profile_switches']} |"
         )
-    lines.extend([
-        "",
-        f"El sistema completo mejora **{report['full_agent_improvement_over_fixed_points']:.2f} puntos** sobre el perfil fijo en este replay.",
-        "",
-        "## Eventos del agente",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"El sistema completo mejora **{report['full_agent_improvement_over_fixed_points']:.2f} puntos** sobre el perfil fijo en este replay.",
+            "",
+            "## Eventos del agente",
+            "",
+        ]
+    )
     for event in strategies["reactive_predictive_agent"]["events"]:
         lines.append(
             f"- t={event['observed_at']:.0f}s · `{event['action']}` · "
@@ -83,14 +85,19 @@ def main() -> None:
     report["source"] = source
     write_json(ROOT / "reports" / "control_replay.json", report)
     write_text_lf(ROOT / "reports" / "control_replay.md", _markdown(report, source))
-    print(json.dumps({
-        name: {
-            "qoe_proxy_score": round(values["qoe_proxy_score"], 2),
-            "interruption_seconds": values["interruption_seconds"],
-            "profile_switches": values["profile_switches"],
-        }
-        for name, values in report["strategies"].items()
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                name: {
+                    "qoe_proxy_score": round(values["qoe_proxy_score"], 2),
+                    "interruption_seconds": values["interruption_seconds"],
+                    "profile_switches": values["profile_switches"],
+                }
+                for name, values in report["strategies"].items()
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

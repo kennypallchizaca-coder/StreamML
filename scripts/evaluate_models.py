@@ -16,8 +16,15 @@ from src.streamml.services.release import file_hashes, read_json, requirements_s
 
 
 def artifact_files() -> list[Path]:
-    names = ["model.joblib", "feature_contract.json", "metrics.json", "class_mapping.json",
-             "training_manifest.json", "source_manifest.json", "requirements_snapshot.txt"]
+    names = [
+        "model.joblib",
+        "feature_contract.json",
+        "metrics.json",
+        "class_mapping.json",
+        "training_manifest.json",
+        "source_manifest.json",
+        "requirements_snapshot.txt",
+    ]
     files = [ROOT / "models" / "registry" / role / name for role in ("reactive", "predictive") for name in names]
     return files + [ROOT / "models" / "registry" / "predictive" / "threshold.json"]
 
@@ -36,16 +43,26 @@ def main() -> None:
         "reactive_model_ready": True,
         "predictive_model_ready": True,
         "reactive_model": {
-            "path": "models/registry/reactive/model.joblib", "selected_model": reactive["selected_model"],
-            "features": reactive_training["features"], "classes": reactive_training["classes"],
-            "validation": reactive["validation"], "test": reactive["test"], "baseline": reactive["baseline"],
-            "dataset": reactive_training["dataset_path"], "dataset_sha256": reactive_training["dataset_sha256"],
+            "path": "models/registry/reactive/model.joblib",
+            "selected_model": reactive["selected_model"],
+            "features": reactive_training["features"],
+            "classes": reactive_training["classes"],
+            "validation": reactive["validation"],
+            "test": reactive["test"],
+            "baseline": reactive["baseline"],
+            "dataset": reactive_training["dataset_path"],
+            "dataset_sha256": reactive_training["dataset_sha256"],
         },
         "predictive_model": {
-            "path": "models/registry/predictive/model.joblib", "selected_model": predictive["selected_model"],
-            "features": predictive_training["features"], "classes": ["maintain", "downgrade_needed"],
-            "threshold": threshold, "validation": predictive["validation"], "test": predictive["test"],
-            "baseline": predictive["baseline"], "dataset": predictive_training["dataset_path"],
+            "path": "models/registry/predictive/model.joblib",
+            "selected_model": predictive["selected_model"],
+            "features": predictive_training["features"],
+            "classes": ["maintain", "downgrade_needed"],
+            "threshold": threshold,
+            "validation": predictive["validation"],
+            "test": predictive["test"],
+            "baseline": predictive["baseline"],
+            "dataset": predictive_training["dataset_path"],
             "dataset_sha256": predictive_training["dataset_sha256"],
         },
         "random_state": config["random_state"],
@@ -53,11 +70,16 @@ def main() -> None:
     }
     manifest["sha256_hashes"] = file_hashes(artifact_files(), ROOT)
     write_json(ROOT / "models" / "registry" / "release_manifest.json", manifest)
-    print(json.dumps({
-        "reactive_test_macro_f1": reactive["test"]["macro_f1"],
-        "predictive_test_macro_f1": predictive["test"]["macro_f1"],
-        "predictive_threshold": threshold,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "reactive_test_macro_f1": reactive["test"]["macro_f1"],
+                "predictive_test_macro_f1": predictive["test"]["macro_f1"],
+                "predictive_threshold": threshold,
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
