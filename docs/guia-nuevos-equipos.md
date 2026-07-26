@@ -161,4 +161,41 @@ Si todas las pruebas pasan de color verde, tu código está listo.
 ### 3. Archivo `.gitignore`
 Nunca hagas commit de archivos con secretos (`.env`), carpetas temporales (`__pycache__`, `.venv`, `node_modules`) ni bases de datos locales (`streamml.sqlite3`). El proyecto ya cuenta con un `.gitignore` configurado; asegúrate de respetarlo.
 
+---
+
+## PASO 5: Solución de Errores Comunes (Troubleshooting)
+
+Si experimentas problemas durante la configuración o ejecución, revisa esta lista de soluciones rápidas:
+
+### 1. Error: "port is already allocated" al usar Docker
+- **Causa:** Hay otro servicio o contenedor usando los puertos necesarios (80, 8000, 1935, 8889).
+- **Solución:**
+  1. Detén otros contenedores: `docker stop $(docker ps -q)`
+  2. Identifica si hay servicios locales usando el puerto: `netstat -ano | findstr :80` (Windows) o `lsof -i :80` (Linux/Mac). Detén el programa que lo usa (por ejemplo, Skype, Apache, IIS).
+
+### 2. Error: "ModuleNotFoundError" al correr la API nativa
+- **Causa:** El entorno virtual de Python no está activado o faltan dependencias.
+- **Solución:**
+  1. Asegúrate de activar el entorno: `.venv\Scripts\Activate.ps1` (Windows) o `source .venv/bin/activate` (Mac/Linux). Debe aparecer `(.venv)` al inicio de tu línea de comandos.
+  2. Reinstala las dependencias: `pip install -r requirements.txt`.
+
+### 3. Error en Frontend: Conexión rechazada (Network Error)
+- **Causa:** El frontend no logra comunicarse con la API de FastAPI.
+- **Solución:**
+  1. Verifica que la API esté corriendo en el puerto `8000`.
+  2. Si usas Docker, revisa los logs de la API: `docker-compose -f infrastructure/docker/docker-compose.local.yml logs api`.
+  3. Si usas desarrollo nativo, revisa que las variables de entorno de Vite estén bien definidas (`VITE_API_BASE_URL`).
+
+### 4. Error: "unhealthy" status en contenedores Docker
+- **Causa:** El healthcheck falló, comúnmente porque falta el archivo `.env` o la clave secreta `STREAMML_BOOTSTRAP_PASSWORD` no es válida.
+- **Solución:**
+  1. Verifica que tienes un `.env` (si es requerido) y que los valores de tokens sean seguros.
+  2. En el archivo `docker-compose.local.yml`, asegúrate de que el usuario administrativo (`STREAMML_BOOTSTRAP_EMAIL`) sea un email válido, por ejemplo `admin@localhost.com`.
+
+### 5. No carga el Monitor en Vivo o la Telemetría
+- **Causa:** MediaMTX no está corriendo o los WebSockets están bloqueados.
+- **Solución:**
+  1. Asegúrate de que MediaMTX levantó correctamente (puertos `1935` y `8889` libres).
+  2. Desactiva temporalmente el firewall si bloquea WebRTC, o revisa los logs del navegador (Consola F12).
+
 ¡Felicidades! Tu entorno ya está listo. Si tienes dudas, abre un Issue en el repositorio o habla con tu Tech Lead.

@@ -9,6 +9,7 @@ __pycache__/
 # Entornos
 .venv/
 .venv*/
+.venv-setup/
 venv/
 env/
 ENV/
@@ -53,13 +54,16 @@ temp/
 *.orig
 *.rej
 *.swp
-*.sqlite3
-*.sqlite3-shm
-*.sqlite3-wal
+
+# Base de datos local
+deployment/*.sqlite3
+deployment/*.sqlite3-shm
+deployment/*.sqlite3-wal
 
 # Frontend
 node_modules/
 .playwright-cli/
+dist/
 
 # Datos originales grandes
 data/raw/**
@@ -76,7 +80,6 @@ data/processed/private/
 htmlcov/
 coverage.xml
 build/
-dist/
 *.egg-info/
 
 # Mantener estructura de carpetas

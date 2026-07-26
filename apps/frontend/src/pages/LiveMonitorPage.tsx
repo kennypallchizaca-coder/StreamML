@@ -19,12 +19,48 @@ import { getNexaState } from "../lib/nexa";
 
 function translateRecommendation(rec?: string | null) {
   switch (rec) {
-    case "high": return { title: "Perfil alto", action: "Condiciones actuales compatibles.", color: "text-info" };
-    case "medium": return { title: "Perfil medio", action: "Capacidad intermedia recomendada.", color: "text-info" };
-    case "low": return { title: "Perfil básico", action: "Priorizar continuidad.", color: "text-warning" };
-    case "maintain": return { title: "Mantener perfil", action: "Sin reducción anticipada.", color: "text-success" };
-    case "downgrade_needed": return { title: "Reducir perfil", action: "Riesgo anticipado.", color: "text-warning" };
-    default: return { title: "Esperando predicción", action: "Sin resultado disponible.", color: "text-muted-foreground" };
+    case "high": return { 
+      title: "Todo en orden (Calidad Alta)", 
+      summary: "El sistema confirma que las condiciones de tu red son excelentes.", 
+      action: "Se utilizará la máxima calidad disponible sin interrupciones esperadas.", 
+      cause: "Tu conexión es rápida y muy estable.", 
+      color: "text-success", bg: "bg-success/10", border: "border-success/30", icon: CheckCircle2 
+    };
+    case "medium": return { 
+      title: "Señal estable (Calidad Media)", 
+      summary: "Las condiciones de red son regulares pero aceptables.", 
+      action: "El sistema aplicará una calidad moderada para prevenir pausas en el video.", 
+      cause: "Se han detectado variaciones normales en tu velocidad de internet.", 
+      color: "text-info", bg: "bg-info/10", border: "border-info/30", icon: Info 
+    };
+    case "low": return { 
+      title: "Alerta de inestabilidad (Calidad Básica)", 
+      summary: "Se ha detectado inestabilidad importante en la red.", 
+      action: "El sistema bajará la calidad al mínimo para asegurar que tu en vivo no se corte.", 
+      cause: "Probablemente hay pérdida de paquetes o congestión en la red.", 
+      color: "text-warning", bg: "bg-warning/10", border: "border-warning/30", icon: AlertTriangle 
+    };
+    case "maintain": return { 
+      title: "Manteniendo la calidad", 
+      summary: "Tu conexión es lo suficientemente buena para mantener el estado actual.", 
+      action: "No se realizarán cambios. Todo fluye de forma constante.", 
+      cause: "La red se mantiene en niveles seguros.", 
+      color: "text-success", bg: "bg-success/10", border: "border-success/30", icon: CheckCircle2 
+    };
+    case "downgrade_needed": return { 
+      title: "Riesgo de corte inminente", 
+      summary: "Existe un riesgo alto de que la transmisión se congele pronto.", 
+      action: "El sistema reducirá automáticamente la resolución para proteger la transmisión.", 
+      cause: "Se detectó un patrón de degradación (velocidad inestable o alta latencia).", 
+      color: "text-warning", bg: "bg-warning/10", border: "border-warning/30", icon: AlertTriangle 
+    };
+    default: return { 
+      title: "Esperando datos...", 
+      summary: "El sistema está analizando tu transmisión.", 
+      action: "Pronto se mostrarán las primeras estimaciones del asistente predictivo.", 
+      cause: "Aún se están recopilando muestras de red.", 
+      color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border", icon: Activity 
+    };
   }
 }
 
@@ -42,7 +78,10 @@ function translateAgentDecision(decision?: AgentDecision | null) {
 }
 
 function translateRisk(prob?: number | null) {
-  return { color: prob == null ? "text-muted-foreground" : "text-foreground" };
+  if (prob == null) return { level: "Desconocida", detail: "Necesitamos más información para calcular la confianza.", color: "text-muted-foreground" };
+  if (prob < 0.25) return { level: "Segura (Baja probabilidad)", detail: "Estamos bastante seguros de que este pronóstico se cumplirá sin problemas.", color: "text-success" };
+  if (prob < 0.60) return { level: "Incierta (Probabilidad media)", detail: "Hay ciertas variaciones en los datos. Podría suceder, pero no es definitivo.", color: "text-info" };
+  return { level: "Muy Alta Probabilidad", detail: "Basado en patrones consistentes, es casi seguro que esto ocurra. El sistema tomará acciones.", color: "text-warning" };
 }
 
 export function getGeneralState(telemetry: TelemetrySnapshot | null) {
@@ -149,39 +188,65 @@ function ModelResultPanel({
   const probability = prediction?.degradation_probability ?? prediction?.probability_downgrade_needed;
   const risk = translateRisk(blocked ? null : probability);
   const isReactive = role === "reactive";
+  const Icon = recommendation.icon;
 
   return (
-    <section className="flex min-w-0 flex-col rounded-xl border bg-card p-5 shadow-sm" aria-label={`Resultado del modelo ${isReactive ? "reactivo" : "predictivo"}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {isReactive ? "Condiciones actuales" : "Próximos 10 minutos"}
-          </div>
-          <h3 className="mt-1 text-lg font-semibold">Modelo {isReactive ? "reactivo" : "predictivo"}</h3>
+    <section className={`flex min-w-0 flex-col rounded-xl border-2 ${recommendation.border} bg-card shadow-md overflow-hidden transition-all duration-300`} aria-label={`Resultado del modelo ${isReactive ? "reactivo" : "predictivo"}`}>
+      {/* Encabezado del panel */}
+      <div className={`flex items-center gap-4 border-b ${recommendation.border} p-5 ${recommendation.bg}`}>
+        <div className={`flex size-12 items-center justify-center rounded-xl bg-background shadow-sm ${recommendation.color}`}>
+          <Icon className="size-6" />
         </div>
-        <Badge variant={blocked ? "outline" : prediction ? "secondary" : "outline"}>
+        <div className="flex-1">
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">
+            {isReactive ? "Visión en tiempo real" : "Pronóstico (próximos 10 min)"}
+          </div>
+          <h3 className={`text-lg sm:text-xl font-bold leading-tight ${recommendation.color}`}>
+            {recommendation.title}
+          </h3>
+        </div>
+        <Badge variant={blocked ? "outline" : prediction ? "secondary" : "outline"} className="hidden sm:inline-flex shadow-sm">
           {modelStatusLabel(prediction?.status)}
         </Badge>
       </div>
 
-      <div className="mt-5 flex-1">
-        <div className={`text-xl font-bold ${recommendation.color}`}>{recommendation.title}</div>
-        <p className="mt-2 text-sm leading-5 text-muted-foreground" title={prediction?.reason ?? undefined}>
-          {blocked ? prediction?.reason || recommendation.action : recommendation.action}
-        </p>
-      </div>
-
-      {!isReactive ? (
-        <div className="mt-5 rounded-xl border bg-muted/20 p-4">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="font-medium">Probabilidad de reducción</span>
-            <span className={`text-lg font-bold ${risk.color}`}>
-              {!blocked && probability != null ? `${Math.round(probability * 100)}%` : "--"}
-            </span>
-          </div>
+      {/* Contenido Narrativo */}
+      <div className="flex-1 p-5 space-y-5">
+        <div className="space-y-1.5">
+          <h4 className="text-sm font-bold text-foreground">¿Qué está ocurriendo?</h4>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {blocked && prediction?.reason ? prediction.reason : recommendation.summary}
+          </p>
         </div>
-      ) : null}
 
+        {!blocked && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 rounded-xl bg-muted/40 p-4 border border-border/50">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">La Causa</h4>
+              <p className="text-sm leading-relaxed text-foreground/90">{recommendation.cause}</p>
+            </div>
+            <div className="space-y-1.5 rounded-xl bg-muted/40 p-4 border border-border/50">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Acción del sistema</h4>
+              <p className="text-sm leading-relaxed text-foreground/90">{recommendation.action}</p>
+            </div>
+          </div>
+        )}
+
+        {!blocked && (
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 mt-2">
+            <Activity className={`size-8 shrink-0 ${risk.color}`} />
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Seguridad de esta predicción</div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className={`font-bold ${risk.color}`}>
+                  {risk.level} {probability != null ? `(${Math.round(probability * 100)}%)` : ""}
+                </span>
+                <span className="text-xs text-muted-foreground">({risk.detail})</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

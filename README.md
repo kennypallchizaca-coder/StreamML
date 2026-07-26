@@ -105,3 +105,18 @@ La totalidad de la persistencia de datos (usuarios, telemetría y configuración
 
 ### Recuperación de Credenciales
 Todas las variables maestras de entorno residen en el archivo `.env` en la raíz del proyecto. Para restablecer el acceso administrativo, modifique la variable `STREAMML_BOOTSTRAP_PASSWORD`, guarde el archivo y reinicie los contenedores.
+
+## 6. Conclusiones
+El proyecto StreamML demuestra de manera exitosa la viabilidad de utilizar inteligencia artificial y machine learning para la optimización adaptativa de transmisiones de video en tiempo real. 
+- La arquitectura de microservicios contenerizada con **Docker** facilita la escalabilidad y garantiza un entorno de ejecución consistente y robusto independiente de la plataforma.
+- El modelo predictivo (**Random Forest Classifier**) logra equilibrar un alto rendimiento con baja latencia computacional (baja inferencia), detectando eficazmente los patrones de degradación antes de que causen impacto severo en la transmisión (drops de frames severos).
+- A través del modelo reactivo determinista (**InferenceEngine**), el sistema proporciona un entorno híbrido seguro que puede tomar el control inmediatamente si ocurren fluctuaciones en la red antes del umbral predictivo o durante el arranque en frio (Cold Start).
+- La interfaz de **Logs de Auditoría** y métricas estructuradas garantiza total transparencia en las operaciones automáticas y manuales del sistema, sin exponer datos sensibles, alineado con principios de ciberseguridad.
+
+## 7. Referencias
+- *Brownlee, J. (2020)*. Machine Learning Mastery with Python. Machine Learning Mastery.
+- *Chollet, F. (2017)*. Deep Learning with Python. Manning Publications.
+- *Scikit-learn developers. (2023)*. scikit-learn: Machine Learning in Python. Recuperado de https://scikit-learn.org/
+- *FastAPI community. (2023)*. FastAPI: High performance web framework. Recuperado de https://fastapi.tiangolo.com/
+- *MediaMTX. (2023)*. MediaMTX: Ready-to-use SRT / WebRTC / RTSP / RTMP / LL-HLS media server. Recuperado de https://github.com/bluenviron/mediamtx
+- *React community. (2023)*. React: The library for web and native user interfaces. Recuperado de https://react.dev/

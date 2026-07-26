@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   Sun,
+  FileText,
 } from "@/components/icons";
 import type { IconComponent } from "@/components/icons";
 import { useAuth } from "../App";
@@ -83,6 +84,7 @@ const navigationGroups: ReadonlyArray<{ label: string; items: ReadonlyArray<Navi
     label: "Sistema",
     items: [
       { to: "/settings", label: "Configuración", description: "Cuenta, streaming y conector", icon: Settings },
+      { to: "/logs", label: "Logs del sistema", description: "Eventos y auditoría", icon: FileText },
       { to: "/help", label: "Ayuda", description: "Guías y solución de problemas", icon: CircleHelp },
     ],
   },

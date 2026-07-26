@@ -11,6 +11,7 @@ const LiveMonitorPage = lazy(() => import("./pages/LiveMonitorPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const ModelsPage = lazy(() => import("./pages/ModelsPage"));
 const AlertsPage = lazy(() => import("./pages/AlertsPage"));
+const LogsPage = lazy(() => import("./pages/LogsPage"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const VdoBridgePage = lazy(() => import("./pages/VdoBridgePage"));
@@ -129,6 +130,7 @@ export default function App() {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/models" element={<ModelsPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/logs" element={<LogsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/help" element={<HelpPage />} />
           </Route>

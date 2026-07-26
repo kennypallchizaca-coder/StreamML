@@ -26,6 +26,7 @@ from apps.api.routers import (
     streams,
     telemetry,
     websockets,
+    audit,
 )
 from src.streamml.inference import InferenceEngine, OfficialModelRegistry
 from src.streamml.agent import AutonomousStreamingAgent
@@ -168,6 +169,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         models.router,
         streams.router,
         websockets.router,
+        audit.router,
     ):
         application.include_router(api_router)
     return application

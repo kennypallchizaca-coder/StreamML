@@ -10,6 +10,7 @@ import type {
   StreamSettings,
   VideoEndpoints,
   VdoNinjaTelemetryPayload,
+  AuditEventsResponse,
 } from "./types";
 
 const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim() || "/api/v1";
@@ -166,6 +167,15 @@ export const api = {
     return request<void>("/settings/account", {
       method: "DELETE", body: JSON.stringify({ confirmation, current_password: currentPassword }),
     });
+  },
+  getAuditEvents(params: { limit?: number; offset?: number; level?: string; action?: string } = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.limit) searchParams.set("limit", params.limit.toString());
+    if (params.offset) searchParams.set("offset", params.offset.toString());
+    if (params.level && params.level !== "all") searchParams.set("level", params.level);
+    if (params.action) searchParams.set("action", params.action);
+    const queryString = searchParams.toString();
+    return request<AuditEventsResponse>(`/audit/events${queryString ? `?${queryString}` : ""}`);
   },
 };
 

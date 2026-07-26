@@ -254,3 +254,23 @@ export interface SessionSocketMessage {
   stream?: VideoEndpoints;
   session?: StreamSession;
 }
+
+export interface AuditEvent {
+  id: string;
+  user_id?: string;
+  actor_type: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: string;
+  outcome: string;
+  client_ip?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditEventsResponse {
+  items: AuditEvent[];
+  total: number;
+  limit: number;
+  offset: number;
+}
