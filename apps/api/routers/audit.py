@@ -13,6 +13,8 @@ def list_audit_events(
     offset: int = Query(0, ge=0),
     level: str | None = Query(None, description="Filtro de severidad: error, warning, success, info"),
     action: str | None = Query(None, description="Filtro parcial por tipo de acción"),
+    date_from: str | None = Query(None, description="Fecha de inicio (ISO 8601)"),
+    date_to: str | None = Query(None, description="Fecha de fin (ISO 8601)"),
     user: dict = Depends(current_user),
 ):
     database: Database = request.app.state.database
@@ -22,6 +24,8 @@ def list_audit_events(
         offset=offset,
         level=level,
         action=action,
+        date_from=date_from,
+        date_to=date_to,
     )
     return {
         "items": events,

@@ -168,12 +168,14 @@ export const api = {
       method: "DELETE", body: JSON.stringify({ confirmation, current_password: currentPassword }),
     });
   },
-  getAuditEvents(params: { limit?: number; offset?: number; level?: string; action?: string } = {}) {
+  getAuditEvents(params: { limit?: number; offset?: number; level?: string; action?: string; date_from?: string; date_to?: string } = {}) {
     const searchParams = new URLSearchParams();
     if (params.limit) searchParams.set("limit", params.limit.toString());
-    if (params.offset) searchParams.set("offset", params.offset.toString());
+    if (params.offset !== undefined) searchParams.set("offset", params.offset.toString());
     if (params.level && params.level !== "all") searchParams.set("level", params.level);
     if (params.action) searchParams.set("action", params.action);
+    if (params.date_from) searchParams.set("date_from", params.date_from);
+    if (params.date_to) searchParams.set("date_to", params.date_to);
     const queryString = searchParams.toString();
     return request<AuditEventsResponse>(`/audit/events${queryString ? `?${queryString}` : ""}`);
   },

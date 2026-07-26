@@ -7,6 +7,11 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 ROOT = Path(__file__).resolve().parents[2]
 

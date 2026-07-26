@@ -125,6 +125,29 @@ async def receive_telemetry(
         client_ip=client_ip(request),
         details={"sequence": payload.sequence, "source": payload.source},
     )
+    if result and result.get("command"):
+        action = result["decision"].get("action")
+        if action and action not in ("maintain", "maintain_backup"):
+            outcome_map = {
+                "reduce": "warning",
+                "switch_to_backup": "warning",
+                "increase": "success",
+                "restore_live": "success",
+            }
+            request.app.state.database.record_audit(
+                user_id=connector["user_id"],
+                actor_type="system",
+                action=f"agent.decision.{action}",
+                resource_type="session",
+                resource_id=connector["session_id"],
+                outcome=outcome_map.get(action, "info"),
+                client_ip=client_ip(request),
+                details={
+                    "reason": result["decision"].get("reason"),
+                    "target_profile": result["decision"].get("target_profile"),
+                    "current_profile": result["decision"].get("current_profile")
+                },
+            )
     inference_executed = any(item.get("status") == "executed" for item in predictions)
     return {
         "accepted": True,

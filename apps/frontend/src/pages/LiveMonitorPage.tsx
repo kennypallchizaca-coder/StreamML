@@ -199,7 +199,7 @@ function ModelResultPanel({
         </div>
         <div className="flex-1">
           <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">
-            {isReactive ? "Visión en tiempo real" : "Pronóstico (próximos 10 min)"}
+            {isReactive ? "Modelo Reactivo" : "Modelo Predictivo"}
           </div>
           <h3 className={`text-lg sm:text-xl font-bold leading-tight ${recommendation.color}`}>
             {recommendation.title}
@@ -232,7 +232,7 @@ function ModelResultPanel({
           </div>
         )}
 
-        {!blocked && (
+        {!blocked && !isReactive && (
           <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 mt-2">
             <Activity className={`size-8 shrink-0 ${risk.color}`} />
             <div>
@@ -242,6 +242,18 @@ function ModelResultPanel({
                   {risk.level} {probability != null ? `(${Math.round(probability * 100)}%)` : ""}
                 </span>
                 <span className="text-xs text-muted-foreground">({risk.detail})</span>
+              </div>
+            </div>
+          </div>
+        )}
+        {!blocked && isReactive && (
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 mt-2">
+            <Activity className="size-8 shrink-0 text-success" />
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Confianza del modelo</div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="font-bold text-success">Determinista (100%)</span>
+                <span className="text-xs text-muted-foreground">(Reglas directas sin probabilidad)</span>
               </div>
             </div>
           </div>

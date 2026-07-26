@@ -1020,6 +1020,8 @@ class Database:
         offset: int = 0,
         level: str | None = None,
         action: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> tuple[list[dict[str, Any]], int]:
         query = "SELECT * FROM audit_events WHERE user_id = ?"
         params: list[Any] = [user_id]
@@ -1028,15 +1030,23 @@ class Database:
             if level == "error":
                 query += " AND outcome IN ('error', 'rate_limited', 'failure', 'rejected')"
             elif level == "warning":
-                query += " AND outcome IN ('degraded', 'blocked')"
+                query += " AND outcome IN ('degraded', 'blocked', 'warning')"
             elif level == "success":
                 query += " AND outcome IN ('success', 'created', 'updated', 'deleted')"
             elif level == "info":
-                query += " AND outcome NOT IN ('error', 'rate_limited', 'failure', 'rejected', 'degraded', 'blocked', 'success', 'created', 'updated', 'deleted')"
+                query += " AND outcome NOT IN ('error', 'rate_limited', 'failure', 'rejected', 'degraded', 'blocked', 'warning', 'success', 'created', 'updated', 'deleted')"
                 
         if action:
             query += " AND action LIKE ?"
             params.append(f"%{action}%")
+            
+        if date_from:
+            query += " AND created_at >= ?"
+            params.append(date_from)
+            
+        if date_to:
+            query += " AND created_at <= ?"
+            params.append(date_to)
             
         count_query = query.replace("SELECT *", "SELECT COUNT(*)")
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"

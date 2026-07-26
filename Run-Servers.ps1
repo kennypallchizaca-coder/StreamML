@@ -11,7 +11,7 @@ if (-not $SkipDocker) {
     Write-Host "`n[1/3] Iniciando contenedores (MediaMTX y Nginx)..." -ForegroundColor Yellow
     Push-Location infrastructure/docker
     try {
-        docker-compose -f docker-compose.local.yml up -d
+        docker-compose -f docker-compose.local.yml up -d --build
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Error al iniciar Docker Compose. Verifica si Docker está en ejecución." -ForegroundColor Red
         } else {
@@ -27,7 +27,7 @@ if (-not $SkipDocker) {
 
 # 2. Start FastAPI Backend
 Write-Host "`n[2/3] Iniciando servidor API de FastAPI..." -ForegroundColor Yellow
-Start-Process -NoNewWindow -FilePath "python" -ArgumentList "-m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload"
+Start-Process -NoNewWindow -FilePath "python" -ArgumentList "-m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload --env-file .env"
 Write-Host "API iniciada en segundo plano." -ForegroundColor Green
 
 # 3. Start React Frontend
