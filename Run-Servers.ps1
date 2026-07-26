@@ -37,9 +37,19 @@ try {
     Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList "/c npm run dev"
     Write-Host "Frontend iniciado. Revisa la URL en la terminal (usualmente http://localhost:5173)." -ForegroundColor Green
 } catch {
-    Write-Host "Error al iniciar el frontend. Asegúrate de haber ejecutado 'npm install' en 'apps/frontend'." -ForegroundColor Red
+  Write-Host "Error al iniciar el frontend. Asegúrate de haber ejecutado 'npm install' en 'apps/frontend'." -ForegroundColor Red
 }
 Pop-Location
 
+# 4. Start OBS Connector
+Write-Host "`n[4/4] Iniciando Asistente Local (Conector OBS)..." -ForegroundColor Yellow
+try {
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c .\scripts\Abrir-Configuracion-StreamML.cmd"
+    Write-Host "Asistente Local iniciado en segundo plano (Puerto 8765)." -ForegroundColor Green
+} catch {
+    Write-Host "No se pudo iniciar el Asistente Local." -ForegroundColor Red
+}
+
 Write-Host "`n¡Todos los servicios han sido lanzados!" -ForegroundColor Cyan
 Write-Host "Nota: Los logs de la API se escribirán en la carpeta logs/streamml.log" -ForegroundColor Gray
+
