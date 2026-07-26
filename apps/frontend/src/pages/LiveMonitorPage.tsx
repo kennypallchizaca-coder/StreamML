@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import MediaMtxPlayer from "../components/MediaMtxPlayer";
-import VideoPreview from "../components/VideoPreview";
 import ReplaceVideoLinkDialog from "../components/ReplaceVideoLinkDialog";
 import useSessionSocket from "../hooks/useSessionSocket";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Pause, Play, Square, Info, Smartphone, Monitor, Server } from "@/components/icons";
-import type { AgentDecision, PredictionSnapshot, StreamSession, TelemetrySnapshot, VdoNinjaMetrics, VideoEndpoints } from "../types";
+import type { AgentDecision, PredictionSnapshot, StreamSession, TelemetrySnapshot, VideoEndpoints } from "../types";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -282,36 +281,8 @@ export default function LiveMonitorPage() {
 
   const [hideVideo, setHideVideo] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
-  const [phoneStatus, setPhoneStatus] = useState<string | null>(null);
-  const phoneReporterId = useRef(
-    typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `streamml-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
-  const phoneSequence = useRef(Date.now());
-  const phoneTelemetryFailures = useRef(0);
+  const [phoneStatus] = useState<string | null>(null);
 
-  const reportPhoneTelemetry = useCallback((
-    metrics: VdoNinjaMetrics,
-    status: "waiting" | "connected" | "disconnected" | "error",
-  ) => {
-    if (!sessionId) return;
-    setPhoneStatus(status);
-    void api.sendVdoNinjaTelemetry({
-      session_id: sessionId,
-      source: "vdo_ninja_iframe",
-      reporter_id: phoneReporterId.current,
-      sequence: phoneSequence.current++,
-      observed_at: new Date().toISOString(),
-      status,
-      metrics,
-    }).then(() => {
-      phoneTelemetryFailures.current = 0;
-    }).catch(() => {
-      phoneTelemetryFailures.current += 1;
-      if (phoneTelemetryFailures.current >= 3) setPhoneStatus("error");
-    });
-  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -470,17 +441,7 @@ export default function LiveMonitorPage() {
                 <span>Vista previa oculta temporalmente</span>
               </div>
             ) : (
-              activeEmbedUrl ? (
-                <VideoPreview
-                  key={reconnectKey}
-                  embedUrl={activeEmbedUrl}
-                  isLiveMonitor={true}
-                  onStatus={setPhoneStatus}
-                  onTelemetry={reportPhoneTelemetry}
-                />
-              ) : (
-                <MediaMtxPlayer key={reconnectKey} whepUrl={stream?.whep_url ?? stream?.webrtc_url} hlsUrl={stream?.hls_url} />
-              )
+              <MediaMtxPlayer key={reconnectKey} whepUrl={stream?.whep_url ?? stream?.webrtc_url} hlsUrl={stream?.hls_url} />
             )}
           </CardContent>
         </Card>
