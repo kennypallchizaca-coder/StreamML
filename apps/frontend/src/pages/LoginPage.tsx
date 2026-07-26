@@ -83,7 +83,7 @@ export default function LoginPage() {
         .animate-twinkle { animation: twinkle 4s ease-in-out infinite; }
         .animate-twinkle-delayed { animation: twinkle 5s ease-in-out infinite 2s; }
       `}</style>
-      
+
       {/* Sección Izquierda: Ilustración Espacial */}
       <section className="relative hidden overflow-hidden bg-[#160430] lg:flex lg:flex-col lg:items-center lg:justify-center">
         {/* Generando el planeta y fondo espacial con Tailwind y radial-gradients */}
@@ -93,7 +93,7 @@ export default function LoginPage() {
             <div className="absolute top-[5%] left-[-15%] size-200 rounded-full bg-linear-to-tr from-[#3bf8ff] via-[#3a6bc0] to-[#160430] opacity-90 blur-[2px]" />
             <div className="absolute top-[5%] left-[-15%] size-200 rounded-full shadow-[inset_-40px_-40px_120px_rgba(22,4,48,0.95)]" />
           </div>
-          
+
           {/* Textura sutil en el planeta (simulando ondas) */}
           <div className="absolute top-[20%] left-[-5%] w-150 h-37.5 bg-white/5 blur-2xl rounded-[100%]" />
           <div className="absolute top-[40%] left-[-10%] w-175 h-50 bg-white/5 blur-3xl rounded-[100%]" />
@@ -106,10 +106,10 @@ export default function LoginPage() {
           {/* Anillos / Satélites sutiles */}
           <div className="absolute top-[30%] left-[10%] size-87.5 rounded-[100%] border border-white/10 rotate-[-15deg] scale-y-50" />
           <div className="absolute top-[30%] left-[5%] size-112.5 rounded-[100%] border border-white/5 rotate-[-15deg] scale-y-50" />
-          
+
           {/* Luz difusa trasera */}
           <div className="absolute top-[50%] left-[30%] size-62.5 rounded-full bg-linear-to-br from-purple-500/20 to-transparent blur-3xl" />
-          
+
           {/* Estrellas simples (dots) y estrellas fugaces */}
           <div className="absolute top-[20%] left-[60%] size-0.75 rounded-full bg-white shadow-[0_0_10px_white] animate-twinkle" />
           <div className="absolute top-[70%] left-[80%] size-2 rounded-full bg-white/80 shadow-[0_0_15px_white] animate-twinkle-delayed" />
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 w-full max-w-lg px-12 text-left mt-auto pb-24 animate-in fade-in slide-in-from-left-8 duration-1000">
           <h1 className="text-[50px] font-bold leading-tight uppercase tracking-wide text-white">
-            Sign in to your <br/>
+            Sign in to your <br />
             <span className="text-transparent bg-clip-text bg-linear-to-br from-[#501794] to-[#ae69ff]">
               adventure!
             </span>
@@ -136,7 +136,7 @@ export default function LoginPage() {
 
       {/* Sección Derecha: Formulario */}
       <section className="relative flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 bg-[#160430]">
-        
+
         {/* Header con el Logo */}
         <div className="absolute top-8 left-8 sm:top-12 sm:left-12 flex items-center gap-3">
           <div className="relative flex size-10 items-center justify-center">
@@ -161,7 +161,7 @@ export default function LoginPage() {
                 Registrarse
               </TabsTrigger>
             </TabsList>
-            
+
             {/* LOGIN TAB */}
             <TabsContent value="login" className="animate-in fade-in zoom-in-95 duration-300 outline-none">
               <form onSubmit={handleLogin} className="grid gap-5">
@@ -181,7 +181,7 @@ export default function LoginPage() {
                     className="pl-12 h-17 rounded-[10px] border-none bg-[#261046]/80 backdrop-blur-md text-[#a4a4a4] placeholder:text-[#a4a4a4]/60 focus-visible:ring-2 focus-visible:ring-purple-500/50 shadow-[inset_0px_0px_11px_0px_rgba(0,0,0,0.16)] text-[16px]"
                   />
                 </div>
-                
+
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                     <LockKeyhole className="size-5 text-[#a4a4a4]" />
@@ -277,7 +277,7 @@ export default function LoginPage() {
               </form>
             </TabsContent>
           </Tabs>
-          
+
           <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
             <p className="text-xs font-medium text-[#b6b6b6]">
               By registering you with our <span className="text-[#9d5ce9] hover:underline cursor-pointer">Terms and Conditions</span>
