@@ -24,6 +24,21 @@ def _bool_env(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _positive_int_env(name: str, default: int) -> int:
+    """Parse an operational limit once and return a clear startup error."""
+
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} debe ser un entero positivo.") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} debe ser un entero positivo.")
+    return value
+
+
 def _origins_env() -> tuple[str, ...]:
     raw = os.getenv("STREAMML_ALLOWED_ORIGINS", "https://localhost")
     return tuple(origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip())
@@ -60,6 +75,7 @@ class Settings:
     media_auth_secret: str = ""
     mediamtx_public_base: str = "https://localhost/media"
     mediamtx_rtmp_publish_base: str = ""
+    mediamtx_api_url: str = ""
     bootstrap_email: str = ""
     bootstrap_password: str = ""
     login_limit: int = 8
@@ -78,21 +94,22 @@ class Settings:
             database_path=database.resolve(),
             allowed_origins=_origins_env(),
             session_cookie_name=os.getenv("STREAMML_SESSION_COOKIE", "streamml_session"),
-            session_ttl_seconds=int(os.getenv("STREAMML_SESSION_TTL_SECONDS", str(8 * 60 * 60))),
-            connector_ttl_seconds=int(os.getenv("STREAMML_CONNECTOR_TTL_SECONDS", str(30 * 24 * 60 * 60))),
-            pairing_ttl_seconds=int(os.getenv("STREAMML_PAIRING_TTL_SECONDS", "300")),
+            session_ttl_seconds=_positive_int_env("STREAMML_SESSION_TTL_SECONDS", 8 * 60 * 60),
+            connector_ttl_seconds=_positive_int_env("STREAMML_CONNECTOR_TTL_SECONDS", 30 * 24 * 60 * 60),
+            pairing_ttl_seconds=_positive_int_env("STREAMML_PAIRING_TTL_SECONDS", 300),
             cookie_secure=_bool_env("STREAMML_COOKIE_SECURE", True),
             enforce_https=_bool_env("STREAMML_ENFORCE_HTTPS", True),
             token_secret=_secret_env("STREAMML_TOKEN_SECRET"),
             media_auth_secret=_secret_env("STREAMML_MEDIA_AUTH_SECRET"),
             mediamtx_public_base=os.getenv("STREAMML_MEDIAMTX_PUBLIC_BASE", "https://localhost/media").rstrip("/"),
             mediamtx_rtmp_publish_base=os.getenv("STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE", "").rstrip("/"),
+            mediamtx_api_url=os.getenv("STREAMML_MEDIAMTX_API_URL", "").rstrip("/"),
             bootstrap_email=os.getenv("STREAMML_BOOTSTRAP_EMAIL", "").strip().lower(),
             bootstrap_password=_secret_env("STREAMML_BOOTSTRAP_PASSWORD"),
-            login_limit=int(os.getenv("STREAMML_LOGIN_RATE_LIMIT", "8")),
-            pairing_limit=int(os.getenv("STREAMML_PAIRING_RATE_LIMIT", "10")),
-            telemetry_limit=int(os.getenv("STREAMML_TELEMETRY_RATE_LIMIT", "240")),
-            rate_window_seconds=int(os.getenv("STREAMML_RATE_WINDOW_SECONDS", "60")),
+            login_limit=_positive_int_env("STREAMML_LOGIN_RATE_LIMIT", 8),
+            pairing_limit=_positive_int_env("STREAMML_PAIRING_RATE_LIMIT", 10),
+            telemetry_limit=_positive_int_env("STREAMML_TELEMETRY_RATE_LIMIT", 240),
+            rate_window_seconds=_positive_int_env("STREAMML_RATE_WINDOW_SECONDS", 60),
         )
 
     def validate_runtime(self) -> None:

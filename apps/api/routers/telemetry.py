@@ -72,6 +72,12 @@ async def receive_telemetry(
         network=network,
         unsupported=unsupported,
     )
+    session = request.app.state.database.get_session(connector["user_id"], connector["session_id"])
+    media_state = (
+        request.app.state.media_status.status_for_path(session["stream_id"])
+        if session is not None
+        else "unverified"
+    )
     result = None
     if inserted:
         session_status = (
@@ -96,7 +102,28 @@ async def receive_telemetry(
                 if phone_status == "connected"
                 else None
             ),
+            media_signal_available=False if media_state in {"disconnected", "waiting"} else None,
         )
+        for prediction in result["predictions"]:
+            role = prediction.get("model_role")
+            if role not in {"reactive", "predictive"}:
+                continue
+            prediction_result = prediction.get("result") or {}
+            recommendation = prediction_result.get("prediction") or prediction_result.get("decision")
+            request.app.state.database.record_audit(
+                user_id=connector["user_id"],
+                actor_type="model",
+                action=f"model.{role}.inference",
+                resource_type="session",
+                resource_id=connector["session_id"],
+                outcome="success" if prediction.get("status") == "executed" else "blocked",
+                client_ip=client_ip(request),
+                details={
+                    "status": prediction.get("status"),
+                    "recommendation": recommendation,
+                    "reason": prediction_result.get("explanation") or prediction.get("blocked_reason"),
+                },
+            )
     network_view = dict(network or {})
     if result:
         network_view["current_profile"] = result["current_profile"]
@@ -106,7 +133,13 @@ async def receive_telemetry(
     event = {
         "type": "telemetry",
         "session_id": connector["session_id"],
-        "telemetry": telemetry_snapshot(record, request.app.state.registry, phone),
+        "telemetry": telemetry_snapshot(
+            record,
+            request.app.state.registry,
+            phone,
+            media_status=request.app.state.media_status,
+            stream_id=session.get("stream_id") if session else None,
+        ),
         "availability": availability,
         "predictions": [prediction_view(item, request.app.state.registry) for item in predictions],
         "prediction": prediction_view(predictions[-1], request.app.state.registry) if predictions else None,
@@ -172,7 +205,7 @@ async def receive_vdo_ninja_telemetry(
 ) -> dict:
     """Receive only normalized WebRTC data from the authenticated monitoring GUI."""
 
-    user, _session = _authorized_vdo_session(request, payload.session_id)
+    user, session = _authorized_vdo_session(request, payload.session_id)
     settings = request.app.state.settings
     rate_key = f"vdo-telemetry:{user['id']}:{payload.session_id}:{payload.reporter_id}"
     if not request.app.state.rate_limiter.allow(rate_key, settings.telemetry_limit, settings.rate_window_seconds):
@@ -199,6 +232,8 @@ async def receive_vdo_ninja_telemetry(
         request.app.state.registry,
         phone_view,
         reference_at=payload.observed_at,
+        media_status=request.app.state.media_status,
+        stream_id=session["stream_id"],
     )
     if inserted:
         await request.app.state.websocket_hub.publish(

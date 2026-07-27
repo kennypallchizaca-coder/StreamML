@@ -10,6 +10,18 @@ from src.streamml.security.crypto import redact_mapping
 from src.streamml.services.database import Database, LATEST_SCHEMA_VERSION
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_api_container_bundles_the_verified_model_registry() -> None:
+    dockerfile = (ROOT / "infrastructure" / "docker" / "api.Dockerfile").read_text(encoding="utf-8")
+    assert "COPY models/registry /app/models/registry" in dockerfile
+
+    for compose_name in ("docker-compose.yml", "docker-compose.local.yml"):
+        compose = (ROOT / "infrastructure" / "docker" / compose_name).read_text(encoding="utf-8")
+        assert "../../models/registry:/app/models/registry:ro" not in compose
+
+
 def test_legacy_database_is_migrated_and_integrity_checked(tmp_path: Path):
     path = tmp_path / "legacy.sqlite3"
     connection = sqlite3.connect(path)
@@ -53,6 +65,13 @@ def test_production_rejects_insecure_runtime_settings(tmp_path: Path):
     with pytest.raises(RuntimeError, match="cookies seguras"):
         settings.validate_runtime()
     assert settings.production_controls_ready() is False
+
+
+@pytest.mark.parametrize("value", ["zero", "0", "-1"])
+def test_invalid_numeric_environment_configuration_fails_with_actionable_error(monkeypatch, value: str):
+    monkeypatch.setenv("STREAMML_SESSION_TTL_SECONDS", value)
+    with pytest.raises(RuntimeError, match="STREAMML_SESSION_TTL_SECONDS debe ser un entero positivo"):
+        Settings.from_env()
 
 
 def test_nested_and_prefixed_secrets_are_redacted():

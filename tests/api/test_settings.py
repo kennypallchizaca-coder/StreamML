@@ -149,6 +149,8 @@ def test_connector_receives_saved_runtime_settings_and_history_delete_preserves_
         "backup_scene": "Respaldo personalizado",
         "network_probe_interval_seconds": 11,
         "network_probe_bytes": 32768,
+        "rtmp_server": None,
+        "rtmp_stream_key": None,
     }
     deleted = client.request("DELETE", "/api/v1/settings/history", json={"confirmation": "DELETE_HISTORY"})
     assert deleted.status_code == 200

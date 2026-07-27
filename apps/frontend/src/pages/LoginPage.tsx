@@ -149,16 +149,16 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-115 mx-auto mt-16 lg:mt-0 animate-in fade-in slide-in-from-bottom-8 duration-1000 fill-mode-both delay-300">
-          <h2 className="text-[54px] sm:text-[64px] font-bold text-white mb-2 leading-none uppercase tracking-tight">Sign In</h2>
-          <p className="text-base font-bold text-white mb-8">Sign in with email address</p>
+          <h2 className="text-[54px] sm:text-[64px] font-bold text-white mb-2 leading-none uppercase tracking-tight">Iniciar sesión</h2>
+          <p className="text-base font-bold text-white mb-8">Accede con tu correo electrónico</p>
 
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8 h-12 rounded-xl p-1 bg-[#261046]/50 backdrop-blur-md border border-white/5">
               <TabsTrigger value="login" className="rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-[#3b2063] data-[state=active]:text-white text-zinc-400">
                 Iniciar Sesión
               </TabsTrigger>
-              <TabsTrigger value="register" className="rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-[#3b2063] data-[state=active]:text-white text-zinc-400">
-                Registrarse
+              <TabsTrigger value="register" disabled className="rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-[#3b2063] data-[state=active]:text-white text-zinc-400">
+                Registro cerrado
               </TabsTrigger>
             </TabsList>
 
@@ -211,7 +211,7 @@ export default function LoginPage() {
                 ) : null}
 
                 <Button type="submit" size="lg" className="mt-2 w-full h-15.5 rounded-[18px] text-[22px] font-medium text-white transition-all hover:opacity-90 shadow-lg" style={{ backgroundImage: "linear-gradient(90.27deg, rgb(80, 23, 148) 0%, rgb(62, 112, 161) 101.88%)" }} disabled={busy}>
-                  {busy ? <><LoaderCircle className="animate-spin mr-2 size-5" />Accediendo…</> : "Sign up"}
+                  {busy ? <><LoaderCircle className="animate-spin mr-2 size-5" />Accediendo…</> : "Iniciar sesión"}
                 </Button>
               </form>
             </TabsContent>

@@ -1,5 +1,8 @@
 line-length = 120
 target-version = "py311"
+# Los cuadernos documentan una ejecución secuencial de investigación y no se
+# distribuyen en el runtime. El lint de release cubre el código ejecutable.
+extend-exclude = ["notebooks"]
 
 # Configuración de Ruff (Linter y Formateador)
 # F (Pyflakes): Errores lógicos

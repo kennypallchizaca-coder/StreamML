@@ -103,6 +103,8 @@ def telemetry_snapshot(
     phone: dict[str, Any] | None = None,
     *,
     reference_at: str | None = None,
+    media_status: Any | None = None,
+    stream_id: str | None = None,
 ) -> dict[str, Any] | None:
     if not record and not phone:
         return None
@@ -152,7 +154,9 @@ def telemetry_snapshot(
         "phone_available_bitrate_kbps": (phone_available if phone_available and float(phone_available) > 0 else None),
         "phone_fps": phone_metrics.get("frames_per_second"),
         "obs_status": obs_status,
-        "mediamtx_status": "connected" if metrics.get("stream_active") else "idle",
+        # OBS confirms only its local output. A private MediaMTX API check is
+        # required before showing a verified server connection.
+        "mediamtx_status": media_status.status_for_path(stream_id) if media_status else "unverified",
         "stream_active": metrics.get("stream_active"),
         "stream_reconnecting": metrics.get("stream_reconnecting"),
         "bitrate_kbps": metrics.get("output_bitrate_kbps"),

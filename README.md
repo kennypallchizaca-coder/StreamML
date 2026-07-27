@@ -10,7 +10,7 @@ StreamML es un prototipo reproducible de streaming adaptativo. Mide la ruta de r
 La aplicación integra React, FastAPI, WebSocket, un conector local de OBS, MediaMTX, FFmpeg y Nginx. Este documento detalla la metodología científica detrás de los modelos, el proceso de entrenamiento documentado en cuadernos de experimentación (Notebooks), y las instrucciones operativas para desplegar el sistema en un entorno de producción.
 
 > [!NOTE]
-> Para una inmersión técnica profunda sobre cómo interactúan los microservicios y la explicación detallada de la estructura de cada carpeta del código, consulta el documento de [Arquitectura y Estructura del Proyecto](file:///c:/Users/kenny/OneDrive/Documents/STREAM-AI/Adaptive-Streaming-ai/docs/arquitectura-y-estructura.md) en el directorio `docs/`.
+> Para una inmersión técnica profunda sobre cómo interactúan los microservicios y la explicación detallada de la estructura de cada carpeta del código, consulta [Arquitectura y Estructura del Proyecto](docs/arquitectura-y-estructura.md).
 
 ---
 
@@ -66,7 +66,9 @@ El repositorio ha sido optimizado para servidores de producción, eliminando dep
 
 ### Proceso de Configuración e Instalación
 
-El sistema provee un script de inicialización que abstrae la configuración del entorno.
+El sistema provee un asistente de inicialización que crea `deployment/.env` con
+valores de producción. Requiere un dominio público y certificados TLS existentes;
+para desarrollo local use `docker-compose.local.yml`.
 
 1. **Ejecutar el Asistente de Configuración:**
    En Windows:
@@ -82,9 +84,9 @@ El sistema provee un script de inicialización que abstrae la configuración del
    El asistente interactivo solicitará el dominio del servidor, las credenciales del administrador inicial y las rutas absolutas a los certificados SSL (`fullchain.pem` y `privkey.pem`). Las claves criptográficas internas se generarán automáticamente mediante entropía segura.
 
 3. **Levantar los Servicios:**
-   Una vez generado el archivo de entorno `.env`, se deben compilar e iniciar los contenedores:
+   Una vez generado `deployment/.env`, se deben compilar e iniciar los contenedores:
    ```bash
-   docker-compose -f infrastructure/docker/docker-compose.yml up -d
+    docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build
    ```
 
 ---
@@ -101,15 +103,21 @@ Si el servidor es desplegado en un entorno local (`localhost`) o se omite la con
 El estado del modelo predictivo requiere exactamente 600 segundos (10 minutos) ininterrumpidos de telemetría de red. Durante el periodo de inicialización, el panel web no exhibirá datos predictivos; las decisiones operarán exclusivamente basadas en el modelo reactivo. 
 
 ### Respaldo y Restauración
-La totalidad de la persistencia de datos (usuarios, telemetría y configuración) se almacena en el volumen mapeado al directorio local `deployment/` (archivo SQLite). Para efectuar un respaldo completo, copie este directorio tras haber detenido los servicios con `docker-compose down`.
+La persistencia de usuarios, telemetría y configuración se almacena en el volumen Docker `streamml_api_data`. Los modelos oficiales se incluyen de forma inmutable en la imagen de API y se validan por hash al arrancar. Para respaldar los datos, detenga los servicios y exporte el volumen, por ejemplo:
+
+```bash
+docker run --rm -v streamml_api_data:/data -v "$(pwd)":/backup alpine tar czf /backup/streamml-api-data.tgz -C /data .
+```
+
+Antes de restaurar, conserve una copia del archivo y confirme la versión de la imagen de API que se utilizó para crearlo.
 
 ### Recuperación de Credenciales
-Todas las variables maestras de entorno residen en el archivo `.env` en la raíz del proyecto. Para restablecer el acceso administrativo, modifique la variable `STREAMML_BOOTSTRAP_PASSWORD`, guarde el archivo y reinicie los contenedores.
+Todas las variables maestras de entorno residen en `deployment/.env`. Para restablecer el acceso administrativo, modifique la variable `STREAMML_BOOTSTRAP_PASSWORD`, guarde el archivo y reinicie los contenedores.
 
 ## 6. Conclusiones
 El proyecto StreamML demuestra de manera exitosa la viabilidad de utilizar inteligencia artificial y machine learning para la optimización adaptativa de transmisiones de video en tiempo real. 
 - La arquitectura de microservicios contenerizada con **Docker** facilita la escalabilidad y garantiza un entorno de ejecución consistente y robusto independiente de la plataforma.
-- El modelo predictivo (**Random Forest Classifier**) logra equilibrar un alto rendimiento con baja latencia computacional (baja inferencia), detectando eficazmente los patrones de degradación antes de que causen impacto severo en la transmisión (drops de frames severos).
+- El modelo predictivo (**Logistic Regression**) logra equilibrar un alto rendimiento con baja latencia computacional (baja inferencia), detectando eficazmente los patrones de degradación antes de que causen impacto severo en la transmisión (drops de frames severos).
 - A través del modelo reactivo determinista (**InferenceEngine**), el sistema proporciona un entorno híbrido seguro que puede tomar el control inmediatamente si ocurren fluctuaciones en la red antes del umbral predictivo o durante el arranque en frio (Cold Start).
 - La interfaz de **Logs de Auditoría** y métricas estructuradas garantiza total transparencia en las operaciones automáticas y manuales del sistema, sin exponer datos sensibles, alineado con principios de ciberseguridad.
 

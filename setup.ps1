@@ -10,8 +10,8 @@ Write-Host "   Asistente de Configuración StreamML   " -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$envFile = ".env"
-$envTemplate = ".env.example"
+$envFile = "deployment/.env"
+$envTemplate = "deployment/.env.example"
 
 if (-not (Test-Path $envTemplate)) {
     Write-Error "El archivo $envTemplate no existe. Asegúrate de estar en el directorio raíz del proyecto."
@@ -25,45 +25,59 @@ function New-Secret {
 }
 
 Write-Host "Configuración del Dominio" -ForegroundColor Yellow
-$domain = Read-Host "Ingresa tu dominio principal (ej. stream.mi-empresa.com) [Dejar vacío para usar localhost]"
-if ([string]::IsNullOrWhiteSpace($domain)) {
-    $domain = "localhost"
-    $protocol = "http"
-} else {
-    $protocol = "https"
+$domain = Read-Host "Ingresa tu dominio público (ej. stream.mi-empresa.com)"
+if ([string]::IsNullOrWhiteSpace($domain) -or $domain -match '[\s/:]') {
+    throw "Se requiere un nombre DNS público válido. Para desarrollo local usa docker-compose.local.yml."
 }
+$protocol = "https"
 
 Write-Host "`nConfiguración de Administrador" -ForegroundColor Yellow
 $email = Read-Host "Correo del administrador inicial"
-$password = Read-Host "Contraseña temporal del administrador"
+$securePassword = Read-Host "Contraseña temporal del administrador" -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $password = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+}
+if ([string]::IsNullOrWhiteSpace($email) -or $email -notmatch '^[^\s@]+@[^\s@]+\.[^\s@]+$') {
+    throw "Ingresa un correo electrónico de administrador válido."
+}
+if ($password.Length -lt 12 -or $password -match '[\r\n]') {
+    throw "La contraseña debe tener al menos 12 caracteres y no contener saltos de línea."
+}
 
-Write-Host "`nConfiguración de Certificados SSL (Opcional si usas localhost)" -ForegroundColor Yellow
-if ($domain -ne "localhost") {
-    $tlsCert = Read-Host "Ruta al certificado SSL (ej. ./certs/fullchain.pem) [Presiona Enter para ignorar por ahora]"
-    $tlsKey = Read-Host "Ruta a la llave SSL (ej. ./certs/privkey.pem) [Presiona Enter para ignorar por ahora]"
-} else {
-    $tlsCert = ""
-    $tlsKey = ""
+Write-Host "`nConfiguración de Certificados SSL" -ForegroundColor Yellow
+$tlsCert = Read-Host "Ruta absoluta al certificado SSL (fullchain.pem)"
+$tlsKey = Read-Host "Ruta absoluta a la llave SSL (privkey.pem)"
+if (-not [IO.Path]::IsPathFullyQualified($tlsCert) -or -not (Test-Path -LiteralPath $tlsCert -PathType Leaf)) {
+    throw "TLS_CERT_FILE debe ser una ruta absoluta a un certificado existente."
+}
+if (-not [IO.Path]::IsPathFullyQualified($tlsKey) -or -not (Test-Path -LiteralPath $tlsKey -PathType Leaf)) {
+    throw "TLS_KEY_FILE debe ser una ruta absoluta a una clave privada existente."
 }
 
 $tokenSecret = New-Secret
 $mediaAuthSecret = New-Secret
 
-$envContent = $envContent -replace "(?m)^STREAMML_ENVIRONMENT=.*", "STREAMML_ENVIRONMENT=production"
-$envContent = $envContent -replace "(?m)^STREAMML_TOKEN_SECRET=.*", "STREAMML_TOKEN_SECRET=$tokenSecret"
-$envContent = $envContent -replace "(?m)^STREAMML_MEDIA_AUTH_SECRET=.*", "STREAMML_MEDIA_AUTH_SECRET=$mediaAuthSecret"
-$envContent = $envContent -replace "(?m)^STREAMML_ALLOWED_ORIGINS=.*", "STREAMML_ALLOWED_ORIGINS=$protocol`://$domain"
-$envContent = $envContent -replace "(?m)^STREAMML_MEDIAMTX_PUBLIC_BASE=.*", "STREAMML_MEDIAMTX_PUBLIC_BASE=$protocol`://$domain/media"
-$envContent = $envContent -replace "(?m)^STREAMML_BOOTSTRAP_EMAIL=.*", "STREAMML_BOOTSTRAP_EMAIL=$email"
-$envContent = $envContent -replace "(?m)^STREAMML_BOOTSTRAP_PASSWORD=.*", "STREAMML_BOOTSTRAP_PASSWORD=$password"
-
-if ([string]::IsNullOrWhiteSpace($tlsCert) -or [string]::IsNullOrWhiteSpace($tlsKey)) {
-    $envContent = $envContent -replace "(?m)^TLS_CERT_FILE=.*\r?\n?", ""
-    $envContent = $envContent -replace "(?m)^TLS_KEY_FILE=.*\r?\n?", ""
-} else {
-    $envContent += "`nTLS_CERT_FILE=$tlsCert`nTLS_KEY_FILE=$tlsKey"
+function Set-EnvironmentValue([string]$content, [string]$name, [string]$value) {
+    $escaped = $value.Replace('\', '\\').Replace('"', '\"')
+    $replacement = "$name=`"$escaped`""
+    $pattern = "(?m)^" + [regex]::Escape($name) + "=.*$"
+    return [regex]::Replace($content, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $replacement })
 }
 
+$envContent = Set-EnvironmentValue $envContent "STREAMML_ENVIRONMENT" "production"
+$envContent = Set-EnvironmentValue $envContent "STREAMML_TOKEN_SECRET" $tokenSecret
+$envContent = Set-EnvironmentValue $envContent "STREAMML_MEDIA_AUTH_SECRET" $mediaAuthSecret
+$envContent = Set-EnvironmentValue $envContent "STREAMML_ALLOWED_ORIGINS" "$protocol`://$domain"
+$envContent = Set-EnvironmentValue $envContent "STREAMML_MEDIAMTX_PUBLIC_BASE" "$protocol`://$domain/media"
+$envContent = Set-EnvironmentValue $envContent "MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS" $domain
+$envContent = Set-EnvironmentValue $envContent "STREAMML_BOOTSTRAP_EMAIL" $email
+$envContent = Set-EnvironmentValue $envContent "STREAMML_BOOTSTRAP_PASSWORD" $password
+$envContent = Set-EnvironmentValue $envContent "TLS_CERT_FILE" $tlsCert
+$envContent = Set-EnvironmentValue $envContent "TLS_KEY_FILE" $tlsKey
+
 Set-Content -Path $envFile -Value $envContent -Encoding UTF8
-Write-Host "`n¡Configuración completada! Se ha generado tu archivo .env con secretos seguros." -ForegroundColor Green
-Write-Host "Ahora puedes iniciar el sistema con: docker-compose -f infrastructure/docker/docker-compose.yml up -d" -ForegroundColor Cyan
+Write-Host "`n¡Configuración completada! Se ha generado $envFile con secretos seguros." -ForegroundColor Green
+Write-Host "Ahora puedes iniciar el sistema con: docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build" -ForegroundColor Cyan

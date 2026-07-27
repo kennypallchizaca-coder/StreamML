@@ -105,6 +105,17 @@ function mapLog(log: AuditEvent): MappedLog {
     if (log.outcome === "success") {
        result = "Datos recopilados correctamente";
     }
+  } else if (log.action.startsWith("model.")) {
+    const role = log.action.includes(".reactive.") ? "reactivo" : "predictivo";
+    process = `Modelo ${role}`;
+    action = "Inferencia de modelo";
+    decision = typeof log.details?.recommendation === "string"
+      ? log.details.recommendation
+      : "Sin recomendación";
+    reason = typeof log.details?.reason === "string"
+      ? log.details.reason
+      : "Evaluación de la ventana de telemetría disponible.";
+    result = log.outcome === "blocked" ? "Inferencia en espera de datos válidos" : "Predicción ejecutada correctamente";
   } else if (log.action.startsWith("auth.")) {
     process = "Autenticación";
     if (log.action === "auth.login") {
@@ -223,7 +234,9 @@ export default function LogsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los procesos</SelectItem>
-                <SelectItem value="agent">Modelo Predictivo</SelectItem>
+                <SelectItem value="model.reactive">Modelo reactivo</SelectItem>
+                <SelectItem value="model.predictive">Modelo predictivo</SelectItem>
+                <SelectItem value="agent">Decisiones del agente</SelectItem>
                 <SelectItem value="telemetry">Telemetría y Red</SelectItem>
                 <SelectItem value="auth">Autenticación</SelectItem>
                 <SelectItem value="connector">Conector Local</SelectItem>

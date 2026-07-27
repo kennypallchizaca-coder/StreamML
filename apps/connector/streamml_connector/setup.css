@@ -430,6 +430,64 @@ button {
   line-height: 1.5rem;
 }
 
+.production-readiness {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.9fr);
+  gap: 1rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
+  background: color-mix(in oklab, var(--primary) 5%, var(--card));
+  margin: 0 0 1.25rem;
+  padding: 1rem;
+}
+
+.production-readiness > div > span {
+  display: block;
+  color: var(--primary);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.production-readiness strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.production-readiness p {
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.35rem;
+}
+
+.readiness-items {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.readiness-item {
+  position: relative;
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.2rem;
+}
+
+.readiness-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--warning);
+}
+
+.readiness-item.ok { color: var(--success-foreground); }
+.readiness-item.ok::before { background: var(--success); }
+
 .steps {
   display: grid;
   gap: 0.625rem;
@@ -632,6 +690,7 @@ button:disabled {
   }
 
   .card { padding: 1.125rem; }
+  .production-readiness { grid-template-columns: 1fr; }
   .breadcrumb span,
   .theme-prefix { display: none; }
   .runtime { padding-inline: 0.5rem; }

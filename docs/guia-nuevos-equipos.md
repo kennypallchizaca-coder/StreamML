@@ -1,201 +1,146 @@
-# Guía Paso a Paso para Nuevos Miembros del Equipo (Onboarding Local)
+# Guía para nuevos equipos
 
-¡Bienvenido al proyecto StreamML! Esta guía detallada te llevará paso a paso para configurar tu entorno de trabajo desde cero y ejecutar el proyecto en tu computadora. Está diseñada para que no te saltes ningún detalle importante.
+Esta guía prepara un equipo nuevo para ejecutar StreamML localmente, contribuir
+con cambios y desplegarlo de forma segura. Ejecuta todos los comandos desde la
+raíz `Adaptive-Streaming-ai`.
 
----
+## Requisitos
 
-## PASO 1: Instalación de Herramientas Base
+- Git.
+- Docker Engine o Docker Desktop con `docker compose`.
+- Para desarrollo nativo: Python 3.11 y Node.js 22 con npm.
+- Para conectar OBS: OBS Studio con WebSocket 5.x activo, autenticado y limitado
+  a `127.0.0.1`.
 
-Antes de descargar el código, asegúrate de tener instalados los siguientes programas en tu máquina. Si te falta alguno, descárgalo e instálalo:
+En Windows, abre Docker Desktop y comprueba que el motor esté activo antes de
+continuar. Nunca publiques el puerto WebSocket de OBS (`4455`).
 
-1. **Git**: Para el control de versiones. [Descargar Git](https://git-scm.com/downloads)
-2. **Docker Desktop**: Esencial para correr servicios como nuestra base de datos, caché o MediaMTX. 
-   - [Descargar Docker Desktop](https://www.docker.com/products/docker-desktop)
-   - *Nota para Windows:* Asegúrate de tener instalado y habilitado WSL2.
-3. **Python 3.11 o superior**: Para ejecutar nuestro Backend (API).
-   - [Descargar Python](https://www.python.org/downloads/)
-   - *Importante (Windows):* Durante la instalación, marca la casilla **"Add Python to PATH"**.
-4. **Node.js (versión 22 o superior)**: Para ejecutar nuestro Frontend web (React/Vite).
-   - [Descargar Node.js](https://nodejs.org/)
-5. **Editor de Código**: Te recomendamos [Visual Studio Code (VSCode)](https://code.visualstudio.com/).
-   - *Extensiones recomendadas:* Python, Pylance, Ruff, ESLint, Prettier, Docker.
+## Obtener el proyecto
 
----
-
-## PASO 2: Clonar el Repositorio
-
-Abre tu terminal (Símbolo del sistema, PowerShell o Terminal de Mac/Linux) y ejecuta:
-
-```bash
-# 1. Clonar el repositorio principal
+```powershell
 git clone https://github.com/kennypallchizaca-coder/STREAM-MACHINELEARNING.git
-
-# 2. Entrar a la carpeta principal
-cd STREAM-MACHINELEARNING
-
-# 3. Entrar a la carpeta del proyecto específico
-cd Adaptive-Streaming-ai
+cd STREAM-MACHINELEARNING/Adaptive-Streaming-ai
+docker compose version
 ```
 
-> **Aviso:** Todo el trabajo y comandos posteriores deben ejecutarse dentro de la carpeta `Adaptive-Streaming-ai`.
+### Alternativa: paquete de entrega
 
----
+En lugar de clonar Git, el equipo responsable puede entregar
+`StreamML-production-<fecha>.zip` junto con su archivo `.sha256`, generado con
+`scripts/Empaquetar-StreamML.ps1`. Verifica el checksum, extrae el ZIP y entra
+en la carpeta resultante. El paquete no incluye datos locales, certificados ni
+secretos; cada servidor debe crear su propio `deployment/.env`.
 
-## PASO 3: Elegir el Modo de Ejecución
+## Entorno local integrado: recomendado
 
-Existen dos formas principales de correr el proyecto. Elige la que mejor se adapte a tu rol:
+Este modo inicia API, frontend, nginx, MediaMTX y el worker de medios con
+configuración aislada de desarrollo. Los modelos oficiales se incluyen en la
+imagen de API y se validan al arrancar.
 
-- **Opción A (Vía Rápida):** Levanta todo en Docker. Ideal si eres QA, Analista de Datos, o solo quieres ver la aplicación funcionando sin programar.
-- **Opción B (Desarrollo Nativo):** Levanta el Backend y Frontend nativamente. Ideal si eres Programador y necesitas *Hot-Reload* (que los cambios de código se reflejen inmediatamente).
+```powershell
+docker compose -f infrastructure/docker/docker-compose.local.yml up -d --build
+docker compose -f infrastructure/docker/docker-compose.local.yml ps
+```
 
----
+Abre [http://localhost](http://localhost) e inicia sesión con:
 
-### Opción A: Vía Rápida (Recomendado para Pruebas o Demos)
+- Correo: `admin@localhost.com`
+- Contraseña: `password123456`
 
-Esta opción levanta absolutamente todo (API, Frontend, MediaMTX) usando contenedores. 
+Para consultar un servicio concreto sin exponer secretos:
 
-**Pasos:**
-1. Abre tu aplicación de **Docker Desktop** y asegúrate de que el motor de Docker esté encendido (el icono en la barra de tareas debe estar verde).
-2. En tu terminal (dentro de `Adaptive-Streaming-ai`), ejecuta:
-   ```bash
-   docker compose -f infrastructure/docker/docker-compose.local.yml up --build
-   ```
-3. Espera un par de minutos a que se descarguen las imágenes y se compilen los servicios.
-4. Cuando veas que los logs se estabilizan, abre tu navegador y visita: **[http://localhost](http://localhost)**
-5. Inicia sesión con las credenciales por defecto configuradas para pruebas locales:
-   - **Correo:** `admin@localhost`
-   - **Contraseña:** `password123456`
+```powershell
+docker compose -f infrastructure/docker/docker-compose.local.yml logs --tail=100 api
+docker compose -f infrastructure/docker/docker-compose.local.yml logs --tail=100 mediamtx
+docker compose -f infrastructure/docker/docker-compose.local.yml ps
+```
 
-Para **detener** el sistema, presiona `Ctrl + C` en tu terminal, o ejecuta:
-```bash
+Para detenerlo, conserva los datos; no uses `--volumes` salvo que quieras
+eliminar intencionalmente la base de datos local:
+
+```powershell
 docker compose -f infrastructure/docker/docker-compose.local.yml down
 ```
 
----
+## Desarrollo nativo de API y frontend
 
-### Opción B: Flujo de Desarrollo Nativo (Recomendado para Programadores)
+Usa este modo para editar código con recarga rápida. El flujo completo de
+medios autenticados se prueba con el entorno Docker integrado; no intentes
+iniciar MediaMTX por separado con la API nativa, porque su autorización vive
+en la red privada de Compose.
 
-Esta es la forma estándar de desarrollar en StreamML. Aprovecharás tus herramientas locales para compilar más rápido.
-
-#### 1. Correr la Infraestructura Base
-Primero, necesitamos correr MediaMTX (nuestro servidor de streaming) usando Docker.
-```bash
-docker compose -f infrastructure/docker/docker-compose.local.yml up mediamtx media-init -d
-```
-> Esto levantará silenciosamente MediaMTX en el puerto `1935` (RTMP) y `8889` (WebRTC).
-
-#### 2. Configurar y Levantar la API (Backend)
-Abre una terminal nueva en `Adaptive-Streaming-ai`.
-
-```bash
-# a. Crear el entorno virtual de Python
-python -m venv .venv
-
-# b. Activar el entorno virtual
-# En Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# En Linux/Mac:
-source .venv/bin/activate
-
-# c. Instalar los paquetes del proyecto
-pip install -r requirements.txt
-
-# d. Configurar el archivo .env
-# Copiamos el archivo de ejemplo a uno real local
-cp .env.example .env
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.venv\Scripts\python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Abre el archivo `.env` recién creado en tu editor y asegúrate de que contenga valores para desarrollo. Para correr localmente, deberías reemplazar el valor de entorno por development y asegurarte de tener un origen local.
-*(Nota: El archivo `docker-compose.local.yml` ya inyectaba esto, pero al correr nativo dependes de este archivo `.env`)*
+En otra terminal:
 
-```bash
-# e. Ejecutar servidor de desarrollo con Hot-Reload
-python -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
+```powershell
+npm --prefix apps/frontend ci
+$env:VITE_API_BASE_URL = "http://localhost:8000/api/v1"
+$env:VITE_WS_BASE_URL = "ws://localhost:8000/ws"
+npm --prefix apps/frontend run dev
 ```
-> La API estará escuchando en `http://localhost:8000`. Si editas algún archivo `.py`, el servidor se reiniciará automáticamente.
 
-#### 3. Configurar y Levantar el Frontend (Web)
-Abre otra terminal nueva (la tercera).
+El frontend nativo se abre normalmente en `http://localhost:5173`. La plantilla
+`.env.example` es solo para desarrollo; no contiene valores de producción.
 
-```bash
-# a. Navegar al directorio del frontend
-cd apps/frontend
+## Pruebas antes de enviar cambios
 
-# b. Instalar dependencias de Node.js
-npm install
-
-# c. Configurar las rutas de la API para Vite
-# En Windows (PowerShell):
-$env:VITE_API_BASE_URL="http://localhost:8000/api/v1"
-$env:VITE_WS_BASE_URL="ws://localhost:8000/ws"
-
-# En Linux/Mac (Bash):
-export VITE_API_BASE_URL="http://localhost:8000/api/v1"
-export VITE_WS_BASE_URL="ws://localhost:8000/ws"
-
-# d. Iniciar el servidor de desarrollo del Frontend
-npm run dev
+```powershell
+python -m pytest -q
+python scripts/verify_release.py
+python scripts/check_no_secrets.py --history
+python -m ruff check .
+npm --prefix apps/frontend run lint
+npm --prefix apps/frontend run test
+npm --prefix apps/frontend run build
 ```
-> El frontend estará disponible usualmente en `http://localhost:5173`. Abre ese enlace en tu navegador.
-> 
-> *Nota: Ya que estás corriendo los servicios de manera nativa sin el proxy de Nginx, accederás a la web mediante el puerto 5173 y las peticiones viajarán directo al puerto 8000 de tu API.*
 
----
+`verify_release.py` comprueba hashes, contratos y versiones de los modelos.
+El modelo reactivo opera con las mediciones actuales. El predictivo requiere
+una ventana de unos diez minutos de capacidad de red; tolera pausas cortas de
+telemetría, pero rechaza cortes relevantes para no inventar una predicción.
 
-## PASO 4: Mejores Prácticas y Contribución
+## Producción
 
-### 1. Formateo de Código (Python)
-Utilizamos **Ruff** para asegurar que todo nuestro código Python siga las mismas reglas de estilo. Antes de enviar tu código a revisión (commit), siempre ejecuta:
-```bash
-ruff check . --fix
-```
-Esto corregirá automáticamente importaciones, comillas y errores comunes de formato.
+La producción requiere DNS público, certificado TLS válido, puertos TCP 80/443
+y UDP 8189 disponibles. El conector de OBS permanece en el equipo de OBS, no
+en el servidor Docker.
 
-### 2. Pruebas Unitarias (Tests)
-Es vital asegurar que no hemos roto funcionalidades existentes. Ejecuta todas las pruebas usando:
-```bash
-python -m pytest
-```
-Si todas las pruebas pasan de color verde, tu código está listo.
+1. Ejecuta `setup.ps1` en Windows o `bash setup.sh` en Linux/macOS. El asistente
+   genera `deployment/.env`, solicita rutas TLS y secretos seguros.
+2. Revisa que ningún valor `CHANGE_ME` permanezca en `deployment/.env` y no lo
+   subas a Git.
+3. Valida y arranca:
 
-### 3. Archivo `.gitignore`
-Nunca hagas commit de archivos con secretos (`.env`), carpetas temporales (`__pycache__`, `.venv`, `node_modules`) ni bases de datos locales (`streamml.sqlite3`). El proyecto ya cuenta con un `.gitignore` configurado; asegúrate de respetarlo.
+   ```powershell
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml config --quiet
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml ps
+   ```
 
----
+4. Comprueba `https://<tu-dominio>/health`, el inicio de sesión, una publicación
+   de prueba y la reproducción HLS/WebRTC desde una red externa.
 
-## PASO 5: Solución de Errores Comunes (Troubleshooting)
+La guía operativa completa, respaldo y aceptación de medios está en
+[deployment.md](deployment.md). Para la lista de variables, verificaciones y
+errores corregidos consulta [operacion-y-verificacion.md](operacion-y-verificacion.md).
 
-Si experimentas problemas durante la configuración o ejecución, revisa esta lista de soluciones rápidas:
+## Problemas frecuentes
 
-### 1. Error: "port is already allocated" al usar Docker
-- **Causa:** Hay otro servicio o contenedor usando los puertos necesarios (80, 8000, 1935, 8889).
-- **Solución:**
-  1. Detén otros contenedores: `docker stop $(docker ps -q)`
-  2. Identifica si hay servicios locales usando el puerto: `netstat -ano | findstr :80` (Windows) o `lsof -i :80` (Linux/Mac). Detén el programa que lo usa (por ejemplo, Skype, Apache, IIS).
+| Síntoma | Acción segura |
+| --- | --- |
+| Un puerto está ocupado | Identifica el proceso con `netstat -ano | findstr :<puerto>` en Windows o `lsof -i :<puerto>` en Linux/macOS. Detén solo el proceso identificado. |
+| Un contenedor no está saludable | Ejecuta `docker compose -f infrastructure/docker/docker-compose.local.yml ps` y consulta los logs del servicio concreto. |
+| El predictivo dice “Esperando datos” | Mantén telemetría de capacidad durante diez minutos. Revisa que el teléfono y el conector sigan conectados. |
+| No hay vista previa | Confirma que OBS usa el servidor y clave RTMP de la sesión. Si WebRTC no admite el codec, el reproductor usa HLS. |
+| La API nativa no inicia | Activa `.venv`, instala `requirements.txt` y usa la plantilla `.env.example` sin modificar sus controles de desarrollo. |
 
-### 2. Error: "ModuleNotFoundError" al correr la API nativa
-- **Causa:** El entorno virtual de Python no está activado o faltan dependencias.
-- **Solución:**
-  1. Asegúrate de activar el entorno: `.venv\Scripts\Activate.ps1` (Windows) o `source .venv/bin/activate` (Mac/Linux). Debe aparecer `(.venv)` al inicio de tu línea de comandos.
-  2. Reinstala las dependencias: `pip install -r requirements.txt`.
-
-### 3. Error en Frontend: Conexión rechazada (Network Error)
-- **Causa:** El frontend no logra comunicarse con la API de FastAPI.
-- **Solución:**
-  1. Verifica que la API esté corriendo en el puerto `8000`.
-  2. Si usas Docker, revisa los logs de la API: `docker-compose -f infrastructure/docker/docker-compose.local.yml logs api`.
-  3. Si usas desarrollo nativo, revisa que las variables de entorno de Vite estén bien definidas (`VITE_API_BASE_URL`).
-
-### 4. Error: "unhealthy" status en contenedores Docker
-- **Causa:** El healthcheck falló, comúnmente porque falta el archivo `.env` o la clave secreta `STREAMML_BOOTSTRAP_PASSWORD` no es válida.
-- **Solución:**
-  1. Verifica que tienes un `.env` (si es requerido) y que los valores de tokens sean seguros.
-  2. En el archivo `docker-compose.local.yml`, asegúrate de que el usuario administrativo (`STREAMML_BOOTSTRAP_EMAIL`) sea un email válido, por ejemplo `admin@localhost.com`.
-
-### 5. No carga el Monitor en Vivo o la Telemetría
-- **Causa:** MediaMTX no está corriendo o los WebSockets están bloqueados.
-- **Solución:**
-  1. Asegúrate de que MediaMTX levantó correctamente (puertos `1935` y `8889` libres).
-  2. Desactiva temporalmente el firewall si bloquea WebRTC, o revisa los logs del navegador (Consola F12).
-
-¡Felicidades! Tu entorno ya está listo. Si tienes dudas, abre un Issue en el repositorio o habla con tu Tech Lead.
+No ejecutes comandos globales que detengan o eliminen todos los contenedores del
+equipo. Preserva `deployment/.env`, certificados, volúmenes y respaldos fuera
+del control de versiones.

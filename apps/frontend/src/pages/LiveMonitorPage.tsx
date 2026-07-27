@@ -17,38 +17,38 @@ import NexaMascot from "../components/NexaMascot";
 import CopyLinkButton from "../components/CopyLinkButton";
 import { getNexaState } from "../lib/nexa";
 
-function translateRecommendation(rec?: string | null) {
+export function translateRecommendation(rec?: string | null) {
   switch (rec) {
     case "high": return { 
-      title: "Todo en orden (Calidad Alta)", 
+      title: "Todo en orden (Calidad Alta · high)",
       summary: "El sistema confirma que las condiciones de tu red son excelentes.", 
       action: "Se utilizará la máxima calidad disponible sin interrupciones esperadas.", 
       cause: "Tu conexión es rápida y muy estable.", 
       color: "text-success", bg: "bg-success/10", border: "border-success/30", icon: CheckCircle2 
     };
     case "medium": return { 
-      title: "Señal estable (Calidad Media)", 
+      title: "Señal estable (Calidad Media · medium)",
       summary: "Las condiciones de red son regulares pero aceptables.", 
       action: "El sistema aplicará una calidad moderada para prevenir pausas en el video.", 
       cause: "Se han detectado variaciones normales en tu velocidad de internet.", 
       color: "text-info", bg: "bg-info/10", border: "border-info/30", icon: Info 
     };
     case "low": return { 
-      title: "Alerta de inestabilidad (Calidad Básica)", 
+      title: "Alerta de inestabilidad (Calidad Básica · low)",
       summary: "Se ha detectado inestabilidad importante en la red.", 
       action: "El sistema bajará la calidad al mínimo para asegurar que tu en vivo no se corte.", 
       cause: "Probablemente hay pérdida de paquetes o congestión en la red.", 
       color: "text-warning", bg: "bg-warning/10", border: "border-warning/30", icon: AlertTriangle 
     };
     case "maintain": return { 
-      title: "Manteniendo la calidad", 
+      title: "Mantener (maintain)",
       summary: "Tu conexión es lo suficientemente buena para mantener el estado actual.", 
       action: "No se realizarán cambios. Todo fluye de forma constante.", 
       cause: "La red se mantiene en niveles seguros.", 
       color: "text-success", bg: "bg-success/10", border: "border-success/30", icon: CheckCircle2 
     };
     case "downgrade_needed": return { 
-      title: "Riesgo de corte inminente", 
+      title: "Riesgo de corte inminente (downgrade_needed)",
       summary: "Existe un riesgo alto de que la transmisión se congele pronto.", 
       action: "El sistema reducirá automáticamente la resolución para proteger la transmisión.", 
       cause: "Se detectó un patrón de degradación (velocidad inestable o alta latencia).", 
@@ -77,7 +77,7 @@ function translateAgentDecision(decision?: AgentDecision | null) {
   }
 }
 
-function translateRisk(prob?: number | null) {
+export function translateRisk(prob?: number | null) {
   if (prob == null) return { level: "Desconocida", detail: "Necesitamos más información para calcular la confianza.", color: "text-muted-foreground" };
   if (prob < 0.25) return { level: "Segura (Baja probabilidad)", detail: "Estamos bastante seguros de que este pronóstico se cumplirá sin problemas.", color: "text-success" };
   if (prob < 0.60) return { level: "Incierta (Probabilidad media)", detail: "Hay ciertas variaciones en los datos. Podría suceder, pero no es definitivo.", color: "text-info" };
@@ -117,6 +117,7 @@ function connectionLabel(value?: string | null) {
     streaming: "Transmitiendo",
     disconnected: "Desconectado",
     reconnecting: "Reconectando",
+    unverified: "Sin verificar",
     pending: "Pendiente",
     waiting: "Esperando señal",
     stale: "Sin datos recientes",
@@ -188,6 +189,12 @@ function ModelResultPanel({
   const probability = prediction?.degradation_probability ?? prediction?.probability_downgrade_needed;
   const risk = translateRisk(blocked ? null : probability);
   const isReactive = role === "reactive";
+  const reactiveConfidence = isReactive && prediction?.recommendation
+    ? prediction.probabilities?.[prediction.recommendation]
+    : null;
+  const modelContext = isReactive
+    ? "Clasifica las condiciones actuales de la red con el modelo entrenado."
+    : "Analiza la tendencia de capacidad de los últimos 10 minutos.";
   const Icon = recommendation.icon;
 
   return (
@@ -204,8 +211,9 @@ function ModelResultPanel({
           <h3 className={`text-lg sm:text-xl font-bold leading-tight ${recommendation.color}`}>
             {recommendation.title}
           </h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{modelContext}</p>
         </div>
-        <Badge variant={blocked ? "outline" : prediction ? "secondary" : "outline"} className="hidden sm:inline-flex shadow-sm">
+        <Badge variant={blocked ? "outline" : prediction ? "secondary" : "outline"} className="shrink-0 shadow-sm">
           {modelStatusLabel(prediction?.status)}
         </Badge>
       </div>
@@ -217,6 +225,11 @@ function ModelResultPanel({
           <p className="text-sm leading-relaxed text-muted-foreground">
             {blocked && prediction?.reason ? prediction.reason : recommendation.summary}
           </p>
+          {!blocked && prediction?.reason ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Detalle de la inferencia: {prediction.reason}
+            </p>
+          ) : null}
         </div>
 
         {!blocked && (
@@ -237,11 +250,11 @@ function ModelResultPanel({
             <Activity className={`size-8 shrink-0 ${risk.color}`} />
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Seguridad de esta predicción</div>
-              <div className="flex items-baseline gap-2 mt-0.5">
+              <div className="mt-0.5">
                 <span className={`font-bold ${risk.color}`}>
                   {risk.level} {probability != null ? `(${Math.round(probability * 100)}%)` : ""}
                 </span>
-                <span className="text-xs text-muted-foreground">({risk.detail})</span>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">({risk.detail})</p>
               </div>
             </div>
           </div>
@@ -251,9 +264,17 @@ function ModelResultPanel({
             <Activity className="size-8 shrink-0 text-success" />
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Confianza del modelo</div>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="font-bold text-success">Determinista (100%)</span>
-                <span className="text-xs text-muted-foreground">(Reglas directas sin probabilidad)</span>
+              <div className="mt-0.5">
+                <span className="font-bold text-success">
+                  {reactiveConfidence != null
+                    ? `Probabilidad del perfil recomendado (${Math.round(reactiveConfidence * 100)}%)`
+                    : "Confianza no disponible"}
+                </span>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  ({reactiveConfidence != null
+                    ? "Probabilidad calculada por el modelo sobre las mediciones actuales."
+                    : "La inferencia no entregó una probabilidad verificable."})
+                </p>
               </div>
             </div>
           </div>
@@ -290,6 +311,7 @@ export default function LiveMonitorPage() {
   );
   const phoneSequence = useRef(Date.now());
   const phoneTelemetryFailures = useRef(0);
+  const sessionRefreshInFlight = useRef(false);
 
   const reportPhoneTelemetry = useCallback((
     metrics: VdoNinjaMetrics,
@@ -313,9 +335,11 @@ export default function LiveMonitorPage() {
     });
   }, [sessionId]);
 
-  useEffect(() => {
-    if (!sessionId) return;
-    api.getSession(sessionId).then((s) => {
+  const refreshSession = useCallback(async (refreshPlaybackLinks = false) => {
+    if (!sessionId || sessionRefreshInFlight.current) return;
+    sessionRefreshInFlight.current = true;
+    try {
+      const s = await api.getSession(sessionId);
       setSession(s);
       setTelemetry(s.telemetry ?? null);
       setPredictions(mergeLatestPredictions(
@@ -323,12 +347,34 @@ export default function LiveMonitorPage() {
         [],
       ));
       setAgentDecision(s.agent_decision ?? null);
-      setStream(s.stream ?? null);
-    }).catch(() => setError("No pudimos conectar con tu transmisión. Verifica que esté activa e intenta nuevamente."));
-    api.getStream(sessionId).then(setStream).catch(() => {
-      setError("La sesión se cargó, pero no fue posible renovar los enlaces de reproducción de MediaMTX.");
-    });
+      setStream((current) => current ?? s.stream ?? null);
+      setError(null);
+      if (refreshPlaybackLinks) {
+        try {
+          setStream(await api.getStream(sessionId));
+        } catch {
+          setError("La sesión se cargó, pero no fue posible renovar los enlaces de reproducción de MediaMTX.");
+        }
+      }
+    } catch {
+      setError("No pudimos conectar con tu transmisión. Verifica que esté activa e intenta nuevamente.");
+    } finally {
+      sessionRefreshInFlight.current = false;
+    }
   }, [sessionId]);
+
+  useEffect(() => {
+    void refreshSession(true);
+    if (!monitoring || !sessionId) return;
+    // MediaMTX can change state between telemetry samples. This lightweight
+    // refresh keeps the preview current even after a brief socket outage.
+    const stateTimer = window.setInterval(() => void refreshSession(), 2_000);
+    const linksTimer = window.setInterval(() => void refreshSession(true), 10 * 60_000);
+    return () => {
+      window.clearInterval(stateTimer);
+      window.clearInterval(linksTimer);
+    };
+  }, [monitoring, refreshSession, sessionId]);
 
   useEffect(() => {
     if (!monitoring || !socket.message) return;
@@ -369,6 +415,10 @@ export default function LiveMonitorPage() {
   const broadcastBadge = liveBadge(telemetry);
 
   const activeEmbedUrl = session?.vdo_ninja?.bridge_url ?? session?.vdo_ninja?.embed_url;
+  const rtmpPublishUrl = stream?.rtmp_publish_url ?? null;
+  const rtmpPathIndex = rtmpPublishUrl?.lastIndexOf("/") ?? -1;
+  const rtmpServer = stream?.rtmp_server ?? (rtmpPathIndex > 0 ? rtmpPublishUrl?.slice(0, rtmpPathIndex) ?? null : null);
+  const rtmpStreamKey = stream?.rtmp_stream_key ?? (rtmpPathIndex > 0 ? rtmpPublishUrl?.slice(rtmpPathIndex + 1) ?? null : null);
 
   return (
     <div className="app-page app-page-wide">
@@ -437,6 +487,22 @@ export default function LiveMonitorPage() {
                 variant="outline"
                 className="h-9 px-3 text-sm"
               />
+              {rtmpServer && rtmpStreamKey ? (
+                <>
+                  <CopyLinkButton
+                    link={rtmpServer}
+                    label="Copiar servidor RTMP"
+                    variant="outline"
+                    className="h-9 px-3 text-sm"
+                  />
+                  <CopyLinkButton
+                    link={rtmpStreamKey}
+                    label="Copiar clave RTMP"
+                    variant="outline"
+                    className="h-9 px-3 text-sm"
+                  />
+                </>
+              ) : null}
               <ReplaceVideoLinkDialog onLinkUpdated={async (url) => {
                 if (!sessionId) throw new Error("No se encontró la transmisión para actualizar.");
                 const updated = await api.updateVideoLink(sessionId, url);
@@ -470,7 +536,14 @@ export default function LiveMonitorPage() {
                 <span>Vista previa oculta temporalmente</span>
               </div>
             ) : (
-              activeEmbedUrl ? (
+              stream?.whep_url || stream?.webrtc_url || stream?.hls_url ? (
+                <MediaMtxPlayer
+                  key={reconnectKey}
+                  whepUrl={stream?.whep_url ?? stream?.webrtc_url}
+                  hlsUrl={stream?.hls_url}
+                  mediaStatus={telemetry?.mediamtx_status}
+                />
+              ) : activeEmbedUrl ? (
                 <VideoPreview
                   key={reconnectKey}
                   embedUrl={activeEmbedUrl}
@@ -479,7 +552,7 @@ export default function LiveMonitorPage() {
                   onTelemetry={reportPhoneTelemetry}
                 />
               ) : (
-                <MediaMtxPlayer key={reconnectKey} whepUrl={stream?.whep_url ?? stream?.webrtc_url} hlsUrl={stream?.hls_url} />
+                <MediaMtxPlayer key={reconnectKey} mediaStatus={telemetry?.mediamtx_status} />
               )
             )}
           </CardContent>

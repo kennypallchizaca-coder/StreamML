@@ -22,12 +22,12 @@ services:
       STREAMML_ALLOWED_ORIGINS: ${STREAMML_ALLOWED_ORIGINS:?Set STREAMML_ALLOWED_ORIGINS in the deployment env file}
       STREAMML_MEDIAMTX_PUBLIC_BASE: ${STREAMML_MEDIAMTX_PUBLIC_BASE:?Set STREAMML_MEDIAMTX_PUBLIC_BASE in the deployment env file}
       STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE: ${STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE:-}
+      STREAMML_MEDIAMTX_API_URL: http://mediamtx:9997
       STREAMML_BOOTSTRAP_EMAIL: ${STREAMML_BOOTSTRAP_EMAIL:?Set STREAMML_BOOTSTRAP_EMAIL in the deployment env file}
       STREAMML_BOOTSTRAP_PASSWORD: ${STREAMML_BOOTSTRAP_PASSWORD:?Set STREAMML_BOOTSTRAP_PASSWORD in the deployment env file}
       STREAMML_COOKIE_SECURE: "true"
       STREAMML_ENFORCE_HTTPS: "true"
     volumes:
-      - ../../models/registry:/app/models/registry:ro
       - api_data:/app/runtime
     read_only: true
     tmpfs:

@@ -1,0 +1,119 @@
+# Operación, pruebas y correcciones verificadas
+
+Este documento es la referencia corta y ejecutable para una instalación limpia.
+Las instrucciones detalladas de seguridad y despliegue público están en
+[`deployment.md`](deployment.md), y la guía de desarrollo local está en
+[`guia-nuevos-equipos.md`](guia-nuevos-equipos.md).
+
+## Requisitos previos
+
+- Python 3.11 o posterior.
+- Node.js 22 o posterior y npm.
+- Docker Engine con el complemento `docker compose` para el entorno integrado.
+- Para producción: DNS público, certificado TLS válido y los puertos TCP 80/443 y
+  UDP 8189 disponibles. El conector de OBS requiere OBS WebSocket 5.x en el equipo
+  de OBS; no se instala ni se expone en el servidor.
+
+## Instalación y ejecución local
+
+Todos los comandos se ejecutan desde la raíz `Adaptive-Streaming-ai`.
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.venv\Scripts\python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+La plantilla `.env.example` es exclusivamente para desarrollo: usa HTTP local,
+cookies no seguras y secretos de prueba suficientemente largos para que la API
+pueda arrancar. Nunca se debe desplegar ni copiar al servidor. En otra terminal:
+
+```powershell
+npm --prefix apps/frontend ci
+$env:VITE_API_BASE_URL = "http://localhost:8000/api/v1"
+$env:VITE_WS_BASE_URL = "ws://localhost:8000/ws"
+npm --prefix apps/frontend run dev
+```
+
+Como alternativa, el entorno integrado local usa valores aislados del archivo
+Compose y se abre en `http://localhost`:
+
+```powershell
+docker compose -f infrastructure/docker/docker-compose.local.yml up --build
+```
+
+## Variables de entorno de producción
+
+Copiar `deployment/.env.example` a `deployment/.env`, protegerlo con permisos
+restrictivos y reemplazar todos los `CHANGE_ME`. Se requieren, como mínimo:
+
+- `STREAMML_TOKEN_SECRET` y `STREAMML_MEDIA_AUTH_SECRET`: valores distintos,
+  aleatorios y de al menos 32 caracteres.
+- `STREAMML_ALLOWED_ORIGINS` y `STREAMML_MEDIAMTX_PUBLIC_BASE`: URLs HTTPS del
+  dominio público.
+- `STREAMML_BOOTSTRAP_EMAIL` y `STREAMML_BOOTSTRAP_PASSWORD`: cuenta inicial;
+  la contraseña debe tener al menos 12 caracteres.
+- `TLS_CERT_FILE` y `TLS_KEY_FILE`: rutas absolutas legibles del certificado y
+  su clave privada.
+- `MEDIAMTX_WEBRTC_ADDITIONAL_HOSTS`: nombre DNS público usado por los clientes.
+
+No introducir credenciales en argumentos de comandos, logs, repositorios ni el
+archivo `.env` de desarrollo. Los destinos RTMP(S) son opcionales y, si se usan,
+se declaran solamente en `STREAMML_RESTREAM_CONFIG_JSON` dentro de
+`deployment/.env`.
+
+## Pruebas y verificaciones antes de desplegar
+
+```powershell
+.venv\Scripts\python -m pytest -q
+.venv\Scripts\python scripts\verify_release.py
+.venv\Scripts\python scripts\check_no_secrets.py --history
+npm --prefix apps/frontend run lint
+npm --prefix apps/frontend run test
+npm --prefix apps/frontend run build
+docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml config --quiet
+```
+
+`ruff` forma parte de `requirements.txt`; cuando esté instalado, también ejecutar
+`.venv\Scripts\python -m ruff check .`. La verificación de Compose detecta variables
+faltantes y errores de interpolación, pero no sustituye una prueba de certificados,
+OBS, WebRTC/ICE, red móvil o destinos RTMP reales.
+
+## Despliegue
+
+1. Ejecutar todas las verificaciones anteriores en el commit a publicar.
+2. Copiar y completar `deployment/.env` en el servidor, sin subirlo a Git.
+3. Validar y arrancar:
+
+   ```powershell
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml config
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml up -d --build
+   docker compose --env-file deployment/.env -f infrastructure/docker/docker-compose.yml ps
+   ```
+
+4. Confirmar `https://<dominio>/health` y probar una sesión autenticada, publicación,
+   reproducción y el conector de OBS desde una red externa. Consultar
+   [`deployment.md`](deployment.md) para respaldo, actualización y aceptación de
+   medios.
+
+El registro de modelos oficial forma parte de la imagen de API; no requiere un
+directorio de modelos montado en el host. Una actualización de modelos exige
+reconstruir y publicar una nueva imagen, para que los hashes verificados y el
+binario desplegado sigan siendo el mismo release.
+
+## Errores encontrados y solución aplicada
+
+| Hallazgo | Causa raíz | Solución |
+| --- | --- | --- |
+| La imagen de API incluía herramientas de pruebas, lint y visualización. | El Dockerfile instalaba `requirements.txt` en vez del conjunto mínimo de runtime. | Ahora instala `requirements-api.txt`, reduciendo superficie, tamaño y tiempo de construcción en producción. |
+| La API dependía de un bind mount del registro de modelos del host. | El contenedor no era autocontenido y el host podía sustituir artefactos después de construir la imagen. | El registro oficial se incorpora a la imagen de API y conserva la validación de hashes al inicio; Compose solo persiste la base de datos. |
+| La plantilla `.env.example` no podía iniciar la API local. | Se marcaba como producción, exigía HTTPS/cookies seguras y sus secretos de ejemplo tenían menos de 32 caracteres. | Se convirtió en una plantilla explícita de desarrollo con orígenes HTTP locales, cookies compatibles y secretos válidos. La plantilla de producción permanece en `deployment/.env.example`. |
+| Los asistentes de configuración escribían el `.env` de desarrollo y podían omitir TLS aun cuando Compose de producción lo exige. Además, mostraban la contraseña y usaban reemplazos frágiles para caracteres especiales. | La configuración de desarrollo y producción compartía una plantilla con semánticas incompatibles. | `setup.ps1` y `setup.sh` ahora generan `deployment/.env`, solicitan la contraseña sin eco, validan correo, dominio y rutas TLS existentes, y escriben valores de dotenv entre comillas escapadas. |
+| La carga inicial del frontend mostraba un 401 en consola para visitantes sin cookie y el formulario decía “Sign up” al iniciar sesión. | La UI usaba un endpoint de usuario que exige autenticación para detectar una sesión inexistente y había textos inconsistentes. | Se añadió `/api/v1/auth/session`, que devuelve el estado anónimo con 200; la UI lo usa al arrancar, declara el contrato `authenticated` en TypeScript y corrige los textos/registro público cerrado. |
+| El modelo predictivo podía permanecer bloqueado ante pausas operativas breves o filas de telemetría parcial. | El resampler rechazaba cualquier intervalo mayor de 2 s y trataba una fila VDO sin capacidad como un fallo total, pese a que el conector admite hasta 10 s de espera de API y el teléfono puede omitir una estimación puntual. | Ahora descarta solo las filas sin capacidad, interpola pausas acotadas de hasta 15 s en la cuadrícula requerida de 1 Hz y rechaza interrupciones mayores, manteniendo la protección contra datos ausentes materiales. |
+| El monitor podía mostrar MediaMTX como “Conectado” aun cuando solo OBS reportaba salida local. | La telemetría de OBS no confirma que MediaMTX haya autenticado ni recibido el stream. | El estado se presenta como “Sin verificar” hasta que exista una comprobación directa del servidor de medios; además, la previsualización explica cuándo falta una señal publicada. |
+| Los límites y TTL inválidos producían un `ValueError` genérico al arrancar. | La conversión directa con `int()` no traducía el error a una configuración accionable. | La configuración ahora valida los enteros positivos durante la carga y devuelve el nombre exacto de la variable. Hay pruebas parametrizadas para texto, cero y negativos. |
+| `ruff check .` fallaba aunque el código de runtime estaba limpio. | Ruff analizaba imports intermedios de notebooks de investigación, que son válidos por su ejecución por celdas y no forman parte del release. | Se excluyó `notebooks/` de Ruff; el lint cubre el código y scripts ejecutables distribuidos. |
+| La documentación indicaba un comando de Compose incompleto y describía un algoritmo predictivo distinto del implementado. | Documentación desalineada con `deployment/.env` y con los artefactos/modelo. | Se documentó el uso obligatorio de `--env-file deployment/.env`, la ejecución y pruebas actuales; README indica Logistic Regression de forma consistente. |

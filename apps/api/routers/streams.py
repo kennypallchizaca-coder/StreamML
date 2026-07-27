@@ -50,6 +50,7 @@ def stream_payload(request: Request, session: dict) -> dict:
     publish_token = _media_token(request, session, "publish", ttl_seconds=24 * 3600)
     stream_id = session["stream_id"]
     rtmp_base = request.app.state.settings.mediamtx_rtmp_publish_base
+    rtmp_stream_key = f"{stream_id}?token={publish_token}" if rtmp_base else None
     return {
         "session_id": session["id"],
         "stream_id": stream_id,
@@ -57,7 +58,9 @@ def stream_payload(request: Request, session: dict) -> dict:
         "webrtc_url": f"{base}/{stream_id}/whep?token={read_token}",
         "hls_url": f"{base}/{stream_id}/index.m3u8?token={read_token}",
         "whip_publish_url": f"{base}/{stream_id}/whip?token={publish_token}",
-        "rtmp_publish_url": f"{rtmp_base}/{stream_id}?token={publish_token}" if rtmp_base else None,
+        "rtmp_publish_url": f"{rtmp_base}/{rtmp_stream_key}" if rtmp_stream_key else None,
+        "rtmp_server": rtmp_base or None,
+        "rtmp_stream_key": rtmp_stream_key,
         "tokens_expire_seconds": 24 * 3600,
     }
 

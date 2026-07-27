@@ -265,6 +265,7 @@ def test_connector_start_uses_source_path_and_reports_running_state(monkeypatch,
     monkeypatch.setattr(setup_ui.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(setup_ui.time, "sleep", lambda _seconds: None)
     monkeypatch.setattr(setup_ui, "SETUP_LOG", tmp_path / "connector.log")
+    monkeypatch.setattr(setup_ui, "_connector_instance_is_running", lambda: False)
 
     result = service.start_connector()
 
@@ -300,10 +301,31 @@ def test_connector_start_never_reports_false_success(monkeypatch, tmp_path: Path
     monkeypatch.setattr(setup_ui.subprocess, "Popen", lambda *_args, **_kwargs: StoppedProcess())
     monkeypatch.setattr(setup_ui.time, "sleep", lambda _seconds: None)
     monkeypatch.setattr(setup_ui, "SETUP_LOG", tmp_path / "connector.log")
+    monkeypatch.setattr(setup_ui, "_connector_instance_is_running", lambda: False)
 
     with pytest.raises(SetupValidationError, match="no pudo iniciar"):
         service.start_connector()
     assert service.state()["capabilities"]["connector_running"] is False
+
+
+def test_connector_start_recognizes_an_existing_single_instance(monkeypatch, tmp_path: Path):
+    store = LocalConfigurationStore(tmp_path / "setup.json")
+    vault = FakeVault()
+    vault.set("obs_websocket_password", "segura")
+    service = SetupService(store=store, vault=vault)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(setup_ui.TokenStore, "load", lambda _self: object())
+    monkeypatch.setattr(setup_ui, "_connector_instance_is_running", lambda: True)
+    monkeypatch.setattr(
+        setup_ui.subprocess,
+        "Popen",
+        lambda *_args, **_kwargs: pytest.fail("No debe iniciar una segunda instancia del conector."),
+    )
+
+    result = service.start_connector()
+
+    assert result["pid"] is None
+    assert result["state"]["capabilities"]["connector_running"] is True
 
 
 def test_setup_page_accepts_theme_query_and_renders_light_mode(tmp_path: Path):
@@ -326,6 +348,8 @@ def test_setup_page_accepts_theme_query_and_renders_light_mode(tmp_path: Path):
         assert 'href="/setup.css"' in response.text
         assert 'href="/favicon.webp?v=2"' in response.text
         assert '<img src="/favicon.webp?v=2" alt="Nexa">' in response.text
+        assert 'id="server-readiness-items"' in response.text
+        assert 'renderProductionReadiness' in response.text
 
         shared_theme = httpx.get(f"http://127.0.0.1:{port}/theme.css", timeout=5)
         local_styles = httpx.get(f"http://127.0.0.1:{port}/setup.css", timeout=5)

@@ -11,7 +11,8 @@ de confianza pasen la verificación de puesta en marcha descrita abajo.
 - Un nombre DNS público y certificado TLS de confianza para uso en línea
 - Puerto UDP 8189 accesible por clientes WebRTC, o un servicio TURN configurado
 - OBS WebSocket 5.x habilitado solo en localhost con autenticación
-- Artefactos oficiales del release de StreamML ya presentes en `models/registry/`
+- El repositorio del release, incluido `models/registry/`, disponible durante la
+  construcción de la imagen de API.
 
 ## Verificación de puesta en marcha para producción
 
@@ -44,12 +45,31 @@ Generar secretos con un gestor de secretos aprobado. Si no hay uno disponible,
 Python puede generar un valor URL-safe localmente; copiarlo directamente al archivo
 de entorno protegido y no conservarlo en el historial del shell.
 
-El despliegue con Compose monta `models/registry/` como solo lectura. Los datos
-versionados y los contratos de features residen en `src/streamml/config/` y se
-copian con el código fuente de la API. El despliegue no entrena, sobrescribe ni
-regenera artefactos de modelo.
+La imagen de API incorpora `models/registry/` junto con los contratos de
+features versionados. Al arrancar valida hashes, clases, contratos y versiones
+de librerías; un artefacto alterado impide que la API quede lista. El despliegue
+no entrena, sobrescribe ni regenera modelos en tiempo de ejecución.
 
 ## Despliegue en servidor
+
+## Paquete de entrega
+
+Para entregar el sistema a otro equipo o moverlo a un servidor aislado, genera
+un artefacto desde la raíz del repositorio:
+
+```powershell
+./scripts/Empaquetar-StreamML.ps1
+```
+
+El comando ejecuta el control de secretos y la verificación de modelos antes de
+crear `dist/StreamML-production-<fecha>.zip` y su archivo `.sha256`. El ZIP
+incluye código, modelos registrados, Docker, el conector, la GUI y la
+documentación; excluye intencionalmente `.env`, certificados, bases SQLite,
+telemetría local, registros, entornos virtuales y dependencias instaladas.
+
+En el equipo destino, valida el SHA-256, extrae el ZIP, crea su propio
+`deployment/.env` y sigue los pasos de esta guía. No copies una base de datos
+local ni un archivo de secretos desde el paquete.
 
 1. Copiar `deployment/.env.example` a `deployment/.env` fuera del control de versiones.
 2. Reemplazar cada `CHANGE_ME` y ambas rutas TLS.
@@ -160,9 +180,12 @@ Después del primer enlace exitoso, ejecutar sin `--pair`:
 
 El conector invoca `GetStats` y `GetStreamStatus` de OBS para telemetría. También acepta
 solo tres operaciones de control autenticadas: actualizar el perfil de StreamML, seleccionar
-`StreamML Backup` y restaurar `StreamML Live`. Nunca expone un endpoint RPC genérico de OBS
-y nunca inicia ni detiene una transmisión. Crear ambas escenas antes de iniciar el conector,
-o sobreescribir `STREAMML_LIVE_SCENE` y `STREAMML_BACKUP_SCENE`.
+`StreamML Backup` y restaurar `StreamML Live`. Nunca expone un endpoint RPC genérico de OBS.
+Los comandos del agente nunca inician ni detienen una transmisión. Únicamente al vincular una
+nueva sesión RTMP mientras OBS ya transmite, el conector puede ciclar brevemente la salida,
+porque OBS exige detenerla para cambiar el servicio; restaura la salida inmediatamente y no
+expone esa operación a la API, al modelo ni al usuario. Crear ambas escenas antes de iniciar
+el conector, o sobreescribir `STREAMML_LIVE_SCENE` y `STREAMML_BACKUP_SCENE`.
 
 El conector mide subida, descarga, latencia, jitter y sondas fallidas contra la ruta
 autenticada de la API cada cinco segundos. `output_bitrate_kbps` sigue siendo un derivado

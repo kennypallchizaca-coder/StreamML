@@ -78,6 +78,9 @@ export const api = {
   me() {
     return request<LoginResponse>("/auth/me", {}, { suppressUnauthorizedEvent: true });
   },
+  session() {
+    return request<LoginResponse>("/auth/session", {}, { suppressUnauthorizedEvent: true });
+  },
   logout() {
     return request<{ message?: string }>("/auth/logout", { method: "POST" });
   },

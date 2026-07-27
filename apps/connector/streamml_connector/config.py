@@ -173,7 +173,7 @@ def load_config() -> ConnectorConfig:
     saved = _saved_local_settings()
     api_base_url = _validate_api_url(str(_value("STREAMML_API_URL", saved, "http://127.0.0.1:8000")))
     reconnect_initial = _env_float("STREAMML_RECONNECT_INITIAL_SECONDS", 1.0)
-    reconnect_max = _env_float("STREAMML_RECONNECT_MAX_SECONDS", 30.0)
+    reconnect_max = _env_float("STREAMML_RECONNECT_MAX_SECONDS", 5.0)
     if reconnect_max < reconnect_initial:
         raise ConfigurationError("STREAMML_RECONNECT_MAX_SECONDS cannot be lower than the initial delay.")
 

@@ -57,7 +57,9 @@ export default function useSessionSocket(sessionId?: string) {
         }
         retries.current += 1;
         setState("reconnecting");
-        const delay = Math.min(1000 * 2 ** (retries.current - 1), 15000);
+        // Keep live-monitor recovery responsive while avoiding a reconnect storm.
+        const backoff = Math.min(500 * 2 ** (retries.current - 1), 5000);
+        const delay = Math.round(backoff * (0.8 + Math.random() * 0.4));
         reconnectTimer = window.setTimeout(connect, delay);
       };
     };

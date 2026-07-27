@@ -23,12 +23,12 @@ services:
       STREAMML_ALLOWED_ORIGINS: http://localhost
       STREAMML_MEDIAMTX_PUBLIC_BASE: http://localhost/media
       STREAMML_MEDIAMTX_RTMP_PUBLISH_BASE: rtmp://127.0.0.1:1935
+      STREAMML_MEDIAMTX_API_URL: http://mediamtx:9997
       STREAMML_BOOTSTRAP_EMAIL: admin@localhost.com
       STREAMML_BOOTSTRAP_PASSWORD: password123456
       STREAMML_COOKIE_SECURE: "false"
       STREAMML_ENFORCE_HTTPS: "false"
     volumes:
-      - ../../models/registry:/app/models/registry:ro
       - api_data_local:/app/runtime
     read_only: true
     tmpfs:

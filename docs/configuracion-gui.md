@@ -26,9 +26,11 @@ La vinculación pertenece a una transmisión concreta. Al guardar un código nue
 
 ## Configurar e iniciar el servidor Docker
 
-La pestaña **Servidor Docker** solicita el dominio HTTPS, certificado TLS, correo/contraseña inicial, orígenes permitidos y, opcionalmente, destinos de retransmisión. Necesita Docker Desktop iniciado. Antes de guardar comprueba que certificado y clave sean PEM válidos y que correspondan entre sí; no basta con que los archivos existan.
+La pestaña **Servidor Docker** solicita el dominio HTTPS, certificado TLS, correo/contraseña inicial, orígenes permitidos y, opcionalmente, destinos de retransmisión. La tarjeta **Preparación de producción** resume Docker Compose, URL HTTPS, rutas TLS, secretos cifrados y host WebRTC antes de iniciar los servicios. Es una orientación visible; el botón **Validar preparación** sigue comprobando la configuración real de Docker Compose.
 
-Guarda primero los datos y pulsa **Validar Docker Compose**. Después usa **Iniciar o actualizar servicios**. El asistente construye un archivo de entorno temporal solo para el arranque y lo elimina al terminar; no crea un `.env` con secretos permanentes.
+Necesita Docker Desktop iniciado. Antes de guardar comprueba que certificado y clave sean PEM válidos y que correspondan entre sí; no basta con que los archivos existan.
+
+Guarda primero los datos y pulsa **Validar preparación**. Después usa **Iniciar o actualizar**. El asistente construye un archivo de entorno temporal solo para el arranque y lo elimina al terminar; no crea un `.env` con secretos permanentes.
 
 La clave privada del certificado no se carga ni se copia: se indica su ruta local para que Docker la monte de solo lectura.
 

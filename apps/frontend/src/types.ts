@@ -8,6 +8,7 @@ export interface UserSummary {
 }
 
 export interface LoginResponse {
+  authenticated: boolean;
   user?: UserSummary;
   message?: string;
 }
@@ -88,6 +89,7 @@ export interface PredictionSnapshot {
   model_version?: string | null;
   degradation_probability?: number | null;
   probability_downgrade_needed?: number | null;
+  probabilities?: Record<string, number> | null;
   recommendation?: string | null;
   reason?: string | null;
   evidence?: Record<string, string | number | boolean | null> | null;
@@ -101,6 +103,8 @@ export interface VideoEndpoints {
   hls_url?: string | null;
   whip_publish_url?: string | null;
   rtmp_publish_url?: string | null;
+  rtmp_server?: string | null;
+  rtmp_stream_key?: string | null;
   tokens_expire_seconds?: number | null;
 }
 

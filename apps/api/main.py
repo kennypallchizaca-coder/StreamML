@@ -34,6 +34,7 @@ from src.streamml.observability.logging import LOGGER, audit_log, configure_logg
 from src.streamml.security.auth import normalize_email
 from src.streamml.security.rate_limit import RateLimiter
 from src.streamml.services.database import Database, LATEST_SCHEMA_VERSION
+from src.streamml.services.mediamtx_status import MediaMtxStatusClient
 from src.streamml.services.session_store import SessionStore
 from src.streamml.services.websocket_hub import WebSocketHub
 
@@ -68,7 +69,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.registry = registry
     application.state.engine = InferenceEngine(registry)
     application.state.agent = AutonomousStreamingAgent()
-    application.state.session_store = SessionStore(database, registry)
+    application.state.media_status = MediaMtxStatusClient(config.mediamtx_api_url)
+    application.state.session_store = SessionStore(database, registry, application.state.media_status)
     application.state.websocket_hub = websocket_hub
     application.state.rate_limiter = RateLimiter()
     configure_logging()

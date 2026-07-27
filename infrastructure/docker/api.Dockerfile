@@ -10,13 +10,17 @@ WORKDIR /app
 RUN groupadd --system streamml \
     && useradd --system --gid streamml --home-dir /home/streamml --create-home streamml
 
-COPY requirements.txt /app/requirements.txt
+COPY requirements-api.txt /app/requirements-api.txt
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /app/requirements.txt
+    && python -m pip install -r /app/requirements-api.txt
 
 COPY apps/__init__.py /app/apps/__init__.py
 COPY apps/api /app/apps/api
 COPY src /app/src
+# The model registry is part of the verified application release. Keeping it
+# in the image makes the API portable and prevents a host bind mount from
+# silently replacing model artefacts at runtime.
+COPY models/registry /app/models/registry
 
 RUN mkdir -p /app/runtime && chown -R streamml:streamml /app /home/streamml
 USER streamml

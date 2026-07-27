@@ -123,6 +123,8 @@ def test_compatible_network_telemetry_runs_reactive_model_and_agent(client: Test
     reactive = next(item for item in result["inference"]["predictions"] if item["model_role"] == "reactive")
     assert reactive["status"] == "executed"
     assert reactive["recommendation"] == "low"
+    assert reactive["probabilities"] is not None
+    assert reactive["probabilities"]["low"] > 0
     assert result["agent_decision"]["action"] == "reduce"
     assert result["agent_decision"]["target_profile"] == "low"
     assert result["control_command"]["command_type"] == "set_profile"
@@ -145,6 +147,13 @@ def test_compatible_network_telemetry_runs_reactive_model_and_agent(client: Test
     assert detail["telemetry"]["upload_mbps"] == 1.0
     assert detail["telemetry"]["current_profile"] == "low"
     assert detail["agent_decision"]["target_profile"] == "low"
+
+    reactive_logs = client.get("/api/v1/audit/events?action=model.reactive")
+    assert reactive_logs.status_code == 200
+    reactive_event = reactive_logs.json()["items"][0]
+    assert reactive_event["action"] == "model.reactive.inference"
+    assert reactive_event["outcome"] == "success"
+    assert reactive_event["details"]["recommendation"] == "low"
 
 
 def test_vdo_ninja_metrics_override_pc_path_for_models_and_dashboard(client: TestClient):
@@ -201,6 +210,24 @@ def test_connected_phone_without_mobile_capacity_blocks_inference(client: TestCl
     detail = client.get(f"/api/v1/sessions/{session_id}").json()
     assert detail["telemetry"]["upload_mbps"] is None
     assert detail["telemetry"]["connection_capacity_mbps"] is None
+
+
+def test_recent_phone_disconnect_is_not_masked_by_an_old_dashboard_reporter(client: TestClient):
+    login(client)
+    session_id = create_session(client)["id"]
+
+    bridge = _vdo_telemetry(session_id, sequence=1)
+    bridge["reporter_id"] = "obs-bridge-reporter"
+    bridge["observed_at"] = "2026-07-17T12:00:00Z"
+    assert client.post("/api/v1/telemetry/vdo-ninja", json=bridge).status_code == 200
+
+    disconnected = _vdo_telemetry(session_id, sequence=1, status="disconnected")
+    disconnected["reporter_id"] = "dashboard-monitor-reporter"
+    disconnected["observed_at"] = "2026-07-17T12:00:08Z"
+    response = client.post("/api/v1/telemetry/vdo-ninja", json=disconnected)
+
+    assert response.status_code == 200
+    assert response.json()["phone_status"] == "disconnected"
 
 
 def test_stale_vdo_signal_activates_backup_and_stable_recovery_restores_live(

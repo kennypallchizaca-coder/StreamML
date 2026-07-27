@@ -20,6 +20,7 @@ def prediction_view(record: dict[str, Any] | None, registry: Any | None = None) 
         "model_role": record.get("model_role"),
         "model_version": record.get("model_version"),
         "probability_downgrade_needed": result.get("probability_downgrade_needed"),
+        "probabilities": result.get("probabilities"),
         "recommendation": result.get("decision") or result.get("prediction"),
         "reason": result.get("explanation") or record.get("blocked_reason"),
         "evidence": result.get("evidence"),
@@ -46,9 +47,10 @@ def prediction_view(record: dict[str, Any] | None, registry: Any | None = None) 
 
 
 class SessionStore:
-    def __init__(self, database: Database, registry: Any) -> None:
+    def __init__(self, database: Database, registry: Any, media_status: Any | None = None) -> None:
         self.database = database
         self.registry = registry
+        self.media_status = media_status
 
     def detail(self, user_id: str, session_id: str) -> dict[str, Any] | None:
         session = self.database.get_session(user_id, session_id)
@@ -61,7 +63,12 @@ class SessionStore:
         if raw_telemetry and raw_telemetry.get("network") and agent_state:
             raw_telemetry["network"]["current_profile"] = agent_state.get("current_profile")
         session["telemetry"] = telemetry_snapshot(
-            raw_telemetry, self.registry, phone_telemetry, reference_at=utc_now_iso()
+            raw_telemetry,
+            self.registry,
+            phone_telemetry,
+            reference_at=utc_now_iso(),
+            media_status=self.media_status,
+            stream_id=session["stream_id"],
         )
         session["latest_prediction"] = prediction_view(predictions[0] if predictions else None, self.registry)
         session["recent_predictions"] = [prediction_view(item, self.registry) for item in predictions]

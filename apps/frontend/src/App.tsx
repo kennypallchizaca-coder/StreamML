@@ -87,11 +87,12 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    void api.me()
+    void api.session()
       .then(async (response) => {
         if (!active) return;
-        setAuthenticated(true);
-        setUser(response.user ?? null);
+        setAuthenticated(response.authenticated);
+        setUser(response.authenticated ? response.user ?? null : null);
+        if (!response.authenticated) return;
         try {
           const settings = await api.getSettings();
           if (active) document.documentElement.classList.toggle("dark", settings.preferences.dark_mode);

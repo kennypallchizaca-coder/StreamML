@@ -1,9 +1,11 @@
 from fastapi.testclient import TestClient
+from urllib.parse import parse_qs, urlparse
 
 from conftest import TEST_PASSWORD, create_session, login
 
 
 def test_auth_session_creation_and_listing(client: TestClient):
+    assert client.get("/api/v1/auth/session").json() == {"authenticated": False, "user": None}
     health = client.get("/health").json()
     assert health["production_ready"] is False
     assert health["ready"] is True
@@ -19,8 +21,14 @@ def test_auth_session_creation_and_listing(client: TestClient):
     )
 
     login(client)
+    assert client.get("/api/v1/auth/session").json()["authenticated"] is True
     created = create_session(client)
-    assert created["vdo_ninja"]["phone_url"].startswith("https://vdo.ninja/")
+    phone_url = created["vdo_ninja"]["phone_url"]
+    assert phone_url.startswith("https://vdo.ninja/")
+    phone_params = parse_qs(urlparse(phone_url).query)
+    assert phone_params["videodevice"] == ["1"]
+    assert phone_params["audiodevice"] == ["0"]
+    assert "&safemode" in phone_url
     assert created["stream"]["webrtc_url"].startswith("https://testserver/")
     assert created["stream"]["whip_publish_url"].startswith("https://testserver/")
     fetched = client.get(f"/api/v1/sessions/{created['id']}")

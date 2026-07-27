@@ -13,6 +13,7 @@ from .api_client import ApiClientError, ConnectorRuntimeSettings, StreamMLApiCli
 from .config import ConfigurationError, ConnectorConfig, load_config
 from .obs_client import ObsClient, ObsSnapshot
 from .network_probe import NetworkMeasurement, NetworkProbe
+from .instance_lock import ConnectorAlreadyRunning, ConnectorInstanceLock
 from .secrets import (
     ConnectorCredentials,
     SecretStorageError,
@@ -23,6 +24,7 @@ from .secrets import (
 
 
 LOGGER = logging.getLogger("streamml_connector")
+REMOTE_SETTINGS_REFRESH_SECONDS = 5.0
 
 
 class _SecretRedactionFilter(logging.Filter):
@@ -108,13 +110,34 @@ def _send_disconnected(
 
 def _apply_runtime_settings(obs_client: ObsClient, settings: ConnectorRuntimeSettings) -> None:
     obs_client.set_scene_names(live_scene=settings.live_scene, backup_scene=settings.backup_scene)
+    # Settings are fetched before the first OBS connection so scene names are
+    # already available to recovery commands.  Service/source changes require
+    # an authenticated OBS WebSocket, therefore defer them until connected
+    # instead of aborting the whole connector at startup.
+    if not obs_client.connected:
+        return
+    if settings.rtmp_server and settings.rtmp_stream_key:
+        obs_client.ensure_rtmp_service(settings.rtmp_server, settings.rtmp_stream_key)
     if settings.vdo_bridge_url and obs_client.connected and obs_client.ensure_vdo_bridge(settings.vdo_bridge_url):
         LOGGER.info("Verified the monitored StreamML browser source in OBS.")
+
+
+def _stored_credentials_or_current(store: TokenStore, current: ConnectorCredentials) -> ConnectorCredentials:
+    """Read a newer pairing without dropping a still-running connector."""
+
+    stored = store.load()
+    return stored if stored is not None else current
 
 
 def run(*, pair: bool, once: bool, forget_token: bool) -> int:
     config = load_config()
     _configure_logging(config.log_level)
+    instance_lock = ConnectorInstanceLock()
+    try:
+        instance_lock.acquire()
+    except ConnectorAlreadyRunning:
+        LOGGER.error("Otro conector StreamML ya está activo; se evita una segunda conexión a OBS.")
+        return 3
     store = TokenStore(config.keyring_service, config.api_base_url, config.connector_name)
 
     if forget_token:
@@ -157,6 +180,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
             try:
                 obs_client.connect(obs_password)
                 LOGGER.info("Connected to local authenticated OBS WebSocket.")
+                _apply_runtime_settings(obs_client, remote_settings)
                 delay = config.reconnect_initial_seconds
                 next_sample_at = time.monotonic()
                 while True:
@@ -164,12 +188,17 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
                     now = time.monotonic()
                     try:
                         if now >= next_settings_refresh_at:
+                            refreshed_credentials = _stored_credentials_or_current(store, credentials)
+                            credentials_changed = refreshed_credentials != credentials
+                            if credentials_changed:
+                                credentials = refreshed_credentials
+                                LOGGER.info("Detected a new StreamML pairing; switching the monitored OBS session.")
                             remote_settings = api.connector_settings(credentials)
                             _apply_runtime_settings(obs_client, remote_settings)
-                            if remote_settings.network_probe_bytes != network_probe.payload_bytes:
+                            if credentials_changed or remote_settings.network_probe_bytes != network_probe.payload_bytes:
                                 network_probe = NetworkProbe(api, credentials, remote_settings.network_probe_bytes)
                             network_probe_interval = remote_settings.network_probe_interval_seconds
-                            next_settings_refresh_at = now + 30.0
+                            next_settings_refresh_at = now + REMOTE_SETTINGS_REFRESH_SECONDS
                         if now >= next_network_probe_at:
                             measured = network_probe.measure()
                             if measured is not None:
@@ -236,6 +265,7 @@ def run(*, pair: bool, once: bool, forget_token: bool) -> int:
     finally:
         obs_client.disconnect()
         api.close()
+        instance_lock.release()
 
 
 def _parser() -> argparse.ArgumentParser:

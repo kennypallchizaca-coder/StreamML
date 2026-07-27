@@ -276,15 +276,15 @@ export default function CreateStreamPage() {
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Servidor RTMP</Label>
                       <div className="flex gap-2">
-                        <Input readOnly value={session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : ""} className="font-mono text-xs" />
-                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : "")}><Copy className="size-4" /></Button>
+                        <Input readOnly value={session?.stream?.rtmp_server ?? (session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : "")} className="font-mono text-xs" />
+                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_server ?? (session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.substring(0, session.stream.rtmp_publish_url.lastIndexOf('/')) : ""))}><Copy className="size-4" /></Button>
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Clave de retransmisión (con token)</Label>
                       <div className="flex gap-2">
-                        <Input readOnly type="password" value={session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.split("/").pop() || "" : ""} className="font-mono text-xs" />
-                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_publish_url?.split("/").pop() || "")}><Copy className="size-4" /></Button>
+                        <Input readOnly type="password" value={session?.stream?.rtmp_stream_key ?? (session?.stream?.rtmp_publish_url ? session.stream.rtmp_publish_url.split("/").pop() || "" : "")} className="font-mono text-xs" />
+                        <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(session?.stream?.rtmp_stream_key ?? (session?.stream?.rtmp_publish_url?.split("/").pop() || ""))}><Copy className="size-4" /></Button>
                       </div>
                     </div>
                   </div>

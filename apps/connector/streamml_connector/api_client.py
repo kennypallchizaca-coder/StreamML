@@ -37,6 +37,8 @@ class ConnectorRuntimeSettings:
     network_probe_interval_seconds: float
     network_probe_bytes: int
     vdo_bridge_url: str | None = None
+    rtmp_server: str | None = None
+    rtmp_stream_key: str | None = None
 
 
 class StreamMLApiClient:
@@ -117,11 +119,27 @@ class StreamMLApiClient:
             interval = float(data["network_probe_interval_seconds"])
             probe_bytes = int(data["network_probe_bytes"])
             bridge_url = str(data.get("vdo_bridge_url") or "").strip() or None
+            rtmp_server = str(data.get("rtmp_server") or "").strip() or None
+            rtmp_stream_key = str(data.get("rtmp_stream_key") or "").strip() or None
         except (KeyError, TypeError, ValueError) as exc:
             raise ApiClientError("The connector settings response was invalid.") from exc
         if not live_scene or not backup_scene or not 1 <= interval <= 60 or not 1024 <= probe_bytes <= 512 * 1024:
             raise ApiClientError("The connector settings response was outside safe limits.")
-        return ConnectorRuntimeSettings(live_scene, backup_scene, interval, probe_bytes, bridge_url)
+        if bool(rtmp_server) != bool(rtmp_stream_key):
+            raise ApiClientError("The connector RTMP settings were incomplete.")
+        if rtmp_server and (not rtmp_server.startswith(("rtmp://", "rtmps://")) or any(char.isspace() for char in rtmp_server)):
+            raise ApiClientError("The connector RTMP server was invalid.")
+        if rtmp_stream_key and (len(rtmp_stream_key) > 2048 or any(char.isspace() for char in rtmp_stream_key)):
+            raise ApiClientError("The connector RTMP key was invalid.")
+        return ConnectorRuntimeSettings(
+            live_scene,
+            backup_scene,
+            interval,
+            probe_bytes,
+            bridge_url,
+            rtmp_server,
+            rtmp_stream_key,
+        )
 
     def acknowledge_command(
         self,

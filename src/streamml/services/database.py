@@ -731,8 +731,22 @@ class Database:
         latest_by_reporter: dict[str, sqlite3.Row] = {}
         for row in rows:
             latest_by_reporter.setdefault(row["reporter_id"], row)
-        connected = [row for row in latest_by_reporter.values() if row["status"] == "connected"]
-        selected = connected[0] if connected else rows[0]
+        reporter_rows = list(latest_by_reporter.values())
+
+        def observed_at(row: sqlite3.Row) -> datetime:
+            return datetime.fromisoformat(str(row["observed_at"]).replace("Z", "+00:00"))
+
+        newest_at = max(observed_at(row) for row in reporter_rows)
+        # A browser dashboard can be closed while the persistent OBS bridge
+        # reports a newer disconnect. Do not let that old "connected" sample
+        # mask the outage as merely stale. A simultaneous reporter is still
+        # authoritative when it reported an active phone within one polling
+        # window of the newest state.
+        fresh_connected = [
+            row for row in reporter_rows
+            if row["status"] == "connected" and (newest_at - observed_at(row)).total_seconds() <= 5
+        ]
+        selected = max(fresh_connected or reporter_rows, key=observed_at)
         result = dict(selected)
         metrics = json.loads(result.pop("metrics_json"))
         selected_at = datetime.fromisoformat(str(selected["observed_at"]).replace("Z", "+00:00"))
@@ -772,9 +786,15 @@ class Database:
                    ORDER BY observed_at DESC, sequence DESC LIMIT ?""",
                 (user_id, session_id, limit),
             ).fetchall()
-        results = [
-            {"observed_at": row["observed_at"], "network": json.loads(row["network_json"])} for row in reversed(rows)
-        ]
+        results = []
+        for row in reversed(rows):
+            network = json.loads(row["network_json"])
+            # A VDO reporter can be temporarily connected but omit its
+            # outgoing-capacity statistic. Such a row is useful for the UI,
+            # but it is not a sample for the predictive capacity history.
+            if network.get("connection_capacity_mbps") is None:
+                continue
+            results.append({"observed_at": row["observed_at"], "network": network})
         return results
 
     def load_agent_state(self, user_id: str, session_id: str) -> dict[str, Any] | None:

@@ -9,6 +9,10 @@ interface VdoNinjaCameraProps {
   onLoad?: () => void;
 }
 
+const STATS_STALE_AFTER_MS = 8_000;
+const RECONNECT_RETRY_BASE_MS = 3_000;
+const RECONNECT_RETRY_MAX_MS = 30_000;
+
 function configuredOrigins(): Set<string> {
   const raw = import.meta.env.VITE_VDO_NINJA_ORIGINS || "https://vdo.ninja";
   return new Set(raw.split(",").map((value) => value.trim()).filter(Boolean));
@@ -35,10 +39,14 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const statsRef = useRef(new VdoStatsAccumulator());
   const lastStatsAtRef = useRef<number | null>(null);
+  const frameLoadedAtRef = useRef<number | null>(null);
   const everConnectedRef = useRef(false);
   const disconnectedReportedRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
+  const nextReconnectAtRef = useRef(0);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
   const [frameLoaded, setFrameLoaded] = useState(false);
+  const [reloadGeneration, setReloadGeneration] = useState(0);
   const origins = useMemo(configuredOrigins, []);
   const safeUrl = useMemo(() => {
     if (!embedUrl) return null;
@@ -57,8 +65,12 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
     setFrameLoaded(false);
     statsRef.current = new VdoStatsAccumulator();
     lastStatsAtRef.current = null;
+    frameLoadedAtRef.current = null;
     everConnectedRef.current = false;
     disconnectedReportedRef.current = false;
+    reconnectAttemptsRef.current = 0;
+    nextReconnectAtRef.current = 0;
+    setReloadGeneration(0);
   }, [safeUrl]);
 
   useEffect(() => {
@@ -77,6 +89,8 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
           lastStatsAtRef.current = Date.now();
           everConnectedRef.current = true;
           disconnectedReportedRef.current = false;
+          reconnectAttemptsRef.current = 0;
+          nextReconnectAtRef.current = 0;
           setLastEvent("WebRTC activo");
           onStatus?.("connected");
           onTelemetry?.(metrics, "connected");
@@ -124,14 +138,38 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
     }, 2_000);
     const watchdog = window.setInterval(() => {
       const lastStatsAt = lastStatsAtRef.current;
+      // At first launch VDO.Ninja can load before the phone starts publishing.
+      // Use the frame load time as a watchdog baseline so that initial race has
+      // the same self-healing behavior as a later network interruption.
+      const lastSignalAt = lastStatsAt ?? frameLoadedAtRef.current;
       if (
-        everConnectedRef.current && lastStatsAt != null
-        && Date.now() - lastStatsAt > 8_000 && !disconnectedReportedRef.current
+        everConnectedRef.current && lastSignalAt != null
+        && Date.now() - lastSignalAt > STATS_STALE_AFTER_MS && !disconnectedReportedRef.current
       ) {
         disconnectedReportedRef.current = true;
         setLastEvent("Sin señal");
         onStatus?.("disconnected");
         onTelemetry?.({}, "disconnected");
+      }
+
+      // VDO.Ninja usually reconnects its peer on its own. Some mobile browsers
+      // keep an orphaned WebRTC peer after Wi-Fi/mobile data changes, however.
+      // Recreate only the bridge iframe after stale statistics with exponential
+      // backoff so OBS resumes reporting without a manual page refresh.
+      if (
+        lastSignalAt != null && Date.now() - lastSignalAt > STATS_STALE_AFTER_MS
+        && Date.now() >= nextReconnectAtRef.current
+      ) {
+        const retryDelay = Math.min(
+          RECONNECT_RETRY_BASE_MS * 2 ** reconnectAttemptsRef.current,
+          RECONNECT_RETRY_MAX_MS,
+        );
+        reconnectAttemptsRef.current += 1;
+        nextReconnectAtRef.current = Date.now() + retryDelay;
+        statsRef.current = new VdoStatsAccumulator();
+        setFrameLoaded(false);
+        setLastEvent(everConnectedRef.current ? "Reconectando señal" : "Buscando señal");
+        setReloadGeneration((generation) => generation + 1);
       }
     }, 2_000);
     return () => {
@@ -159,6 +197,7 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
         <div className="hud-corner hud-corner--br" />
       </div>
       <iframe
+        key={reloadGeneration}
         ref={iframeRef}
         src={safeUrl}
         className="w-full h-full border-0 absolute inset-0"
@@ -166,6 +205,7 @@ export default function VdoNinjaCamera({ embedUrl, onStatus, onTelemetry, onLoad
         allow="camera; microphone; autoplay; fullscreen; display-capture"
         referrerPolicy="no-referrer"
         onLoad={() => {
+          frameLoadedAtRef.current = Date.now();
           setFrameLoaded(true);
           setLastEvent("Esperando señal");
           onStatus?.("waiting");

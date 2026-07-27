@@ -74,6 +74,24 @@ def me(user: dict = Depends(current_user)) -> dict:
     }
 
 
+@router.get("/session")
+def session_status(request: Request) -> dict:
+    """Return the browser session state without treating an anonymous visit as an error."""
+
+    token = request.cookies.get(request.app.state.settings.session_cookie_name)
+    user = request.app.state.database.user_from_token_hash(hash_token(token)) if token else None
+    if not user:
+        return {"authenticated": False, "user": None}
+    return {
+        "authenticated": True,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "display_name": user.get("display_name") or user["email"],
+        },
+    }
+
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(request: Request, response: Response, user: dict = Depends(current_user)) -> Response:
     settings = request.app.state.settings

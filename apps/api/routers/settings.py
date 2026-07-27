@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from apps.api.dependencies import client_ip, current_connector, current_user, require_owned_session
 from apps.api.routers.sessions import _vdo_ninja
+from apps.api.routers.streams import stream_payload
 from apps.api.schemas import (
     AccountSettingsUpdate,
     DestructiveActionConfirmation,
@@ -237,10 +238,16 @@ def update_video_link(
 def connector_settings(request: Request, connector: dict = Depends(current_connector)) -> dict:
     stream = request.app.state.database.get_user_settings(connector["user_id"])["stream"]
     session = request.app.state.database.get_session(connector["user_id"], connector["session_id"])
+    media = stream_payload(request, session) if session else {}
     return {
         "live_scene": stream["live_scene"],
         "backup_scene": stream["backup_scene"],
         "network_probe_interval_seconds": stream["network_probe_interval_seconds"],
         "network_probe_bytes": stream["network_probe_bytes"],
         "vdo_bridge_url": _vdo_ninja(request, session)["bridge_url"] if session else None,
+        # The connector is session-scoped and authenticated. It receives the
+        # RTMP credentials directly so OBS can be configured without copying
+        # a key through the browser.
+        "rtmp_server": media.get("rtmp_server"),
+        "rtmp_stream_key": media.get("rtmp_stream_key"),
     }

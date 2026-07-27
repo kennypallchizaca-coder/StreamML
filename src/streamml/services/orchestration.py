@@ -11,6 +11,13 @@ from src.streamml.domain.contracts import INSUFFICIENT_DATA
 from src.streamml.features.validation import IncompatibleFeatures
 
 
+# A connector request can take up to ten seconds and a phone report can briefly
+# omit its capacity estimate. Limit interpolation to their bounded combined
+# jitter, preserving the model's 1 Hz grid without accepting an outage-sized
+# gap. Longer gaps remain invalid because capacity cannot be inferred safely.
+MAX_PREDICTIVE_INTERPOLATION_GAP_SECONDS = 15.0
+
+
 def process_telemetry(
     *,
     database: Any,
@@ -24,6 +31,7 @@ def process_telemetry(
     metrics: dict[str, Any],
     network: dict[str, Any] | None,
     phone_signal_available: bool | None = None,
+    media_signal_available: bool | None = None,
 ) -> dict[str, Any]:
     """Run every compatible model, update agent state and queue required action."""
 
@@ -103,6 +111,7 @@ def process_telemetry(
         and bool(metrics.get("stream_active"))
         and not bool(metrics.get("stream_reconnecting"))
         and phone_signal_available is not False
+        and media_signal_available is not False
     )
     decision = agent.decide(
         state,
@@ -153,19 +162,30 @@ def process_telemetry(
 
 
 def _predictive_samples(history: list[dict[str, Any]], required_count: int) -> list[dict[str, Any]] | None:
-    """Resample real, continuous capacity observations to the model's 1 Hz grid."""
+    """Resample ordered capacity observations to the model's 1 Hz grid.
+
+    Brief pauses bounded by the connector request timeout are interpolated;
+    a longer pause makes the complete model window invalid.
+    """
 
     if required_count < 2 or len(history) < 2:
         return None
+    points = []
     try:
-        points = [
-            (
-                _timestamp(row["observed_at"]),
-                float(row["network"]["connection_capacity_mbps"]),
-            )
-            for row in history
-        ]
+        for row in history:
+            network = row.get("network")
+            if not isinstance(network, dict):
+                continue
+            capacity = network.get("connection_capacity_mbps")
+            # Telemetry can contain a partial phone-network row while its
+            # capacity estimate is unavailable. Skip that row; the time-gap
+            # policy below decides whether the remaining history is usable.
+            if capacity is None:
+                continue
+            points.append((_timestamp(row["observed_at"]), float(capacity)))
     except (KeyError, TypeError, ValueError):
+        return None
+    if len(points) < 2:
         return None
     if any(not math.isfinite(value) or value < 0 for _, value in points):
         return None
@@ -176,7 +196,7 @@ def _predictive_samples(history: list[dict[str, Any]], required_count: int) -> l
     coverage_start = max(index for index, point in enumerate(points[:-1]) if point[0] <= start_at)
     points = points[coverage_start:]
     deltas = [later[0] - earlier[0] for earlier, later in zip(points, points[1:])]
-    if any(delta <= 0 or delta > 2.0 for delta in deltas):
+    if any(delta <= 0 or delta > MAX_PREDICTIVE_INTERPOLATION_GAP_SECONDS for delta in deltas):
         return None
 
     samples: list[dict[str, Any]] = []

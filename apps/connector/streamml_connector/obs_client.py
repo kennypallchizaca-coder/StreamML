@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import base64
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import json
 import time
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import obsws_python as obs
 
@@ -57,6 +59,30 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _rtmp_stream_name(stream_key: str) -> str:
+    """Return the stable MediaMTX path without exposing the publish token."""
+
+    return stream_key.partition("?")[0]
+
+
+def _publish_token_is_fresh(stream_key: str, *, minimum_remaining_seconds: float = 120.0) -> bool:
+    """Check only the expiry of the opaque signed publish token.
+
+    The API mints a fresh signed token on each settings request. Its signature
+    remains validated by MediaMTX; decoding here only prevents an unnecessary
+    OBS restart while a currently configured token is still valid.
+    """
+
+    token = parse_qs(stream_key.partition("?")[2], keep_blank_values=False).get("token", [""])[0]
+    try:
+        encoded = token.split(".", 1)[0]
+        raw = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        expires_at = int(json.loads(raw.decode("utf-8"))["exp"])
+    except (IndexError, KeyError, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    return expires_at > time.time() + minimum_remaining_seconds
+
+
 class ObsClient:
     """OBS client restricted to telemetry and explicit StreamML actions.
 
@@ -73,6 +99,10 @@ class ObsClient:
             "GetInputSettings",
             "SetInputSettings",
             "SetProfileParameter",
+            "GetStreamServiceSettings",
+            "SetStreamServiceSettings",
+            "StopStream",
+            "StartStream",
             "SetCurrentProgramScene",
         }
     )
@@ -83,15 +113,19 @@ class ObsClient:
         *,
         client_factory: Callable[..., Any] = obs.ReqClient,
         monotonic: Callable[[], float] = time.monotonic,
+        sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
         self._config = config
         self._client_factory = client_factory
         self._monotonic = monotonic
+        self._sleeper = sleeper
         self._client: Any | None = None
         self._live_scene = config.live_scene
         self._backup_scene = config.backup_scene
         self._previous_output_bytes: int | None = None
         self._previous_sample_time: float | None = None
+        self._rtmp_server: str | None = None
+        self._rtmp_stream_key: str | None = None
 
     @property
     def connected(self) -> bool:
@@ -117,6 +151,71 @@ class ObsClient:
             raise ValueError("OBS scene names cannot be blank.")
         self._live_scene = cleaned_live
         self._backup_scene = cleaned_backup
+
+    def ensure_rtmp_service(self, server: str, stream_key: str) -> bool:
+        """Synchronize the paired session's RTMP target without browser copy/paste."""
+
+        if self._client is None:
+            raise RuntimeError("OBS is not connected.")
+        if not server.startswith(("rtmp://", "rtmps://")) or not stream_key:
+            raise ValueError("Invalid RTMP service settings.")
+        if self._rtmp_server == server and self._rtmp_stream_key == stream_key:
+            return False
+
+        response = self._client.get_stream_service_settings()
+        current = getattr(response, "stream_service_settings", {}) or {}
+        if not isinstance(current, dict):
+            current = {}
+        current_server = str(current.get("server") or "").strip()
+        current_key = str(current.get("key") or "")
+        # OBS canonicalizes a bare RTMP endpoint with a trailing slash. Treat
+        # both representations as the same destination; otherwise the
+        # settings refresh would restart an already healthy output every few
+        # seconds, preventing MediaMTX/HLS from becoming ready.
+        if current_server.rstrip("/") == server.rstrip("/"):
+            same_destination_with_valid_token = (
+                _rtmp_stream_name(current_key) == _rtmp_stream_name(stream_key) and _publish_token_is_fresh(current_key)
+            )
+            if current_key == stream_key or same_destination_with_valid_token:
+                self._rtmp_server = server
+                self._rtmp_stream_key = current_key
+                return False
+
+        was_streaming = bool(getattr(self._client.get_stream_status(), "output_active", False))
+        # OBS explicitly rejects SetStreamServiceSettings while output is
+        # active.  Switch in this order so moving to a newly-paired session
+        # never leaves the operator to edit or restart OBS manually.
+        if was_streaming:
+            self._stop_stream_output()
+        try:
+            self._client.set_stream_service_settings("rtmp_custom", {"server": server, "key": stream_key})
+        except Exception:
+            # Preserve the existing live output when OBS rejects the new
+            # target for a transient reason. The original exception is still
+            # propagated so the connector can retry with bounded backoff.
+            if was_streaming:
+                try:
+                    self._client.start_stream()
+                except Exception:
+                    pass
+            raise
+        self._rtmp_server = server
+        self._rtmp_stream_key = stream_key
+        if was_streaming:
+            self._client.start_stream()
+        return True
+
+    def _stop_stream_output(self) -> None:
+        """Stop OBS output and wait briefly for a safe RTMP target switch."""
+
+        if self._client is None:
+            raise RuntimeError("OBS is not connected.")
+        self._client.stop_stream()
+        deadline = self._monotonic() + 5.0
+        while bool(getattr(self._client.get_stream_status(), "output_active", False)):
+            if self._monotonic() >= deadline:
+                raise RuntimeError("OBS did not stop the previous RTMP output in time.")
+            self._sleeper(0.2)
 
     def collect(self) -> ObsSnapshot:
         if self._client is None:
@@ -268,6 +367,8 @@ class ObsClient:
                 self._client = None
         self._previous_output_bytes = None
         self._previous_sample_time = None
+        self._rtmp_server = None
+        self._rtmp_stream_key = None
 
 
 # Backward-compatible import for integrations built before authenticated OBS

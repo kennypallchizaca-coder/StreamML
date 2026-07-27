@@ -34,7 +34,15 @@ def _vdo_ninja(request: Request, session: dict) -> dict:
     ).hexdigest()[:24]
     remote = quote(remote_id, safe="")
     generated = {
-        "phone_url": f"https://vdo.ninja/?push={encoded}&webcam&autostart&remote={remote}",
+        # StreamML analyzes the phone's video path; it does not need its
+        # microphone. Explicitly disable audio so VDO.Ninja does not block the
+        # first connection on an unnecessary microphone permission prompt.
+        # Selecting the default camera and safe mode also make mobile browser
+        # startup more reliable after a previous permission decision.
+        "phone_url": (
+            f"https://vdo.ninja/?push={encoded}&webcam&autostart&videodevice=1"
+            f"&audiodevice=0&safemode&remote={remote}"
+        ),
         "embed_url": f"https://vdo.ninja/?view={encoded}&cleanoutput&autostart&remote={remote}",
         "expires_at": None,
     }

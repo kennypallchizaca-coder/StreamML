@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { getGeneralState, latestPredictionByRole, liveBadge } from "./LiveMonitorPage";
+import {
+  getGeneralState,
+  latestPredictionByRole,
+  liveBadge,
+  translateRecommendation,
+  translateRisk,
+} from "./LiveMonitorPage";
 
 
 describe("estado real de la transmisión", () => {
@@ -29,5 +35,31 @@ describe("estado real de la transmisión", () => {
 
     expect(latestPredictionByRole(predictions, "reactive")?.recommendation).toBe("high");
     expect(latestPredictionByRole(predictions, "predictive")?.recommendation).toBe("maintain");
+  });
+
+  it("explica los resultados de los modelos con el lenguaje de los notebooks", () => {
+    const reactive = translateRecommendation("medium");
+    expect(reactive.title).toBe("Señal estable (Calidad Media · medium)");
+    expect(reactive.summary).toBe("Las condiciones de red son regulares pero aceptables.");
+    expect(reactive.cause).toBe("Se han detectado variaciones normales en tu velocidad de internet.");
+
+    const predictive = translateRecommendation("downgrade_needed");
+    expect(predictive.title).toBe("Riesgo de corte inminente (downgrade_needed)");
+    expect(predictive.action).toBe("El sistema reducirá automáticamente la resolución para proteger la transmisión.");
+
+    const risk = translateRisk(0.52);
+    expect(risk.level).toBe("Incierta (Probabilidad media)");
+    expect(risk.detail).toBe("Hay ciertas variaciones en los datos. Podría suceder, pero no es definitivo.");
+  });
+
+  it("distingue la probabilidad del clasificador reactivo de la decisión predictiva", () => {
+    const reactive = {
+      model_role: "reactive",
+      recommendation: "medium" as const,
+      probabilities: { low: 0.1, medium: 0.72, high: 0.18 },
+    };
+
+    expect(reactive.probabilities[reactive.recommendation]).toBe(0.72);
+    expect(translateRecommendation(reactive.recommendation).title).toBe("Señal estable (Calidad Media · medium)");
   });
 });
