@@ -12,6 +12,12 @@ raíz `Adaptive-Streaming-ai`.
 - Para conectar OBS: OBS Studio con WebSocket 5.x activo, autenticado y limitado
   a `127.0.0.1`.
 
+En OBS configura el intervalo de fotogramas clave en **2 segundos**. HLS necesita
+un fotograma clave para iniciar cada segmento; dejar el valor automático puede
+añadir varios segundos a la primera vista previa. StreamML prepara el muxer HLS
+desde que recibe RTMP y el frontend inicia la reproducción en cuanto el primer
+segmento es decodificable.
+
 En Windows, abre Docker Desktop y comprueba que el motor esté activo antes de
 continuar. Nunca publiques el puerto WebSocket de OBS (`4455`).
 
@@ -138,7 +144,7 @@ errores corregidos consulta [operacion-y-verificacion.md](operacion-y-verificaci
 | Un puerto está ocupado | Identifica el proceso con `netstat -ano | findstr :<puerto>` en Windows o `lsof -i :<puerto>` en Linux/macOS. Detén solo el proceso identificado. |
 | Un contenedor no está saludable | Ejecuta `docker compose -f infrastructure/docker/docker-compose.local.yml ps` y consulta los logs del servicio concreto. |
 | El predictivo dice “Esperando datos” | Mantén telemetría de capacidad durante diez minutos. Revisa que el teléfono y el conector sigan conectados. |
-| No hay vista previa | Confirma que OBS usa el servidor y clave RTMP de la sesión. Si WebRTC no admite el codec, el reproductor usa HLS. |
+| No hay vista previa | Confirma que OBS usa el servidor y clave RTMP de la sesión y que el intervalo de fotogramas clave sea 2 s. Si WebRTC no admite el codec, el reproductor usa HLS y se reconecta automáticamente. |
 | La API nativa no inicia | Activa `.venv`, instala `requirements.txt` y usa la plantilla `.env.example` sin modificar sus controles de desarrollo. |
 
 No ejecutes comandos globales que detengan o eliminen todos los contenedores del

@@ -52,13 +52,10 @@ export default function LoginPage() {
       return;
     }
 
-    // Mock API call delay
-    setTimeout(() => {
-      setBusy(false);
-      toast.error("Creación de cuenta restringida", {
-        description: "El registro automático está deshabilitado por seguridad. Contacta al administrador para habilitar tu cuenta.",
-      });
-    }, 1500);
+    setBusy(false);
+    toast.error("Creación de cuenta restringida", {
+      description: "El registro automático está deshabilitado por seguridad. Contacta al administrador para habilitar tu cuenta.",
+    });
   }
 
   return (

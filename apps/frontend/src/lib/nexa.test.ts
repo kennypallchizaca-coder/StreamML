@@ -42,4 +42,16 @@ describe("personalidad operativa de Nexa", () => {
     expect(stopped.mood).toBe("attention");
     expect(stable.mood).toBe("stable");
   });
+
+  it("mantiene el estado estable mientras el predictivo completa su historial", () => {
+    const state = getNexaState({
+      telemetry: { obs_status: "connected", stream_active: true },
+      decision: { action: "maintain", operational_state: "stable" },
+      predictivePrediction: { status: "blocked" },
+    });
+
+    expect(state.mood).toBe("stable");
+    expect(state.label).toBe("Señal estable");
+    expect(state.message).toContain("historial");
+  });
 });

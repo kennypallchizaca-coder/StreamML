@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 
 from apps.media.restream_worker import (
@@ -20,7 +22,9 @@ def test_restream_config_and_ffmpeg_command() -> None:
     assert command[0] == "ffmpeg"
     assert "-c" in command and "copy" in command
     assert command[-1] == "rtmps://example.test/live/secret-key"
-    assert source_url(PATH, rtmp_base="rtmp://mediamtx:1935", media_secret="x" * 32).endswith(PATH)
+    source = source_url(PATH, rtmp_base="rtmp://mediamtx:1935", media_secret="x" * 32)
+    assert source == f"rtmp://mediamtx:1935/{PATH}?user=media-worker&pass={'x' * 32}"
+    assert "@mediamtx" not in source
     fallback = fallback_command(targets[0], "/fallback/fallback.mp4")
     assert "-stream_loop" in fallback
     assert fallback[-1] == targets[0].url
@@ -68,3 +72,34 @@ def test_supervisor_uses_fallback_then_restores_after_stable_probes(monkeypatch)
     supervisor._reconcile()
     assert supervisor.modes[(PATH, "youtube")] == "live"
     assert "-rw_timeout" in commands[-1]
+
+
+def test_live_probe_uses_mediamtx_control_api(monkeypatch) -> None:
+    requested: list[tuple[str, int]] = []
+
+    class FakeResponse(BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def fake_urlopen(url: str, timeout: int):
+        requested.append((url, timeout))
+        return FakeResponse(b'{"ready":true,"available":true,"online":true}')
+
+    monkeypatch.setattr("apps.media.restream_worker.urlopen", fake_urlopen)
+    supervisor = RestreamSupervisor([], "rtmp://mediamtx:1935", "x" * 32)
+
+    assert supervisor._live_available(PATH) is True
+    assert requested == [(f"http://mediamtx:9997/v3/paths/get/{PATH}", 2)]
+
+
+def test_live_probe_rejects_incomplete_path_state(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "apps.media.restream_worker.urlopen",
+        lambda *_args, **_kwargs: BytesIO(b'{"ready":true,"available":true,"online":false}'),
+    )
+    supervisor = RestreamSupervisor([], "rtmp://mediamtx:1935", "x" * 32)
+
+    assert supervisor._live_available(PATH) is False

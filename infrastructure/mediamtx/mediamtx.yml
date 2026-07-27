@@ -36,7 +36,11 @@ hls: true
 hlsAddress: :8888
 hlsEncryption: false
 hlsVariant: lowLatency
-hlsAlwaysRemux: false
+# Start the HLS muxer as soon as an RTMP publisher is available. Otherwise the
+# first dashboard viewer pays the complete GOP/playlist startup delay.
+hlsAlwaysRemux: true
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
 hlsAllowOrigins:
   - https://*
   - http://127.0.0.1:*

@@ -14,7 +14,10 @@ type PlaybackMode = "webrtc" | "hls" | "unavailable";
 const NO_LIVE_SIGNAL_MESSAGE =
   "No hay una señal publicada para esta sesión. Copia el servidor y la clave de esta sesión en OBS, inicia la transmisión y vuelve a intentarlo.";
 const PLAYBACK_RETRY_MS = 3_000;
-const HLS_STARTUP_TIMEOUT_MS = 8_000;
+// A freshly-started RTMP publisher can need one complete GOP before the first
+// HLS playlist is playable. This watchdog does not delay successful playback;
+// it only avoids aborting a healthy initial request at the keyframe boundary.
+const HLS_STARTUP_TIMEOUT_MS = 12_000;
 const HLS_STARTUP_RETRY_MAX_MS = 20_000;
 const SESSION_SIGNAL_MISSING_MESSAGE =
   "MediaMTX no recibe una señal para esta sesión. Verifica que OBS use el servidor y la clave RTMP mostrados en esta pantalla.";
@@ -138,11 +141,29 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl, mediaStatus }: MediaMt
     const video = videoRef.current;
     let active = true;
     let playable = false;
+    let playbackStarted = false;
     let hls: HlsType | null = null;
+    const ensurePlayback = () => {
+      if (!active || playbackStarted) return;
+      void video.play().then(() => {
+        playbackStarted = true;
+        setError(null);
+      }).catch((reason: unknown) => {
+        // AbortError is expected while Hls.js replaces a MediaSource during a
+        // bounded reconnect. Other transient autoplay failures are retried by
+        // loadeddata/canplay and the next buffered fragment.
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+      });
+    };
     const markPlayable = () => {
       playable = true;
       hlsStartupRetriesRef.current = 0;
       setError(null);
+      ensurePlayback();
+    };
+    const markPlaying = () => {
+      playbackStarted = true;
+      markPlayable();
     };
     const startupTimeout = window.setTimeout(() => {
       if (!active || playable) return;
@@ -159,20 +180,23 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl, mediaStatus }: MediaMt
         if (active) setHlsReloadGeneration((generation) => generation + 1);
       }, retryDelay - HLS_STARTUP_TIMEOUT_MS);
     }, HLS_STARTUP_TIMEOUT_MS);
-    video.addEventListener("loadeddata", markPlayable, { once: true });
-    video.addEventListener("playing", markPlayable, { once: true });
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.addEventListener("loadedmetadata", ensurePlayback);
+    video.addEventListener("loadeddata", markPlayable);
+    video.addEventListener("canplay", ensurePlayback);
+    video.addEventListener("playing", markPlaying, { once: true });
+    const attachNativeHls = () => {
+      if (!active || !video.canPlayType("application/vnd.apple.mpegurl")) return false;
       video.src = hlsUrl;
-      video.addEventListener("loadedmetadata", () => {
-        video.play().catch((e) => console.warn("Autoplay prevenido por el navegador", e));
-      }, { once: true });
-    } else {
-      void import("hls.js").then(({ default: Hls }) => {
-        if (!active) return;
-        if (!Hls.isSupported()) {
-          setError("Este navegador no admite HLS.");
-          return;
-        }
+      video.load();
+      ensurePlayback();
+      return true;
+    };
+    // Some Chromium/Edge installations report native HLS support but remain
+    // paused at 0:00 with MediaMTX's low-latency fMP4 playlists. Prefer the
+    // MSE implementation when available and reserve native HLS for Safari.
+    void import("hls.js").then(({ default: Hls }) => {
+      if (!active) return;
+      if (Hls.isSupported()) {
         hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
@@ -185,9 +209,7 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl, mediaStatus }: MediaMt
         });
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch((e) => console.warn("Autoplay prevenido por el navegador", e));
-        });
+        hls.on(Hls.Events.MANIFEST_PARSED, ensurePlayback);
         hls.on(Hls.Events.FRAG_BUFFERED, markPlayable);
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
@@ -195,16 +217,20 @@ export default function MediaMtxPlayer({ whepUrl, hlsUrl, mediaStatus }: MediaMt
             setMode("unavailable");
           }
         });
-      }).catch(() => {
-        if (active) setError("No fue posible cargar el reproductor HLS.");
-      });
-    }
+        return;
+      }
+      if (!attachNativeHls()) setError("Este navegador no admite HLS.");
+    }).catch(() => {
+      if (active && !attachNativeHls()) setError("No fue posible cargar el reproductor HLS.");
+    });
     return () => {
       active = false;
       window.clearTimeout(startupTimeout);
       hls?.destroy();
+      video.removeEventListener("loadedmetadata", ensurePlayback);
       video.removeEventListener("loadeddata", markPlayable);
-      video.removeEventListener("playing", markPlayable);
+      video.removeEventListener("canplay", ensurePlayback);
+      video.removeEventListener("playing", markPlaying);
       video.removeAttribute("src");
       video.load();
     };

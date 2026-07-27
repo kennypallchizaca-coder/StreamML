@@ -188,7 +188,7 @@ def test_vdo_ninja_metrics_override_pc_path_for_models_and_dashboard(client: Tes
     assert detail["telemetry"]["network_source"] == "vdo_ninja_webrtc_hybrid"
 
 
-def test_connected_phone_without_mobile_capacity_blocks_inference(client: TestClient):
+def test_connected_phone_without_mobile_capacity_uses_obs_host_probe(client: TestClient):
     login(client)
     session_id = create_session(client)["id"]
     token = _linked_connector(client, session_id)
@@ -205,11 +205,13 @@ def test_connected_phone_without_mobile_capacity_blocks_inference(client: TestCl
     )
     assert response.status_code == 200
     result = response.json()
-    assert result["inference"]["status"] == "blocked"
-    assert all(item["status"] == "blocked" for item in result["inference"]["predictions"])
+    assert result["inference"]["status"] == "executed"
+    reactive = next(item for item in result["inference"]["predictions"] if item["model_role"] == "reactive")
+    assert reactive["status"] == "executed"
     detail = client.get(f"/api/v1/sessions/{session_id}").json()
-    assert detail["telemetry"]["upload_mbps"] is None
-    assert detail["telemetry"]["connection_capacity_mbps"] is None
+    assert detail["telemetry"]["upload_mbps"] == 1.0
+    assert detail["telemetry"]["connection_capacity_mbps"] == 1.0
+    assert detail["telemetry"]["network_source"] == "streamml_http_probe"
 
 
 def test_recent_phone_disconnect_is_not_masked_by_an_old_dashboard_reporter(client: TestClient):

@@ -43,19 +43,17 @@ def merge_vdo_network(
     phone: dict[str, Any] | None,
     reference_at: str,
 ) -> dict[str, Any] | None:
-    """Prefer fresh phone-path WebRTC measurements while retaining probe-only fields."""
+    """Overlay fresh phone-path metrics without discarding a valid OBS-host probe."""
 
     merged = dict(network or {})
     if phone is None:
         return merged or None
     if vdo_phone_status(phone, reference_at) != "connected":
-        # Once a mobile reporter exists, a stale/disconnected phone must not be
-        # replaced by the server computer's usually stable home connection.
+        # A stale/disconnected camera is a signal outage. Do not hide it behind
+        # the OBS computer's otherwise healthy network probe.
         return None
     metrics = phone.get("metrics") or {}
-    merged.pop("upload_mbps", None)
-    merged.pop("connection_capacity_mbps", None)
-    merged["source"] = "vdo_ninja_webrtc_partial"
+    has_phone_overlay = False
     outgoing = metrics.get("available_outgoing_bitrate_kbps")
     received = metrics.get("bitrate_kbps")
     capacity_kbps = outgoing if outgoing is not None and float(outgoing) > 0 else received
@@ -63,14 +61,18 @@ def merge_vdo_network(
         capacity_mbps = float(capacity_kbps) / 1000.0
         merged["upload_mbps"] = capacity_mbps
         merged["connection_capacity_mbps"] = capacity_mbps
-        merged["source"] = "vdo_ninja_webrtc_hybrid"
+        has_phone_overlay = True
     if metrics.get("round_trip_time_ms") is not None:
         merged["latency_ms"] = float(metrics["round_trip_time_ms"])
-        merged["source"] = "vdo_ninja_webrtc_hybrid"
+        has_phone_overlay = True
     if metrics.get("jitter_ms") is not None:
         merged["jitter_ms"] = float(metrics["jitter_ms"])
+        has_phone_overlay = True
     if metrics.get("packet_loss_percent") is not None:
         merged["packet_loss_percent"] = float(metrics["packet_loss_percent"])
+        has_phone_overlay = True
+    if has_phone_overlay:
+        merged["source"] = "vdo_ninja_webrtc_hybrid"
     return merged or None
 
 

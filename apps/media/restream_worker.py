@@ -11,7 +11,9 @@ import subprocess
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
+from urllib.request import urlopen
 
 
 LOGGER = logging.getLogger("streamml_media")
@@ -61,8 +63,10 @@ def ffmpeg_command(target: RestreamTarget, *, rtmp_base: str, media_secret: str)
         raise ValueError("STREAMML_INTERNAL_RTMP_BASE must be an absolute RTMP URL.")
     host = parsed.hostname
     port = f":{parsed.port}" if parsed.port else ""
-    credentials = f"media-worker:{quote(media_secret, safe='')}@"
-    source = f"rtmp://{credentials}{host}{port}/{target.path}"
+    source = (
+        f"rtmp://{host}{port}/{target.path}"
+        f"?user=media-worker&pass={quote(media_secret, safe='')}"
+    )
     return [
         "ffmpeg",
         "-nostdin",
@@ -123,8 +127,10 @@ def source_url(path: str, *, rtmp_base: str, media_secret: str) -> str:
     if parsed.scheme != "rtmp" or not parsed.hostname:
         raise ValueError("STREAMML_INTERNAL_RTMP_BASE must be an absolute RTMP URL.")
     port = f":{parsed.port}" if parsed.port else ""
-    credentials = f"media-worker:{quote(media_secret, safe='')}@"
-    return f"rtmp://{credentials}{parsed.hostname}{port}/{path}"
+    return (
+        f"rtmp://{parsed.hostname}{port}/{path}"
+        f"?user=media-worker&pass={quote(media_secret, safe='')}"
+    )
 
 
 class RestreamSupervisor:
@@ -134,11 +140,16 @@ class RestreamSupervisor:
         rtmp_base: str,
         media_secret: str,
         fallback_file: str = "/fallback/fallback.mp4",
+        mediamtx_api_base: str = "http://mediamtx:9997",
     ) -> None:
         self.targets = targets
         self.rtmp_base = rtmp_base
         self.media_secret = media_secret
         self.fallback_file = fallback_file
+        api_url = urlparse(mediamtx_api_base)
+        if api_url.scheme not in {"http", "https"} or not api_url.hostname:
+            raise ValueError("STREAMML_MEDIAMTX_API_BASE must be an absolute HTTP URL.")
+        self.mediamtx_api_base = mediamtx_api_base.rstrip("/")
         self.processes: dict[tuple[str, str], subprocess.Popen[bytes]] = {}
         self.modes: dict[tuple[str, str], str] = {}
         self.recovery_streaks: dict[tuple[str, str], int] = {}
@@ -150,7 +161,7 @@ class RestreamSupervisor:
     def run(self) -> None:
         while self.running:
             self._reconcile()
-            time.sleep(2)
+            time.sleep(1)
         for process in self.processes.values():
             process.terminate()
         for process in self.processes.values():
@@ -189,30 +200,16 @@ class RestreamSupervisor:
             LOGGER.info("Restream %s/%s started in %s mode.", target.path, target.name, desired_mode)
 
     def _live_available(self, path: str) -> bool:
-        source = source_url(path, rtmp_base=self.rtmp_base, media_secret=self.media_secret)
+        # Query the private MediaMTX control API instead of probing the live RTMP
+        # stream. ffprobe can remain open waiting for a live input and turn a
+        # healthy publisher into a false negative after its timeout.
+        endpoint = f"{self.mediamtx_api_base}/v3/paths/get/{quote(path, safe='')}"
         try:
-            result = subprocess.run(
-                [
-                    "ffprobe",
-                    "-v",
-                    "error",
-                    "-rw_timeout",
-                    "2000000",
-                    "-show_entries",
-                    "stream=codec_type",
-                    "-of",
-                    "csv=p=0",
-                    source,
-                ],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=4,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
+            with urlopen(endpoint, timeout=2) as response:  # noqa: S310 - internal URL validated above
+                payload = json.load(response)
+        except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError):
             return False
-        return result.returncode == 0
+        return all(payload.get(field) is True for field in ("ready", "available", "online"))
 
 
 def main() -> int:
@@ -223,6 +220,7 @@ def main() -> int:
         os.getenv("STREAMML_INTERNAL_RTMP_BASE", "rtmp://mediamtx:1935"),
         os.getenv("STREAMML_MEDIA_AUTH_SECRET", ""),
         os.getenv("STREAMML_FALLBACK_FILE", "/fallback/fallback.mp4"),
+        os.getenv("STREAMML_MEDIAMTX_API_BASE", "http://mediamtx:9997"),
     )
     signal.signal(signal.SIGTERM, supervisor.stop)
     signal.signal(signal.SIGINT, supervisor.stop)

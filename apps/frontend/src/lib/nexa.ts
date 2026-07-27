@@ -108,19 +108,21 @@ export function getNexaState({
     };
   }
 
+  if (telemetry.stream_active && (action === "maintain" || action === "increase")) {
+    return {
+      mood: "stable",
+      label: "Señal estable",
+      message: predictivePrediction?.status === "blocked"
+        ? "La señal está estable mientras completo el historial del modelo predictivo."
+        : "Los modelos y la política del agente están supervisando la calidad en tiempo real.",
+    };
+  }
+
   if (predictivePrediction?.status === "blocked") {
     return {
       mood: "observing",
       label: "Construyendo contexto",
       message: "Estoy reuniendo el historial necesario para activar la predicción de los próximos minutos.",
-    };
-  }
-
-  if (telemetry.stream_active && (action === "maintain" || action === "increase")) {
-    return {
-      mood: "stable",
-      label: "Señal estable",
-      message: "Los modelos y la política del agente están supervisando la calidad en tiempo real.",
     };
   }
 

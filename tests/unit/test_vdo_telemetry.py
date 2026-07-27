@@ -43,7 +43,7 @@ def test_fresh_vdo_metrics_replace_mobile_path_fields_only() -> None:
     }
 
 
-def test_zero_vdo_bitrate_does_not_impersonate_the_mobile_connection() -> None:
+def test_missing_vdo_capacity_retains_the_obs_host_probe() -> None:
     probe = {
         "source": "streamml_http_probe",
         "upload_mbps": 12.0,
@@ -60,12 +60,31 @@ def test_zero_vdo_bitrate_does_not_impersonate_the_mobile_connection() -> None:
     }
 
     merged = merge_vdo_network(probe, phone, "2026-07-17T12:00:01+00:00")
-    assert merged == {
-        "source": "vdo_ninja_webrtc_partial",
+    assert merged == probe
+
+
+def test_partial_vdo_metrics_overlay_probe_without_erasing_capacity() -> None:
+    probe = {
+        "source": "streamml_http_probe",
+        "upload_mbps": 12.0,
         "download_mbps": 50.0,
         "latency_ms": 25.0,
         "jitter_ms": 2.0,
         "packet_loss_percent": 0.0,
+        "connection_capacity_mbps": 12.0,
+    }
+    phone = {
+        "observed_at": "2026-07-17T12:00:00+00:00",
+        "status": "connected",
+        "metrics": {"round_trip_time_ms": 140.0, "jitter_ms": 12.0},
+    }
+
+    merged = merge_vdo_network(probe, phone, "2026-07-17T12:00:01+00:00")
+    assert merged == {
+        **probe,
+        "source": "vdo_ninja_webrtc_hybrid",
+        "latency_ms": 140.0,
+        "jitter_ms": 12.0,
     }
 
 
