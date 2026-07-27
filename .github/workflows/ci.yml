@@ -53,8 +53,11 @@ jobs:
       - name: Build connector wheel
         run: python -m pip wheel --no-deps --wheel-dir dist/connector apps/connector
 
-      - name: Validate Docker Compose configuration
-        run: docker compose --env-file .env.example -f infrastructure/docker/docker-compose.yml config --quiet
+      - name: Validate production Docker Compose configuration
+        run: docker compose --env-file deployment/.env.example -f infrastructure/docker/docker-compose.yml config --quiet
+
+      - name: Validate local Docker Compose configuration
+        run: docker compose --env-file .env.example -f infrastructure/docker/docker-compose.local.yml config --quiet
 
   frontend:
     name: Frontend
